@@ -224,6 +224,13 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
   .linea .qty{grid-column:1/-1;justify-content:flex-end}
 }
 
+/* avance contra inversión */
+.avance{display:grid;gap:10px;margin-top:12px;background:var(--oro-soft);border:1.5px solid var(--oro);border-radius:var(--r);padding:14px}
+.barra-inv{position:relative;height:26px;border-radius:13px;background:var(--surface);border:1px solid var(--line);overflow:hidden}
+.barra-inv div{height:100%;background:linear-gradient(90deg,var(--rosa-2),var(--oro))}
+.barra-inv span{position:absolute;inset:0;display:grid;place-items:center;font-weight:800;font-size:.85rem}
+.toast{white-space:pre-line}
+
 /* ahorro frente al catálogo */
 .ahorro-cat{display:grid;gap:1px;justify-self:start;background:#E8F6EE;border:1px solid #9FD7B5;color:#1E6B3F;border-radius:10px;padding:6px 10px;font-size:.8rem;line-height:1.3}
 .ahorro-cat s{opacity:.8}
@@ -284,7 +291,7 @@ function toast(msg){
   let box = document.querySelector(".toasts");
   if (!box){ box = document.createElement("div"); box.className = "toasts"; box.setAttribute("aria-live","polite"); document.body.appendChild(box); }
   const t = document.createElement("div"); t.className = "toast"; t.textContent = msg; box.appendChild(t);
-  setTimeout(() => t.remove(), 4200);
+  setTimeout(() => t.remove(), msg.length > 120 ? 10000 : 4200);
 }
 async function copiar(txt, btn){
   try { await navigator.clipboard.writeText(txt); if (btn){ const o = btn.textContent; btn.textContent = "Copiado"; setTimeout(()=>btn.textContent=o,1500);} }
@@ -692,8 +699,36 @@ function vAdmin(){
     ${alertas()}
     ${!DB ? `<div class="aviso warn">Conectando tu libreta privada de ventas… Si no aparece, abre este enlace desde tu cuenta de Claude.</div>` : ""}
     ${!CAN_PUBLISH ? `<div class="aviso bad">Esta vista no puede guardar cambios del catálogo. Ábrela desde tu cuenta de Claude, donde eres editor.</div>` : ""}
+    ${panelAvance()}
     <nav class="tabs">${TABS.map(([k,t]) => `<button class="tab ${V.tab===k?"on":""}" data-a="tab" data-v="${k}">${t}</button>`).join("")}</nav>
     <div style="display:grid;gap:14px">${fn()}</div>`;
+}
+// Avance de ventas contra la inversión en mercancía
+function avance(extra){
+  extra = extra || {total:0, n:0};
+  const vs = ventas().filter(r => r.estado !== "Cancelada"), hoy = ahora().slice(0,10);
+  const deHoy = vs.filter(r => String(r.fecha).startsWith(hoy));
+  const vHoy = deHoy.reduce((s,r) => s + num(r.total), 0) + extra.total, nHoy = deHoy.length + extra.n;
+  const acum = vs.reduce((s,r) => s + num(r.total), 0) + extra.total;
+  const costoEntregado = vs.filter(r => r.estado === "Entregado").flatMap(r => r.items || []).reduce((s,i) => s + num(i.costoUnit) * ent(i.cantidad), 0);
+  const invent = S.productos.reduce((s,p) => s + p.variantes.reduce((a,v) => a + existVar(v) * costoVar(p,v), 0), 0);
+  const inv = invent + costoEntregado, pct = inv ? acum / inv * 100 : 0;
+  const cobrado = REG.filter(r => r.tipo === "abono").reduce((s,r) => s + num(r.monto), 0);
+  return {vHoy, nHoy, acum, inv, pct, falta: Math.max(0, inv - acum), ganancia: Math.max(0, acum - inv), cobrado};
+}
+function textoAvance(a){
+  return `📊 Hoy llevas ${mxn(a.vHoy)} (${a.nHoy} pedido${a.nHoy===1?"":"s"}) · Acumulado ${mxn(a.acum)} de ${mxn(a.inv)} invertidos (${a.pct.toFixed(0)}%) · ` +
+    (a.falta > 0 ? `Te faltan ${mxn(a.falta)} para recuperar tu inversión.` : `¡Ya recuperaste tu inversión! Vas ${mxn(a.ganancia)} arriba.`);
+}
+function panelAvance(){
+  if (!DB) return "";
+  const a = avance(), w = Math.min(100, a.pct);
+  return `<div class="avance"><div class="row" style="justify-content:space-between"><b>📊 Tus ventas contra tu inversión</b><span class="small">Cobrado en anticipos y pagos: <b class="num">${mxn(a.cobrado)}</b></span></div>
+    <div class="kpis"><div class="kpi"><small>Vendido hoy</small><b class="num">${mxn(a.vHoy)}</b> <i>${a.nHoy} pedido(s)</i></div>
+      <div class="kpi"><small>Acumulado vendido</small><b class="num">${mxn(a.acum)}</b></div>
+      <div class="kpi"><small>Inversión en mercancía</small><b class="num">${mxn(a.inv)}</b> <i>costo de todo lo que compraste</i></div>
+      <div class="kpi"><small>${a.falta > 0 ? "Falta para recuperar" : "Ganancia sobre la inversión"}</small><b class="num">${mxn(a.falta > 0 ? a.falta : a.ganancia)}</b></div></div>
+    <div class="barra-inv" aria-label="Recuperación ${a.pct.toFixed(0)}%"><div style="width:${w}%"></div><span class="num">${a.pct.toFixed(0)}% recuperado</span></div></div>`;
 }
 function alertas(){
   const umbral = ent(S.config.alertaPiezas) || 3, dias = ent(S.config.alertaCaducidad) || 60, out = [];
@@ -1219,7 +1254,7 @@ async function nuevoRegistro(data){ if (!DB) throw new Error("sin libreta"); awa
 async function guardarCostos(){ if (DB) await coleccion().doc("costos").set({mapa: COSTOS}); }
 // Registra pedidos pegados de WhatsApp como APARTADOS: resta al instante lo disponible.
 async function apartarPedidosWeb(texto, ms){
-  const res = {ok:0, dup:0, sin:[], agot:[]};
+  const res = {ok:0, dup:0, sin:[], agot:[], monto:0};
   let sig = ent(sigFolio()), desde = 0;
   for (const m of ms){
     const seg = texto.slice(desde, m.index); desde = m.index + m[0].length;
@@ -1242,7 +1277,7 @@ async function apartarPedidosWeb(texto, ms){
       items: L.map(l => ({pid:l.pid, vid:l.vid, producto:l.producto, variante:l.variante, categoria:l.categoria, cantidad:l.cantidad, precioLista:l.precioLista, precioUnit:l.precioUnit, costoUnit:l.costoUnit}))});
     if (anticipo > 0) await nuevoRegistro({tipo:"abono", fecha:cuando, folio, cliente:nombre, telefono:tel, monto:anticipo});
     for (const l of L){ l.v.apartado = apartVar(l.v) + l.cantidad; if (dispVar(l.v) <= 0 && dispProd(l.p) <= 0) res.agot.push(l.producto); }
-    res.ok++;
+    res.ok++; res.monto += total;
   }
   return res;
 }
@@ -1330,7 +1365,7 @@ root.addEventListener("click", async ev => {
       if (r.dup) partes.push(`${r.dup} ya estaba(n) registrado(s)`);
       if (r.sin.length) partes.push(`sin piezas suficientes: ${r.sin.join(", ")}`);
       if (r.agot.length) partes.push(`ahora AGOTADO: ${r.agot.join(", ")}`);
-      if (r.ok) await guardarCatalogo("✅ " + partes.join(" · ") + ".");
+      if (r.ok) await guardarCatalogo("✅ " + partes.join(" · ") + ".\n" + textoAvance(avance({total:r.monto, n:r.ok})));
       else { toast(partes.join(" · ") || "No se registró nada."); render(); }
       break; }
     case "vtagregar": {
@@ -1356,7 +1391,7 @@ root.addEventListener("click", async ev => {
       const aparto = vc.inv === "apartar";
       for (const l of L){ if (aparto) l.v.apartado = apartVar(l.v) + l.cantidad; else l.v.existencia = existVar(l.v) - l.cantidad; }
       V.venta = {}; V.ventaCli = {nombre:"",tel:"",forma:"Efectivo",abono:0,envio:0,origen:"En persona",inv:"entregar"};
-      await guardarCatalogo(aparto ? `Pedido #${folio} apartado: las piezas ya no se muestran como disponibles.` : `Venta #${folio} registrada por ${mxn(total)}.`); break; }
+      await guardarCatalogo((aparto ? `Pedido #${folio} apartado: las piezas ya no se muestran como disponibles.` : `Venta #${folio} registrada por ${mxn(total)}.`) + "\n" + textoAvance(avance({total, n:1}))); break; }
     case "vtentregar": {
       const r = ventas().find(x => x._id === v); if (!r) return;
       el.disabled = true;
