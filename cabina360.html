@@ -143,7 +143,9 @@ footer{text-align:center;color:var(--muted);font-size:13px;margin-top:28px}
       <div class="big">🎉</div>
       <h2 id="ok-title">¡Tu cabina 360 está lista!</h2>
       <p class="sub" id="ok-msg"></p>
-      <p><button class="btn gold" id="pdf">Descargar mi contrato (PDF)</button></p>
+      <p><a class="btn gold" id="iniciar" style="display:inline-block;text-decoration:none;font-size:22px;padding:20px 44px">▶ INICIAR CABINA 360</a></p>
+      <p class="note">Abre la cabina en el celular o tablet que va en el brazo giratorio. También puedes copiar el enlace: <button class="btn" id="copiar" style="padding:6px 12px;font-size:13px">Copiar enlace de la cabina</button></p>
+      <p><button class="btn" id="pdf">Descargar mi contrato (PDF)</button></p>
       <p><a class="btn wa" id="wa" target="_blank" rel="noopener">Avisar a AM Medinas por WhatsApp</a></p>
       <p class="note">Folio: <b id="folio"></b></p>
     </div>
@@ -408,13 +410,21 @@ async function asegurarJsPDF() {
     sc2.onload = ok; sc2.onerror = mal; document.head.appendChild(sc2);
   });
 }
+function enlaceCabina() {
+  const cfg = { evento: v('evento'), fecha: v('fecha'), lugar: v('lugar'), pagina: v('pagina'), template: plantilla() };
+  const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(cfg)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return new URL('cabina.html#' + b64, location.href).href;
+}
 function terminar(folio, enviado) {
   $('#folio').textContent = folio;
+  const cab = enlaceCabina();
+  $('#iniciar').href = cab;
+  $('#copiar').onclick = async () => { try { await navigator.clipboard.writeText(cab); $('#copiar').textContent = '¡Copiado!'; } catch (e) { prompt('Copia este enlace:', cab); } };
   $('#ok-title').textContent = enviado ? '¡Tu cabina 360 está lista!' : '¡Contrato firmado!';
   $('#ok-msg').innerHTML = enviado
-    ? 'Tu autorización y tu estilo ya le llegaron a AM Medinas. No tienes que hacer nada más: el día del evento tus invitados solo tocan <b>INICIAR</b> en la cabina.'
-    : 'Último paso: <b>descarga tu contrato y envíalo a AM Medinas por WhatsApp</b> con los botones de abajo (no se pudo enviar solo, quizá por la señal).';
-  const msg = `Hola AM Medinas, ya firmé la autorización de la Cabina 360 para "${v('evento')}" (${v('fecha')}). Folio ${folio}. Mi Página: ${v('pagina')}` + (enviado ? '' : '. Te envío el PDF por aquí.');
+    ? 'Tu autorización y tu estilo ya le llegaron a AM Medinas. Toca <b>INICIAR CABINA 360</b> para abrirla.'
+    : 'Tu cabina ya está lista: toca <b>INICIAR CABINA 360</b>. Además descarga tu contrato y envíalo a AM Medinas por WhatsApp (no se pudo enviar solo, quizá por la señal).';
+  const msg = `Hola AM Medinas, ya firmé la autorización de la Cabina 360 para "${v('evento')}" (${v('fecha')}). Folio ${folio}. Mi Página: ${v('pagina')}` + (enviado ? '' : '. Te envío el PDF por aquí.') + `\nCabina: ${cab}`;
   $('#wa').href = `https://wa.me/${WA}?text=${encodeURIComponent(msg)}`;
   try { localStorage.removeItem('amm360'); } catch (e) {}
   ir(3);

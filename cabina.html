@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#0a0f36">
+<title>Cabina 360 · AM Medinas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,500;0,700;0,800;1,600&display=swap" rel="stylesheet">
+<style>
+:root{--gold:#e8b94a;--gold-2:#f5d98b;--navy:#0a0f36;--ink:#f3f4fb;--muted:#a9b0d6;--bad:#ff6b81;--ok:#25a55f}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:#000;color:var(--ink);font-family:Montserrat,system-ui,sans-serif;overflow:hidden;user-select:none}
+#cam{position:fixed;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+#cam.trasera{transform:none}
+.shade{position:fixed;inset:0;background:linear-gradient(180deg,rgba(6,8,30,.75),rgba(6,8,30,.15) 40%,rgba(6,8,30,.85));pointer-events:none}
+.top{position:fixed;top:0;left:0;right:0;padding:max(16px,env(safe-area-inset-top)) 20px 0;display:flex;justify-content:space-between;align-items:flex-start;z-index:5}
+.brand{color:var(--gold);letter-spacing:.28em;font-weight:700;font-size:12px}
+.title{font-size:clamp(22px,4.6vw,44px);font-weight:800;margin-top:4px;text-shadow:0 2px 12px rgba(0,0,0,.6)}
+.tools{display:flex;gap:8px}
+.ico{width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.35);color:#fff;font-size:20px;display:grid;place-items:center;cursor:pointer}
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:4;text-align:center;padding:90px 16px 30px}
+.hidden{display:none!important}
+#go{width:min(56vw,300px);aspect-ratio:1;border-radius:50%;border:0;cursor:pointer;font:800 clamp(26px,6vw,44px) Montserrat;letter-spacing:.06em;color:#17120a;
+  background:radial-gradient(circle at 50% 40%,var(--gold-2),var(--gold));box-shadow:0 0 0 0 rgba(232,185,74,.6);animation:pulse 2s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(232,185,74,.55)}70%{box-shadow:0 0 0 40px rgba(232,185,74,0)}100%{box-shadow:0 0 0 0 rgba(232,185,74,0)}}
+.hint{font-weight:700;font-size:clamp(16px,3vw,24px);margin-top:28px;text-shadow:0 2px 10px #000}
+.sub{color:var(--muted);margin-top:6px;font-size:14px}
+#num{font-size:min(42vw,300px);font-weight:800;line-height:1;text-shadow:0 6px 30px rgba(0,0,0,.6)}
+#msg{font-size:clamp(26px,5vw,48px);font-weight:800;text-shadow:0 4px 20px #000}
+#note{color:var(--gold-2);font-weight:700;margin-top:8px;min-height:24px;text-shadow:0 2px 8px #000}
+.thumbs{display:flex;gap:8px;margin-top:22px;flex-wrap:wrap;justify-content:center}
+.thumbs div{width:min(13vw,96px);aspect-ratio:4/5;border-radius:10px;border:2px dashed rgba(255,255,255,.35);background:rgba(0,0,0,.35) center/cover;display:grid;place-items:center;font-weight:800;color:rgba(255,255,255,.6)}
+.thumbs div.on{border:3px solid var(--gold)}
+#flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:9;transition:opacity .35s}
+#rec{position:fixed;top:max(18px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);background:rgba(0,0,0,.55);padding:8px 16px;border-radius:999px;font-weight:800;z-index:6}
+#rec b{display:inline-block;width:12px;height:12px;border-radius:50%;background:var(--bad);margin-right:8px;animation:blink 1s infinite}
+@keyframes blink{50%{opacity:.2}}
+.bar{width:min(80vw,520px);height:12px;border-radius:9px;background:rgba(255,255,255,.15);overflow:hidden;margin-top:18px}
+.bar i{display:block;height:100%;width:0;background:var(--gold);transition:width .3s}
+.final{background:rgba(6,8,30,.92)}
+.fwrap{display:flex;gap:22px;align-items:center;justify-content:center;flex-wrap:wrap;max-width:1100px}
+#collage{width:min(92vw,560px);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.6)}
+#vid{width:min(44vw,240px);border-radius:14px;background:#000}
+.acts{display:flex;flex-direction:column;gap:10px;min-width:240px}
+.btn{border:0;border-radius:999px;padding:15px 22px;font:700 16px Montserrat;cursor:pointer;background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.2)}
+.btn.gold{background:linear-gradient(135deg,var(--gold-2),var(--gold));color:#17120a;border:0}
+.btn.fb{background:#1877F2;border:0}
+.small{font-size:13px;color:var(--muted)}
+.panel{position:fixed;inset:auto 12px 12px auto;width:min(92vw,380px);background:#0d1546;border:1px solid #2a3577;border-radius:18px;padding:16px;z-index:20;text-align:left}
+.panel h3{margin:0 0 10px;color:var(--gold);font-size:14px;letter-spacing:.15em}
+.panel label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+.panel select,.panel input{width:100%;padding:10px;border-radius:10px;border:1px solid #2a3577;background:#0a0f36;color:#fff;font:inherit}
+.err{max-width:520px;background:rgba(0,0,0,.6);padding:20px;border-radius:16px}
+</style>
+</head>
+<body>
+<video id="cam" playsinline muted autoplay></video>
+<div class="shade"></div>
+<div id="flash"></div>
+<div id="rec" class="hidden"><b></b><span id="rect">REC</span></div>
+
+<div class="top">
+  <div><div class="brand">AM MEDINAS 360 · <span id="fecha"></span></div><div class="title" id="evt">Cabina 360</div></div>
+  <div class="tools">
+    <button class="ico" id="bfull" title="Pantalla completa">⛶</button>
+    <button class="ico" id="bset" title="Ajustes">⚙</button>
+  </div>
+</div>
+
+<!-- INICIO -->
+<section class="screen" id="pIni">
+  <button id="go">INICIAR</button>
+  <div class="hint">Un toque: 6 fotos tipo postal + video 360</div>
+  <div class="sub" id="ia">Preparando cámara…</div>
+</section>
+
+<!-- CUENTA -->
+<section class="screen hidden" id="pCount"><div id="num">3</div></section>
+
+<!-- CAPTURA -->
+<section class="screen hidden" id="pCap">
+  <div id="msg">Foto 1 de 6</div>
+  <div id="note"></div>
+  <div class="thumbs" id="thumbs"></div>
+</section>
+
+<!-- PROCESO -->
+<section class="screen hidden" id="pProc">
+  <div id="msg2" style="font-size:clamp(26px,5vw,44px);font-weight:800">Creando tu recuerdo</div>
+  <div id="note2" style="color:var(--gold);margin-top:8px">Aplicando tu marco y la marca AM Medinas…</div>
+  <div class="bar"><i id="barI"></i></div>
+</section>
+
+<!-- FINAL -->
+<section class="screen final hidden" id="pFin">
+  <div class="fwrap">
+    <img id="collage" alt="Tus 6 postales">
+    <div class="acts">
+      <video id="vid" playsinline loop muted controls></video>
+      <button class="btn gold" id="bShare">Compartir (WhatsApp, Facebook…)</button>
+      <button class="btn" id="bDown">Descargar fotos y video</button>
+      <button class="btn gold" id="bOtra">Nueva toma</button>
+      <div class="small" id="fmsg"></div>
+      <div class="small" id="back"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ERROR -->
+<section class="screen hidden" id="pErr"><div class="err"><h2>No pude abrir la cámara</h2><p id="errT"></p>
+  <p class="small">Da permiso de cámara al navegador (candado junto a la dirección) y recarga. Funciona en Chrome (Android, Windows) y Safari (iPhone/iPad).</p>
+  <button class="btn gold" onclick="location.reload()">Reintentar</button></div></section>
+
+<!-- AJUSTES -->
+<div class="panel hidden" id="set">
+  <h3>AJUSTES DE LA CABINA</h3>
+  <label>Cámara</label><select id="sCam"></select>
+  <label>Segundos de video 360</label><input id="sSeg" type="number" min="3" max="30" value="8">
+  <label>Cuenta regresiva (s)</label><input id="sCnt" type="number" min="1" max="10" value="3">
+  <label><input type="checkbox" id="sGuardar" checked style="width:auto"> Descargar automáticamente cada toma en este equipo</label>
+  <p class="small">Tomas del evento en este equipo: <b id="sTot">0</b></p>
+  <div style="display:flex;gap:8px;margin-top:10px"><button class="btn" id="sAll" style="flex:1">Descargar todo el evento</button><button class="btn gold" id="sOk" style="flex:1">Listo</button></div>
+</div>
+
+<script>
+(() => {
+const $ = (s) => document.querySelector(s);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// ---------------- configuración del evento (viene del enlace firmado)
+const DEF = { evento: 'Cabina 360', fecha: '', template: { title: 'AM Medinas 360', subtitle: '', frame: 'Elegante',
+  theme_color: '#D4AF37', filter: 'Natural', effect: 'Ninguno', stickers: ['Corazones'], speed: 'normal' } };
+let CFG = DEF;
+try {
+  const h = location.hash.slice(1);
+  if (h) CFG = JSON.parse(decodeURIComponent(escape(atob(h.replace(/-/g, '+').replace(/_/g, '/')))));
+  else CFG = JSON.parse(localStorage.getItem('amm360_cabina') || 'null') || DEF;
+  localStorage.setItem('amm360_cabina', JSON.stringify(CFG));
+} catch (e) { CFG = DEF; }
+const T = Object.assign({}, DEF.template, CFG.template || {});
+$('#evt').textContent = T.title || CFG.evento;
+$('#fecha').textContent = CFG.fecha || '';
+document.title = (T.title || 'Cabina 360') + ' · AM Medinas';
+const slug = (CFG.evento || 'evento').normalize('NFD').replace(/[^\w]+/g, '_').replace(/^_|_$/g, '').slice(0, 40);
+
+// ---------------- cámara
+const cam = $('#cam');
+let stream = null, facing = 'user';
+async function abrirCamara(deviceId) {
+  if (stream) stream.getTracks().forEach((t) => t.stop());
+  const v = deviceId ? { deviceId: { exact: deviceId } } : { facingMode: facing };
+  stream = await navigator.mediaDevices.getUserMedia({ video: Object.assign(v, { width: { ideal: 1920 }, height: { ideal: 1080 } }), audio: false });
+  cam.srcObject = stream;
+  await cam.play().catch(() => {});
+  const s = stream.getVideoTracks()[0].getSettings();
+  cam.classList.toggle('trasera', s.facingMode === 'environment');
+  const devs = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'videoinput');
+  $('#sCam').innerHTML = devs.map((d, i) => `<option value="${d.deviceId}" ${d.deviceId === s.deviceId ? 'selected' : ''}>${d.label || 'Cámara ' + (i + 1)}</option>`).join('');
+}
+
+// ---------------- IA local (MediaPipe en el navegador: ojos cerrados y sonrisa)
+let face = null;
+async function cargarIA() {
+  try {
+    const V = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14';
+    const mp = await import(V + '/vision_bundle.mjs');
+    const files = await mp.FilesetResolver.forVisionTasks(V + '/wasm');
+    face = await mp.FaceLandmarker.createFromOptions(files, {
+      baseOptions: { modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task' },
+      outputFaceBlendshapes: true, runningMode: 'IMAGE', numFaces: 6 });
+    $('#ia').textContent = 'IA activa: repite fotos con ojos cerrados o movidas';
+  } catch (e) {
+    face = null;
+    $('#ia').textContent = 'IA activa: repite fotos movidas';
+  }
+}
+function nitidez(cv) {                         // varianza del Laplaciano sobre 320 px
+  const w = 320, h = Math.round(cv.height * 320 / cv.width);
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const g = c.getContext('2d'); g.drawImage(cv, 0, 0, w, h);
+  const d = g.getImageData(0, 0, w, h).data, L = new Float32Array(w * h);
+  for (let i = 0; i < w * h; i++) L[i] = .299 * d[i * 4] + .587 * d[i * 4 + 1] + .114 * d[i * 4 + 2];
+  let s = 0, s2 = 0, n = 0;
+  for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
+    const i = y * w + x, v = 4 * L[i] - L[i - 1] - L[i + 1] - L[i - w] - L[i + w];
+    s += v; s2 += v * v; n++;
+  }
+  const varz = s2 / n - (s / n) ** 2;
+  return Math.min(1, Math.log10(varz + 1) / 3);
+}
+function analizar(cv) {
+  const r = { blur: nitidez(cv), cerrados: false, sonrisa: .5 };
+  if (face) {
+    try {
+      const res = face.detect(cv);
+      const caras = (res.faceBlendshapes || []).map((b) => Object.fromEntries(b.categories.map((c) => [c.categoryName, c.score])));
+      if (caras.length) {
+        r.cerrados = caras.some((c) => Math.max(c.eyeBlinkLeft || 0, c.eyeBlinkRight || 0) > .55);
+        r.sonrisa = caras.reduce((a, c) => a + ((c.mouthSmileLeft || 0) + (c.mouthSmileRight || 0)) / 2, 0) / caras.length;
+      }
+    } catch (e) {}
+  }
+  return r;
+}
+
+// ---------------- composición de postales (marco, filtro, stickers, marca de agua)
+const W = 1080, H = 1350;
+const FILT = { 'Blanco y negro': 'grayscale(1) contrast(1.1)', Vintage: 'sepia(.6) contrast(.95) saturate(.9)', 'Cálido': 'sepia(.2) saturate(1.2) brightness(1.03)',
+  'Frío': 'hue-rotate(12deg) saturate(.9) brightness(1.04)', 'Vívido': 'saturate(1.55) contrast(1.05)', Glam: 'brightness(1.07) saturate(1.15) contrast(1.03)' };
+const EFX = { 'Caricatura IA': 'contrast(1.45) saturate(1.6)', 'Boceto IA': 'grayscale(1) contrast(2.1) brightness(1.3)', 'Óleo IA': 'saturate(1.35) blur(1.2px)', 'Pop art IA': 'saturate(2.3) contrast(1.6)' };
+function cover(g, src, x, y, w, h, mirror) {
+  const sw = src.videoWidth || src.width, sh = src.videoHeight || src.height;
+  const s = Math.max(w / sw, h / sh), dw = sw * s, dh = sh * s;
+  g.save(); g.beginPath(); g.rect(x, y, w, h); g.clip();
+  if (mirror) { g.translate(x + w / 2, 0); g.scale(-1, 1); g.translate(-(x + w / 2), 0); }
+  g.drawImage(src, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh); g.restore();
+}
+function rr(g, x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+function texto(g, s, y, font, color, maxW = 960, stroke) {
+  let size = parseInt(font.match(/(\d+)px/)[1]);
+  const mk = () => font.replace(/\d+px/, size + 'px');
+  g.font = mk(); while (size > 18 && g.measureText(s).width > maxW) { size = Math.floor(size * .92); g.font = mk(); }
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  if (stroke) { g.lineWidth = stroke; g.strokeStyle = 'rgba(0,0,0,.45)'; g.strokeText(s, W / 2, y); }
+  g.fillStyle = color; g.fillText(s, W / 2, y);
+}
+function foto(src, w, h, mirror) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const g = c.getContext('2d');
+  g.filter = [FILT[T.filter] || '', EFX[T.effect] || ''].join(' ').trim() || 'none';
+  cover(g, src, 0, 0, w, h, mirror);
+  return c;
+}
+const EMO = { Corazones: '❤️', Estrellas: '⭐', Corona: '👑', Globos: '🎈' };
+function marcaDeAgua(g, w, h) {                 // obligatoria, no se puede quitar
+  const size = Math.round(w * .034);
+  g.save(); g.font = `800 ${size}px Montserrat`; g.textAlign = 'right'; g.textBaseline = 'alphabetic';
+  g.lineWidth = Math.max(3, size / 6); g.strokeStyle = 'rgba(0,0,0,.55)'; g.globalAlpha = .9;
+  g.strokeText('AM Medinas', w - w * .03, h - w * .03); g.fillStyle = '#fff'; g.fillText('AM Medinas', w - w * .03, h - w * .03);
+  g.restore();
+}
+function postal(src, mirror) {
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d'), col = T.theme_color || '#D4AF37', t = T.title || '', st = T.subtitle || '';
+  if (T.frame === 'Elegante') {
+    g.fillStyle = '#121014'; g.fillRect(0, 0, W, H); g.drawImage(foto(src, W - 120, H - 300, mirror), 60, 60);
+    g.strokeStyle = col; g.lineWidth = 4; g.strokeRect(40, 40, W - 80, H - 260); g.lineWidth = 1.5; g.strokeRect(52, 52, W - 104, H - 284);
+    [[40, 40], [W - 40, 40], [40, H - 220], [W - 40, H - 220]].forEach(([x, y]) => { g.fillStyle = col; g.beginPath(); g.arc(x, y, 9, 0, 7); g.fill(); });
+    texto(g, t, H - 140, 'italic 600 70px Montserrat', col); texto(g, st.toUpperCase(), H - 72, '500 28px Montserrat', '#ddd2bd');
+  } else if (T.frame === 'Fiesta') {
+    g.drawImage(foto(src, W, H, mirror), 0, 0);
+    for (let i = 0; i < 140; i++) { g.fillStyle = [col, '#ffd600', '#00d2ff', '#ff50a0', '#7dff7d'][i % 5]; const y = i % 2 ? (i * 13) % 170 : H - 330 + (i * 17) % 330; g.fillRect((i * 97) % W, y, 18, 10); }
+    const gr = g.createLinearGradient(0, H - 360, 0, H); gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(1, col); g.fillStyle = gr; g.fillRect(0, H - 360, W, 360);
+    texto(g, t, H - 150, '800 84px Montserrat', '#fff', 960, 10); texto(g, st, H - 70, '500 32px Montserrat', '#fff');
+  } else if (T.frame === 'Polaroid') {
+    g.fillStyle = '#faf8f4'; g.fillRect(0, 0, W, H); g.drawImage(foto(src, W - 100, W - 10, mirror), 50, 50);
+    texto(g, t, H - 150, 'italic 600 72px Montserrat', '#2a2a2a'); texto(g, st, H - 75, '500 30px Montserrat', col);
+  } else if (T.frame === 'Neón') {
+    g.fillStyle = '#08061a'; g.fillRect(0, 0, W, H); g.drawImage(foto(src, W - 140, H - 320, mirror), 70, 70);
+    g.save(); g.shadowColor = col; g.shadowBlur = 40; g.strokeStyle = col; g.lineWidth = 12; rr(g, 50, 50, W - 100, H - 280, 30); g.stroke();
+    g.shadowBlur = 0; g.strokeStyle = '#fff'; g.lineWidth = 3; rr(g, 50, 50, W - 100, H - 280, 30); g.stroke(); g.restore();
+    g.save(); g.shadowColor = col; g.shadowBlur = 30; texto(g, t, H - 135, '800 80px Montserrat', '#fff'); g.restore();
+    texto(g, st, H - 62, '500 30px Montserrat', '#dfe0ff');
+  } else { g.drawImage(foto(src, W, H, mirror), 0, 0); }
+  const slots = [[.8, .1, 150], [.13, .6, 130], [.86, .65, 100]];
+  (T.stickers || []).slice(0, 3).forEach((s, i) => {
+    const [rx, ry, sz] = slots[i];
+    g.save(); g.translate(W * rx, H * ry); g.rotate((i % 2 ? 1 : -1) * .2); g.shadowColor = 'rgba(0,0,0,.35)'; g.shadowBlur = 14;
+    if (EMO[s]) { g.font = `${sz}px serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(EMO[s], 0, 0); }
+    else {
+      const txt = s === 'Party' ? 'PARTY' : s === 'Love' ? 'LOVE' : s;
+      g.fillStyle = '#fff'; g.strokeStyle = '#111'; g.lineWidth = 6; rr(g, -sz, -sz * .38, sz * 2, sz * .76, sz * .38); g.fill(); g.stroke();
+      g.shadowBlur = 0; g.fillStyle = '#111'; g.font = `800 ${sz * .36}px Montserrat`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(txt, 0, 2);
+    }
+    g.restore();
+  });
+  marcaDeAgua(g, W, H);
+  return c;
+}
+function mosaico(cards) {
+  const tw = 360, th = 450, p = 16, c = document.createElement('canvas');
+  c.width = 3 * tw + 4 * p; c.height = 2 * th + 3 * p;
+  const g = c.getContext('2d'); g.fillStyle = '#0f0f12'; g.fillRect(0, 0, c.width, c.height);
+  cards.forEach((k, i) => g.drawImage(k, p + (i % 3) * (tw + p), p + Math.floor(i / 3) * (th + p), tw, th));
+  return c;
+}
+const aBlob = (c, q = .92) => new Promise((r) => c.toBlob(r, 'image/jpeg', q));
+
+// ---------------- grabación del video 360 (con marca de agua quemada)
+function tipoVideo() {
+  const ops = ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm'];
+  return ops.find((t) => window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || '';
+}
+async function grabar(segundos, onTick) {
+  const vw = 720, vh = 1280, c = document.createElement('canvas'); c.width = vw; c.height = vh;
+  const g = c.getContext('2d'), mirror = !cam.classList.contains('trasera');
+  let vivo = true;
+  (function pinta() {
+    if (!vivo) return;
+    g.filter = FILT[T.filter] || 'none'; cover(g, cam, 0, 0, vw, vh, mirror); g.filter = 'none';
+    g.font = '800 34px Montserrat'; g.textAlign = 'center'; g.fillStyle = '#fff'; g.lineWidth = 4; g.strokeStyle = 'rgba(0,0,0,.5)';
+    const t = T.title || ''; g.strokeText(t, vw / 2, vh - 90, vw - 60); g.fillText(t, vw / 2, vh - 90, vw - 60);
+    marcaDeAgua(g, vw, vh);
+    requestAnimationFrame(pinta);
+  })();
+  const tipo = tipoVideo();
+  const rec = new MediaRecorder(c.captureStream(30), tipo ? { mimeType: tipo, videoBitsPerSecond: 6_000_000 } : undefined);
+  const partes = []; rec.ondataavailable = (e) => e.data.size && partes.push(e.data);
+  const fin = new Promise((r) => (rec.onstop = r));
+  rec.start(500);
+  for (let s = segundos; s > 0; s--) { onTick(s); await sleep(1000); }
+  rec.stop(); await fin; vivo = false;
+  const mime = rec.mimeType || tipo || 'video/webm';
+  return { blob: new Blob(partes, { type: mime }), ext: mime.includes('mp4') ? 'mp4' : 'webm' };
+}
+
+// ---------------- galería del evento en este equipo (IndexedDB)
+let db = null;
+const idb = indexedDB.open('amm360', 1);
+idb.onupgradeneeded = () => idb.result.createObjectStore('tomas', { keyPath: 'id' });
+idb.onsuccess = () => { db = idb.result; contar(); };
+function guardarToma(t) { if (!db) return; try { db.transaction('tomas', 'readwrite').objectStore('tomas').put(t); contar(); } catch (e) {} }
+function todas() { return new Promise((r) => { if (!db) return r([]); const q = db.transaction('tomas').objectStore('tomas').getAll(); q.onsuccess = () => r(q.result.filter((x) => x.evento === slug)); q.onerror = () => r([]); }); }
+async function contar() { $('#sTot').textContent = (await todas()).length; }
+async function siguienteNumero() { const t = await todas(); return t.reduce((m, x) => Math.max(m, x.n), 0) + 1; }
+function bajar(blob, nombre) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = nombre; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }
+
+// ---------------- flujo de la toma (un solo toque)
+const show = (id) => ['#pIni', '#pCount', '#pCap', '#pProc', '#pFin', '#pErr'].forEach((p) => $(p).classList.toggle('hidden', p !== id));
+let ocupado = false, ultima = null, regreso = null;
+function flash() { $('#flash').style.transition = 'none'; $('#flash').style.opacity = .95; requestAnimationFrame(() => { $('#flash').style.transition = 'opacity .45s'; $('#flash').style.opacity = 0; }); }
+async function tomar() {
+  if (ocupado || !stream) return;
+  ocupado = true; clearInterval(regreso);
+  try {
+    const n = await siguienteNumero(), num = String(n).padStart(3, '0');
+    const mirror = !cam.classList.contains('trasera');
+    show('#pCount');
+    for (let i = +$('#sCnt').value || 3; i > 0; i--) { $('#num').textContent = i; await sleep(1000); }
+    $('#num').textContent = '¡Sonríe!'; await sleep(500);
+    show('#pCap');
+    $('#thumbs').innerHTML = [1, 2, 3, 4, 5, 6].map((i) => `<div>${i}</div>`).join('');
+    const cards = [], fotos = [];
+    for (let i = 0; i < 6; i++) {
+      $('#msg').textContent = `Foto ${i + 1} de 6`;
+      let card, intentos = 0;
+      while (true) {
+        const raw = document.createElement('canvas'); raw.width = cam.videoWidth; raw.height = cam.videoHeight;
+        raw.getContext('2d').drawImage(cam, 0, 0);
+        flash();
+        const a = analizar(raw), motivo = a.blur < .3 ? 'una foto movida' : a.cerrados ? 'ojos cerrados' : '';
+        if (motivo && intentos < 2) { intentos++; $('#note').textContent = `La IA detectó ${motivo}: repetimos la foto ${i + 1}`; await sleep(900); continue; }
+        $('#note').textContent = '';
+        card = postal(raw, mirror); break;
+      }
+      cards.push(card);
+      const blob = await aBlob(card);
+      fotos.push({ nombre: `toma_${num}_foto_${i + 1}.jpg`, blob });
+      const th = $('#thumbs').children[i]; th.textContent = ''; th.classList.add('on'); th.style.backgroundImage = `url(${URL.createObjectURL(blob)})`;
+      await sleep(1100);
+    }
+    $('#msg').textContent = '¡A girar! Video 360'; $('#note').textContent = 'Enciende el giro de la cabina';
+    await sleep(1200);
+    show(null); $('#rec').classList.remove('hidden');
+    const v = await grabar(+$('#sSeg').value || 8, (s) => ($('#rect').textContent = `REC  ${s} s`));
+    $('#rec').classList.add('hidden');
+    show('#pProc'); $('#barI').style.width = '40%';
+    const col = mosaico(cards), colBlob = await aBlob(col, .9);
+    $('#barI').style.width = '100%'; await sleep(300);
+    const video = { nombre: `toma_${num}_video.${v.ext}`, blob: v.blob };
+    ultima = { n, fotos, video, mosaico: colBlob };
+    guardarToma({ id: slug + '_' + n, evento: slug, n, fotos, video, mosaico: colBlob, ts: Date.now() });
+    if ($('#sGuardar').checked) { fotos.forEach((f) => bajar(f.blob, f.nombre)); bajar(video.blob, video.nombre); }
+    $('#collage').src = URL.createObjectURL(colBlob);
+    $('#vid').src = URL.createObjectURL(v.blob); $('#vid').play().catch(() => {});
+    $('#fmsg').textContent = $('#sGuardar').checked ? 'Tus fotos y video ya se guardaron en la cabina.' : '';
+    show('#pFin');
+    let s = 40; $('#back').textContent = `Regresando en ${s} s`;
+    regreso = setInterval(() => { s--; $('#back').textContent = `Regresando en ${s} s`; if (s <= 0) inicio(); }, 1000);
+  } catch (e) {
+    console.error(e); $('#note').textContent = 'Algo falló: ' + e.message; await sleep(2500); inicio();
+  } finally { ocupado = false; }
+}
+function inicio() { clearInterval(regreso); $('#vid').pause(); show('#pIni'); }
+
+$('#go').onclick = tomar;
+document.addEventListener('keydown', (e) => { if ((e.key === ' ' || e.key === 'Enter') && !$('#pIni').classList.contains('hidden')) tomar(); });
+$('#bOtra').onclick = inicio;
+$('#bDown').onclick = () => { if (!ultima) return; ultima.fotos.forEach((f) => bajar(f.blob, f.nombre)); bajar(ultima.video.blob, ultima.video.nombre); };
+$('#bShare').onclick = async () => {
+  if (!ultima) return;
+  const files = [...ultima.fotos.map((f) => new File([f.blob], f.nombre, { type: 'image/jpeg' })),
+    new File([ultima.video.blob], ultima.video.nombre, { type: ultima.video.blob.type })];
+  const data = { files, title: T.title, text: `${T.title} · Cabina 360 AM Medinas` };
+  try {
+    if (navigator.canShare && navigator.canShare(data)) await navigator.share(data);
+    else if (navigator.canShare && navigator.canShare({ files: files.slice(0, 6) })) await navigator.share({ files: files.slice(0, 6), text: data.text });
+    else { $('#fmsg').textContent = 'Este equipo no permite compartir directo: usa "Descargar".'; }
+  } catch (e) {}
+};
+$('#bfull').onclick = () => { const d = document.documentElement; (document.fullscreenElement ? document.exitFullscreen() : (d.requestFullscreen || d.webkitRequestFullscreen).call(d)).catch?.(() => {}); };
+$('#bset').onclick = () => $('#set').classList.toggle('hidden');
+$('#sOk').onclick = () => { $('#set').classList.add('hidden'); try { localStorage.setItem('amm360_ajustes', JSON.stringify({ seg: $('#sSeg').value, cnt: $('#sCnt').value, g: $('#sGuardar').checked })); } catch (e) {} };
+$('#sCam').onchange = (e) => abrirCamara(e.target.value).catch((x) => alert(x.message));
+$('#sAll').onclick = async () => { for (const t of await todas()) { t.fotos.forEach((f) => bajar(f.blob, f.nombre)); bajar(t.video.blob, t.video.nombre); await sleep(400); } };
+try { const a = JSON.parse(localStorage.getItem('amm360_ajustes') || 'null'); if (a) { $('#sSeg').value = a.seg; $('#sCnt').value = a.cnt; $('#sGuardar').checked = a.g; } } catch (e) {}
+
+// pantalla siempre encendida durante el evento
+async function despierta() { try { if ('wakeLock' in navigator) await navigator.wakeLock.request('screen'); } catch (e) {} }
+document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && despierta());
+
+(async () => {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { show('#pErr'); $('#errT').textContent = 'Este navegador no permite usar la cámara.'; return; }
+  try { await abrirCamara(); despierta(); $('#ia').textContent = 'Cargando IA…'; cargarIA(); }
+  catch (e) { show('#pErr'); $('#errT').textContent = e.message || String(e); }
+})();
+})();
+</script>
+</body>
+</html>
