@@ -118,6 +118,10 @@ html,body{margin:0;height:100%;background:#000;color:var(--ink);font-family:Mont
   <label>Cámara</label><select id="sCam"></select>
   <label>Segundos de video 360</label><input id="sSeg" type="number" min="3" max="30" value="8">
   <label>Cuenta regresiva (s)</label><input id="sCnt" type="number" min="1" max="10" value="3">
+  <label>Modo de video</label><select id="sModo"><option value="normal">Normal</option><option value="lenta">Cámara lenta</option><option value="boomerang">Boomerang</option></select>
+  <label>Formato del video</label><select id="sFmt"><option value="v">Vertical 9:16 (historias y reels)</option><option value="c">Cuadrado 1:1</option></select>
+  <label><input type="checkbox" id="sBelleza" style="width:auto"> Filtro de belleza (piel suave)</label>
+  <label>Sentido del giro</label><select id="sDir"><option value="h">Horario</option><option value="a">Antihorario</option></select>
   <label>Tiempo para arrancar el motor con su control (s)</label><input id="sMot" type="number" min="0" max="10" value="3">
   <label>Velocidad sugerida en el control del motor</label><select id="sVel"><option>Lenta (2-3)</option><option selected>Media (4-5)</option><option>Rápida (6-8)</option></select>
   <label><input type="checkbox" id="sBeep" checked style="width:auto"> Avisos con sonido (para el operador)</label>
@@ -125,6 +129,13 @@ html,body{margin:0;height:100%;background:#000;color:var(--ink);font-family:Mont
   <div class="small" style="margin-top:10px;border-top:1px solid #2a3577;padding-top:10px">
     <b>📸 Control de fotos (Bluetooth):</b> vincúlalo al celular en Ajustes &gt; Bluetooth y presiona su botón: <b id="sKey">esperando…</b><br>
     Usa el botón de Android (no el de iOS). Cada clic hace lo mismo que tocar INICIAR.
+  </div>
+  <div class="small" style="margin-top:10px;border-top:1px solid #2a3577;padding-top:10px">
+    <b>🔄 Motor de la base (Audiotek 49216):</b> <span id="mEstado">control remoto manual</span><br>
+    <button class="btn" id="mConectar" style="width:100%;margin-top:6px">Conectar motor por Bluetooth</button>
+    <div id="mPrueba" style="display:none;gap:6px;margin-top:6px"><button class="btn" data-m="start" style="flex:1">▶ Girar</button><button class="btn" data-m="stop" style="flex:1">■ Parar</button><button class="btn" data-m="up">+</button><button class="btn" data-m="down">−</button><button class="btn" data-m="dir">⇄</button></div>
+    <details style="margin-top:6px"><summary>Perfil del motor (lo llena Claude)</summary><textarea id="mPerfil" rows="5" style="width:100%;margin-top:6px;font:12px monospace;background:#0a0f36;color:#fff;border:1px solid #2a3577;border-radius:8px" placeholder='{"servicio":"…","caracteristica":"…","start":"…","stop":"…","up":"…","down":"…","dir":"…"}'></textarea>
+    <button class="btn" id="mGuardar" style="width:100%;margin-top:4px">Guardar perfil</button></details>
   </div>
   <button class="btn" id="sBle" style="width:100%;margin-top:8px">🔎 Diagnóstico Bluetooth del motor</button>
   <pre id="sBleOut" class="small" style="white-space:pre-wrap;max-height:160px;overflow:auto;display:none;background:#0a0f36;padding:8px;border-radius:8px"></pre>
@@ -239,6 +250,7 @@ function foto(src, w, h, mirror) {
   const g = c.getContext('2d');
   g.filter = [FILT[T.filter] || '', EFX[T.effect] || ''].join(' ').trim() || 'none';
   cover(g, src, 0, 0, w, h, mirror);
+  if (belleza()) suavizar(c);
   return c;
 }
 const EMO = { Corazones: '❤️', Estrellas: '⭐', Corona: '👑', Globos: '🎈' };
@@ -301,28 +313,102 @@ function tipoVideo() {
   const ops = ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm'];
   return ops.find((t) => window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || '';
 }
-async function grabar(segundos, onTick) {
-  const vw = 720, vh = 1280, c = document.createElement('canvas'); c.width = vw; c.height = vh;
-  const g = c.getContext('2d'), mirror = !cam.classList.contains('trasera');
-  let vivo = true;
-  (function pinta() {
-    if (!vivo) return;
-    g.filter = FILT[T.filter] || 'none'; cover(g, cam, 0, 0, vw, vh, mirror); g.filter = 'none';
-    g.font = '800 34px Montserrat'; g.textAlign = 'center'; g.fillStyle = '#fff'; g.lineWidth = 4; g.strokeStyle = 'rgba(0,0,0,.5)';
-    const t = T.title || ''; g.strokeText(t, vw / 2, vh - 90, vw - 60); g.fillText(t, vw / 2, vh - 90, vw - 60);
-    marcaDeAgua(g, vw, vh);
-    requestAnimationFrame(pinta);
-  })();
+const belleza = () => { const b = document.getElementById('sBelleza'); return !!(b && b.checked); };
+function suavizar(c) {                           // piel suave: mezcla una copia desenfocada y aclarada
+  const g = c.getContext('2d'), t = document.createElement('canvas'); t.width = c.width; t.height = c.height;
+  const tg = t.getContext('2d'); tg.filter = `blur(${Math.max(2, c.width / 260)}px) brightness(1.06)`; tg.drawImage(c, 0, 0);
+  g.save(); g.globalAlpha = .38; g.drawImage(t, 0, 0); g.restore();
+}
+function modoVideo() { const m = document.getElementById('sModo'); return (m && m.value) || 'normal'; }
+function tamVideo() { const f = document.getElementById('sFmt'); return f && f.value === 'c' ? [720, 720] : [720, 1280]; }
+function rotulos(g, vw, vh) {
+  g.font = `800 ${Math.round(vw * .047)}px Montserrat`; g.textAlign = 'center'; g.fillStyle = '#fff'; g.lineWidth = 4; g.strokeStyle = 'rgba(0,0,0,.5)';
+  const t = T.title || ''; g.strokeText(t, vw / 2, vh - vh * .07, vw - 60); g.fillText(t, vw / 2, vh - vh * .07, vw - 60);
+  marcaDeAgua(g, vw, vh);
+}
+function nuevoRecorder(c) {
   const tipo = tipoVideo();
   const rec = new MediaRecorder(c.captureStream(30), tipo ? { mimeType: tipo, videoBitsPerSecond: 6_000_000 } : undefined);
   const partes = []; rec.ondataavailable = (e) => e.data.size && partes.push(e.data);
   const fin = new Promise((r) => (rec.onstop = r));
-  rec.start(500);
-  for (let s = segundos; s > 0; s--) { onTick(s); await sleep(1000); }
-  rec.stop(); await fin; vivo = false;
-  const mime = rec.mimeType || tipo || 'video/webm';
-  return { blob: new Blob(partes, { type: mime }), ext: mime.includes('mp4') ? 'mp4' : 'webm' };
+  return { rec, fin, partes, tipo };
 }
+const blobDe = (r) => { const mime = r.rec.mimeType || r.tipo || 'video/webm'; return { blob: new Blob(r.partes, { type: mime }), ext: mime.includes('mp4') ? 'mp4' : 'webm' }; };
+async function grabar(segundos, onTick) {
+  const [vw, vh] = tamVideo(), c = document.createElement('canvas'); c.width = vw; c.height = vh;
+  const g = c.getContext('2d'), mirror = !cam.classList.contains('trasera'), modo = modoVideo();
+  const cuadros = [], guardarDesde = Date.now() + Math.max(0, segundos - 3) * 1000;   // boomerang: últimos 3 s
+  let vivo = true, ultimo = 0;
+  (function pinta() {
+    if (!vivo) return;
+    g.filter = FILT[T.filter] || 'none'; cover(g, cam, 0, 0, vw, vh, mirror); g.filter = 'none';
+    if (belleza()) suavizar(c);
+    rotulos(g, vw, vh);
+    const ahora = Date.now();
+    if (modo === 'boomerang' && ahora >= guardarDesde && ahora - ultimo >= 66) {
+      ultimo = ahora; createImageBitmap(c, { resizeWidth: vw / 2, resizeHeight: vh / 2 }).then((b) => cuadros.push(b)).catch(() => {});
+    }
+    requestAnimationFrame(pinta);
+  })();
+  const r = nuevoRecorder(c);
+  r.rec.start(500);
+  for (let s = segundos; s > 0; s--) { onTick(s); await sleep(1000); }
+  vivo = false;
+  if (modo === 'boomerang' && cuadros.length > 4) {         // regresa en reversa y vuelve a avanzar
+    const seq = [...cuadros.slice().reverse(), ...cuadros];
+    for (const b of seq) { g.drawImage(b, 0, 0, vw, vh); rotulos(g, vw, vh); await sleep(66); }
+    cuadros.forEach((b) => b.close && b.close());
+  }
+  r.rec.stop(); await r.fin;
+  let out = blobDe(r);
+  if (modo === 'lenta') out = await camaraLenta(out, vw, vh);
+  return out;
+}
+async function camaraLenta(v, vw, vh) {                     // vuelve a grabar el video a la mitad de velocidad
+  const el = document.createElement('video'); el.muted = true; el.playsInline = true; el.src = URL.createObjectURL(v.blob);
+  await new Promise((ok) => { el.onloadeddata = ok; el.onerror = ok; });
+  const c = document.createElement('canvas'); c.width = vw; c.height = vh; const g = c.getContext('2d');
+  const r = nuevoRecorder(c); let vivo = true;
+  (function pinta() { if (!vivo) return; g.drawImage(el, 0, 0, vw, vh); requestAnimationFrame(pinta); })();
+  r.rec.start(500); el.playbackRate = 0.5;
+  try { await el.play(); } catch (e) { vivo = false; r.rec.stop(); await r.fin; return v; }
+  await new Promise((ok) => { el.onended = ok; setTimeout(ok, 60000); });
+  vivo = false; r.rec.stop(); await r.fin; URL.revokeObjectURL(el.src);
+  return blobDe(r);
+}
+
+// ---------------- motor de la base por Bluetooth (Audiotek 49216 / tipo CyraTok)
+// El fabricante no publica sus comandos: el perfil se llena con los datos del diagnóstico.
+const MOTOR = { dev: null, ch: null, perfil: null };
+try { MOTOR.perfil = JSON.parse(localStorage.getItem('amm360_motor') || 'null'); } catch (e) {}
+const hex = (h) => new Uint8Array(String(h).replace(/[^0-9a-f]/gi, '').match(/../g).map((x) => parseInt(x, 16)));
+function estadoMotor(t) { const e = document.getElementById('mEstado'); if (e) e.textContent = t; }
+async function conectarMotor() {
+  const P = MOTOR.perfil;
+  if (!navigator.bluetooth) { estadoMotor('este navegador no tiene Bluetooth (usa Chrome en Android)'); return false; }
+  if (!P || !P.servicio || !P.caracteristica) { estadoMotor('falta el perfil: usa Diagnóstico y mándaselo a Claude'); return false; }
+  try {
+    MOTOR.dev = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: [P.servicio] });
+    MOTOR.dev.addEventListener('gattserverdisconnected', () => { MOTOR.ch = null; estadoMotor('desconectado · usa el control remoto'); });
+    const srv = await MOTOR.dev.gatt.connect();
+    MOTOR.ch = await (await srv.getPrimaryService(P.servicio)).getCharacteristic(P.caracteristica);
+    estadoMotor(`conectado: ${MOTOR.dev.name || 'motor'} · la cabina lo gira sola`);
+    document.getElementById('mPrueba').style.display = 'flex';
+    return true;
+  } catch (e) { estadoMotor('no se conectó: ' + (e.message || e)); return false; }
+}
+async function motor(cmd, veces = 1) {
+  const P = MOTOR.perfil; if (!MOTOR.ch || !P || !P[cmd]) return false;
+  try {
+    for (let i = 0; i < veces; i++) {
+      const d = hex(P[cmd]);
+      if (MOTOR.ch.properties.writeWithoutResponse && MOTOR.ch.writeValueWithoutResponse) await MOTOR.ch.writeValueWithoutResponse(d); else await MOTOR.ch.writeValue(d);
+      await sleep(120);
+    }
+    return true;
+  } catch (e) { estadoMotor('error al enviar: ' + (e.message || e)); return false; }
+}
+const motorListo = () => !!(MOTOR.ch && MOTOR.perfil && MOTOR.perfil.start);
 
 // ---------------- galería del evento en este equipo (IndexedDB)
 let db = null;
@@ -370,16 +456,25 @@ async function tomar() {
       await sleep(1100);
     }
     $('#msg').textContent = '¡A girar! Video 360';
-    const espera = Math.max(0, +$('#sMot').value || 0);
-    $('#note').textContent = `Operador: presiona ⏻/▶ en el control del motor · velocidad ${$('#sVel').value}`;
+    const espera = Math.max(0, +$('#sMot').value || 0), auto = motorListo();
     pitido(880, .25);
-    for (let i = espera; i > 0; i--) { $('#note').textContent = `Operador: arranca el motor con su control ⏻ · grabando en ${i}…`; await sleep(1000); }
+    if (auto) {
+      $('#note').textContent = 'Arrancando el giro…';
+      if ($('#sDir').value === 'a') await motor('dir');
+      await motor('start');
+      for (let i = Math.min(espera, 2); i > 0; i--) { $('#note').textContent = `Tomando velocidad · grabando en ${i}…`; await sleep(1000); }
+    } else {
+      const sentido = $('#sDir').value === 'a' ? 'antihorario (botón ⇄)' : 'horario';
+      for (let i = espera; i > 0; i--) { $('#note').textContent = `Operador: arranca el motor con su control ⏻ · ${$('#sVel').value} · ${sentido} · grabando en ${i}…`; await sleep(1000); }
+    }
     pitido(1320, .35);
     show(null); $('#rec').classList.remove('hidden');
     const v = await grabar(+$('#sSeg').value || 8, (s) => ($('#rect').textContent = `REC  ${s} s`));
     $('#rec').classList.add('hidden');
-    pitido(660, .5); avisoMotor('Operador: detén el motor con su control ⏻');
+    if (motorListo()) { await motor('stop'); if ($('#sDir').value === 'a') await motor('dir'); }
+    else { pitido(660, .5); avisoMotor('Operador: detén el motor con su control ⏻'); }
     show('#pProc'); $('#barI').style.width = '40%';
+    if (modoVideo() === 'lenta') $('#note2').textContent = 'Creando tu cámara lenta…';
     const col = mosaico(cards), colBlob = await aBlob(col, .9);
     $('#barI').style.width = '100%'; await sleep(300);
     const video = { nombre: `toma_${num}_video.${v.ext}`, blob: v.blob };
@@ -420,6 +515,14 @@ function pitido(f, d) {
     o.connect(g); g.connect(actx.destination); o.start(); o.stop(actx.currentTime + d); } catch (e) {}
 }
 function avisoMotor(t) { const n = $('#note2'); if (n) { n.textContent = t; setTimeout(() => { n.textContent = 'Aplicando tu marco y la marca AM Medinas…'; }, 4000); } }
+$('#mConectar').onclick = conectarMotor;
+document.querySelectorAll('[data-m]').forEach((b) => (b.onclick = () => motor(b.dataset.m)));
+$('#mPerfil').value = MOTOR.perfil ? JSON.stringify(MOTOR.perfil, null, 1) : '';
+$('#mGuardar').onclick = () => {
+  try { MOTOR.perfil = JSON.parse($('#mPerfil').value); localStorage.setItem('amm360_motor', JSON.stringify(MOTOR.perfil)); estadoMotor('perfil guardado · toca Conectar motor'); }
+  catch (e) { estadoMotor('el perfil no es válido'); }
+};
+if (MOTOR.perfil) estadoMotor('perfil listo · toca Conectar motor');
 // Diagnóstico: identifica el Bluetooth del motor para poder controlarlo desde la cabina más adelante
 $('#sBle').onclick = async () => {
   const out = $('#sBleOut'); out.style.display = 'block';
@@ -457,10 +560,17 @@ $('#bShare').onclick = async () => {
 };
 $('#bfull').onclick = () => { const d = document.documentElement; (document.fullscreenElement ? document.exitFullscreen() : (d.requestFullscreen || d.webkitRequestFullscreen).call(d)).catch?.(() => {}); };
 $('#bset').onclick = () => $('#set').classList.toggle('hidden');
-$('#sOk').onclick = () => { $('#set').classList.add('hidden'); try { localStorage.setItem('amm360_ajustes', JSON.stringify({ seg: $('#sSeg').value, cnt: $('#sCnt').value, g: $('#sGuardar').checked, mot: $('#sMot').value, vel: $('#sVel').value, beep: $('#sBeep').checked })); } catch (e) {} };
+$('#sOk').onclick = () => { $('#set').classList.add('hidden'); try { localStorage.setItem('amm360_ajustes', JSON.stringify({ seg: $('#sSeg').value, cnt: $('#sCnt').value, g: $('#sGuardar').checked, mot: $('#sMot').value, vel: $('#sVel').value, beep: $('#sBeep').checked, modo: $('#sModo').value, fmt: $('#sFmt').value, bel: $('#sBelleza').checked, dir: $('#sDir').value })); } catch (e) {} };
 $('#sCam').onchange = (e) => abrirCamara(e.target.value).catch((x) => alert(x.message));
 $('#sAll').onclick = async () => { for (const t of await todas()) { t.fotos.forEach((f) => bajar(f.blob, f.nombre)); bajar(t.video.blob, t.video.nombre); await sleep(400); } };
-try { const a = JSON.parse(localStorage.getItem('amm360_ajustes') || 'null'); if (a) { $('#sSeg').value = a.seg; $('#sCnt').value = a.cnt; $('#sGuardar').checked = a.g; if (a.mot != null) $('#sMot').value = a.mot; if (a.vel) $('#sVel').value = a.vel; if (a.beep != null) $('#sBeep').checked = a.beep; } } catch (e) {}
+try { const a = JSON.parse(localStorage.getItem('amm360_ajustes') || 'null'); if (a) { $('#sSeg').value = a.seg; $('#sCnt').value = a.cnt; $('#sGuardar').checked = a.g; if (a.mot != null) $('#sMot').value = a.mot; if (a.vel) $('#sVel').value = a.vel; if (a.beep != null) $('#sBeep').checked = a.beep; if (a.modo) $('#sModo').value = a.modo; if (a.fmt) $('#sFmt').value = a.fmt; if (a.bel != null) $('#sBelleza').checked = a.bel; if (a.dir) $('#sDir').value = a.dir; } } catch (e) {}
+// el estilo que eligió el cliente (Normal / Cámara lenta / Boomerang) manda sobre el ajuste guardado
+try {
+  const clave = (CFG.evento || '') + '|' + (CFG.fecha || '');
+  if (CFG.evento && CFG.evento !== DEF.evento && localStorage.getItem('amm360_modo_evento') !== clave && ['normal', 'lenta', 'boomerang'].includes(T.speed)) {
+    $('#sModo').value = T.speed; localStorage.setItem('amm360_modo_evento', clave);     // solo la primera vez por evento
+  }
+} catch (e) {}
 
 // pantalla siempre encendida durante el evento
 async function despierta() { try { if ('wakeLock' in navigator) await navigator.wakeLock.request('screen'); } catch (e) {} }
