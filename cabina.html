@@ -127,7 +127,7 @@ html,body{margin:0;height:100%;background:#000;color:var(--ink);font-family:Mont
 <div class="panel hidden" id="set">
   <h3>AJUSTES DE LA CABINA</h3>
   <label>Cámara</label><select id="sCam"></select>
-  <label>Segundos de video 360</label><input id="sSeg" type="number" min="3" max="30" value="8">
+  <label>Segundos de video 360 (mínimo 15)</label><input id="sSeg" type="number" min="15" max="60" value="15">
   <label>Cuenta regresiva (s)</label><input id="sCnt" type="number" min="1" max="10" value="3">
   <label>Modo de video</label><select id="sModo"><option value="normal">Normal</option><option value="lenta">Cámara lenta</option><option value="boomerang">Boomerang</option></select>
   <label>Formato del video</label><select id="sFmt"><option value="v">Vertical 9:16 (historias y reels)</option><option value="c">Cuadrado 1:1</option></select>
@@ -354,6 +354,7 @@ function tipoVideo() {
   const ops = ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm'];
   return ops.find((t) => window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || '';
 }
+const segVideo = () => Math.min(60, Math.max(15, +$('#sSeg').value || 15));   // el video dura por lo menos 15 s
 const belleza = () => { const b = document.getElementById('sBelleza'); return !!(b && b.checked); };
 function suavizar(c) {                           // piel suave: mezcla una copia desenfocada y aclarada
   const g = c.getContext('2d'), t = document.createElement('canvas'); t.width = c.width; t.height = c.height;
@@ -527,7 +528,7 @@ async function tomar() {
     }
     pitido(1320, .35);
     show(null); $('#rec').classList.remove('hidden');
-    const v = await grabar(+$('#sSeg').value || 8, (s) => ($('#rect').textContent = `REC  ${s} s`));
+    const v = await grabar(segVideo(), (s) => ($('#rect').textContent = `REC  ${s} s`));
     $('#rec').classList.add('hidden');
     if (motorListo()) { await motor('stop'); if ($('#sDir').value === 'a') await motor('dir'); }
     else { pitido(660, .5); avisoMotor('Operador: detén el motor con su control ⏻'); }
@@ -631,10 +632,10 @@ $('#bfull').onclick = async () => {
   } catch (e) { alert('En iPhone: toca Compartir ⬆ y luego "Agregar a inicio". Abre la cabina desde ese ícono y se verá en pantalla completa.'); }
 };
 $('#bset').onclick = () => $('#set').classList.toggle('hidden');
-$('#sOk').onclick = () => { $('#set').classList.add('hidden'); try { localStorage.setItem('amm360_ajustes', JSON.stringify({ seg: $('#sSeg').value, cnt: $('#sCnt').value, g: $('#sGuardar').checked, mot: $('#sMot').value, vel: $('#sVel').value, beep: $('#sBeep').checked, modo: $('#sModo').value, fmt: $('#sFmt').value, bel: $('#sBelleza').checked, dir: $('#sDir').value })); } catch (e) {} };
+$('#sOk').onclick = () => { $('#sSeg').value = segVideo(); $('#set').classList.add('hidden'); try { localStorage.setItem('amm360_ajustes', JSON.stringify({ seg: $('#sSeg').value, cnt: $('#sCnt').value, g: $('#sGuardar').checked, mot: $('#sMot').value, vel: $('#sVel').value, beep: $('#sBeep').checked, modo: $('#sModo').value, fmt: $('#sFmt').value, bel: $('#sBelleza').checked, dir: $('#sDir').value })); } catch (e) {} };
 $('#sCam').onchange = (e) => abrirCamara(e.target.value).catch((x) => alert(x.message));
 $('#sAll').onclick = async () => { for (const t of await todas()) { t.fotos.forEach((f) => bajar(f.blob, f.nombre)); bajar(t.video.blob, t.video.nombre); await sleep(400); } };
-try { const a = JSON.parse(localStorage.getItem('amm360_ajustes') || 'null'); if (a) { $('#sSeg').value = a.seg; $('#sCnt').value = a.cnt; $('#sGuardar').checked = a.g; if (a.mot != null) $('#sMot').value = a.mot; if (a.vel) $('#sVel').value = a.vel; if (a.beep != null) $('#sBeep').checked = a.beep; if (a.modo) $('#sModo').value = a.modo; if (a.fmt) $('#sFmt').value = a.fmt; if (a.bel != null) $('#sBelleza').checked = a.bel; if (a.dir) $('#sDir').value = a.dir; } } catch (e) {}
+try { const a = JSON.parse(localStorage.getItem('amm360_ajustes') || 'null'); if (a) { $('#sSeg').value = Math.max(15, +a.seg || 15); $('#sCnt').value = a.cnt; $('#sGuardar').checked = a.g; if (a.mot != null) $('#sMot').value = a.mot; if (a.vel) $('#sVel').value = a.vel; if (a.beep != null) $('#sBeep').checked = a.beep; if (a.modo) $('#sModo').value = a.modo; if (a.fmt) $('#sFmt').value = a.fmt; if (a.bel != null) $('#sBelleza').checked = a.bel; if (a.dir) $('#sDir').value = a.dir; } } catch (e) {}
 // el estilo que eligió el cliente (Normal / Cámara lenta / Boomerang) manda sobre el ajuste guardado
 try {
   const clave = (CFG.evento || '') + '|' + (CFG.fecha || '');
