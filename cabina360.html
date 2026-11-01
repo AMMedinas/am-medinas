@@ -113,7 +113,7 @@ footer{text-align:center;color:var(--muted);font-size:13px;margin-top:28px}
     <div class="style">
       <div>
         <div class="grid2">
-          <div class="field"><label for="titulo">Título en las fotos</label><input id="titulo" maxlength="28" placeholder="Ana & Luis"></div>
+          <div class="field"><label for="titulo">Título en las fotos</label><input id="titulo" maxlength="48" placeholder="Ana & Luis"></div>
           <div class="field"><label for="subtitulo">Subtítulo</label><input id="subtitulo" maxlength="36" placeholder="14 · noviembre · 2026"></div>
         </div>
         <div id="groups"></div>
@@ -197,7 +197,7 @@ $('#n0').onclick = () => {
   if (!$('#acceso').checked) faltan.push('confirmar el acceso de Contenido a AM Medinas');
   $('#e0').textContent = faltan.length ? 'Falta: ' + faltan.join(', ') + '.' : '';
   if (!faltan.length) {
-    if (!v('titulo')) $('#titulo').value = v('evento').slice(0, 28);
+    if (!v('titulo')) $('#titulo').value = v('evento').slice(0, 48);
     if (!v('subtitulo')) $('#subtitulo').value = fechaBonita(v('fecha'));
     guardar(); ir(1);
   }
