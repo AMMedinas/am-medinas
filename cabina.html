@@ -33,6 +33,12 @@ html,body{margin:0;height:100%;background:#000;color:var(--ink);font-family:Mont
 .thumbs div{width:min(13vw,96px);aspect-ratio:4/5;border-radius:10px;border:2px dashed rgba(255,255,255,.35);background:rgba(0,0,0,.35) center/cover;display:grid;place-items:center;font-weight:800;color:rgba(255,255,255,.6)}
 .thumbs div.on{border:3px solid var(--gold)}
 #flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:9;transition:opacity .35s}
+/* control blanco en pantalla */
+.remoto{display:grid;grid-template-columns:1fr 1fr;gap:8px;background:#f4f4f2;border-radius:18px;padding:12px}
+.remoto button{border:0;border-radius:14px;background:#6b6b6b;color:#fff;font:700 20px Montserrat;padding:10px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
+.remoto button small{font-size:10px;font-weight:600;color:#e6e6e6}
+.remoto button:active{background:#e8b94a;color:#17120a}
+.remoto.aprender button{background:#b8862a}
 #rec{position:fixed;top:max(18px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);background:rgba(0,0,0,.55);padding:8px 16px;border-radius:999px;font-weight:800;z-index:6}
 #rec b{display:inline-block;width:12px;height:12px;border-radius:50%;background:var(--bad);margin-right:8px;animation:blink 1s infinite}
 @keyframes blink{50%{opacity:.2}}
@@ -127,13 +133,22 @@ html,body{margin:0;height:100%;background:#000;color:var(--ink);font-family:Mont
   <label><input type="checkbox" id="sBeep" checked style="width:auto"> Avisos con sonido (para el operador)</label>
   <label><input type="checkbox" id="sGuardar" checked style="width:auto"> Descargar automáticamente cada toma en este equipo</label>
   <div class="small" style="margin-top:10px;border-top:1px solid #2a3577;padding-top:10px">
-    <b>📸 Control de fotos (Bluetooth):</b> vincúlalo al celular en Ajustes &gt; Bluetooth y presiona su botón: <b id="sKey">esperando…</b><br>
-    Usa el botón de Android (no el de iOS). Cada clic hace lo mismo que tocar INICIAR.
+    <b>📸 Control negro "CAMERA 360" (fotos):</b> préndelo, vincúlalo en Ajustes &gt; Bluetooth del celular y presiona su <b>botón chico</b> (Android). Si no responde, prueba el grande. Último botón recibido: <b id="sKey">esperando…</b><br>
+    Cada clic hace lo mismo que tocar INICIAR; en la pantalla final, deja lista la siguiente toma.
   </div>
   <div class="small" style="margin-top:10px;border-top:1px solid #2a3577;padding-top:10px">
-    <b>🔄 Motor de la base (Audiotek 49216):</b> <span id="mEstado">control remoto manual</span><br>
+    <b>🔄 Control blanco (giro, reversa, velocidad y luces):</b> <span id="mEstado">control remoto manual</span><br>
+    <button class="btn" id="mPuente" style="width:100%;margin-top:6px">Usar puente del control blanco (ESP32)</button>
     <button class="btn" id="mConectar" style="width:100%;margin-top:6px">Conectar motor por Bluetooth</button>
-    <div id="mPrueba" style="display:none;gap:6px;margin-top:6px"><button class="btn" data-m="start" style="flex:1">▶ Girar</button><button class="btn" data-m="stop" style="flex:1">■ Parar</button><button class="btn" data-m="up">+</button><button class="btn" data-m="down">−</button><button class="btn" data-m="dir">⇄</button></div>
+    <div id="mPrueba" style="display:none;margin-top:8px">
+      <div class="remoto">
+        <button data-m="start">⏻<small>ON/OFF</small></button><button data-m="led">☀<small>LED</small></button>
+        <button data-m="dir">⇄<small>Reverse</small></button><button data-m="auto">Ⓐ<small>Auto</small></button>
+        <button data-m="up">＋<small>UP</small></button><button data-m="rgb">🎨<small>RGB Exchange</small></button>
+        <button data-m="down">－<small>Speed Down</small></button><button data-m="bri">✺<small>RGB Brightness</small></button>
+      </div>
+      <label style="margin-top:6px"><input type="checkbox" id="mAprender" style="width:auto"> Modo aprender: toca un botón aquí y presiona el mismo en el control blanco (10 s)</label>
+    </div>
     <details style="margin-top:6px"><summary>Perfil del motor (lo llena Claude)</summary><textarea id="mPerfil" rows="5" style="width:100%;margin-top:6px;font:12px monospace;background:#0a0f36;color:#fff;border:1px solid #2a3577;border-radius:8px" placeholder='{"servicio":"…","caracteristica":"…","start":"…","stop":"…","up":"…","down":"…","dir":"…"}'></textarea>
     <button class="btn" id="mGuardar" style="width:100%;margin-top:4px">Guardar perfil</button></details>
   </div>
@@ -383,6 +398,10 @@ const MOTOR = { dev: null, ch: null, perfil: null };
 try { MOTOR.perfil = JSON.parse(localStorage.getItem('amm360_motor') || 'null'); } catch (e) {}
 const hex = (h) => new Uint8Array(String(h).replace(/[^0-9a-f]/gi, '').match(/../g).map((x) => parseInt(x, 16)));
 function estadoMotor(t) { const e = document.getElementById('mEstado'); if (e) e.textContent = t; }
+const PUENTE = (() => { const svc = '0000ffe0-0000-1000-8000-00805f9b34fb', ch = '0000ffe1-0000-1000-8000-00805f9b34fb', t = (x) => [...x].map((c) => c.charCodeAt(0).toString(16)).join('');
+  const b = { start: 1, stop: 1, led: 2, dir: 3, auto: 4, up: 5, rgb: 6, down: 7, bri: 8 }, p = { servicio: svc, caracteristica: ch, puente: true };
+  for (const [k, n] of Object.entries(b)) { p[k] = t('S' + n); p['aprender_' + k] = t('L' + n); }
+  return p; })();
 async function conectarMotor() {
   const P = MOTOR.perfil;
   if (!navigator.bluetooth) { estadoMotor('este navegador no tiene Bluetooth (usa Chrome en Android)'); return false; }
@@ -393,7 +412,17 @@ async function conectarMotor() {
     const srv = await MOTOR.dev.gatt.connect();
     MOTOR.ch = await (await srv.getPrimaryService(P.servicio)).getCharacteristic(P.caracteristica);
     estadoMotor(`conectado: ${MOTOR.dev.name || 'motor'} · la cabina lo gira sola`);
-    document.getElementById('mPrueba').style.display = 'flex';
+    if (MOTOR.ch.properties.notify) {
+      try {
+        MOTOR.ch.addEventListener('characteristicvaluechanged', (ev) => {
+          const r = new TextDecoder().decode(ev.target.value);
+          const txt = r.startsWith('OK L') ? '✓ botón aprendido' : r.startsWith('ESPERANDO') ? 'presiona ahora el botón en el control blanco…' : r.startsWith('TIEMPO') ? 'no recibí el control: acércalo e intenta de nuevo' : r.startsWith('VACIO') ? 'ese botón aún no se aprende (usa Modo aprender)' : '';
+          if (txt) estadoMotor(txt);
+        });
+        await MOTOR.ch.startNotifications();
+      } catch (e) {}
+    }
+    document.getElementById('mPrueba').style.display = 'block';
     return true;
   } catch (e) { estadoMotor('no se conectó: ' + (e.message || e)); return false; }
 }
@@ -516,7 +545,9 @@ function pitido(f, d) {
 }
 function avisoMotor(t) { const n = $('#note2'); if (n) { n.textContent = t; setTimeout(() => { n.textContent = 'Aplicando tu marco y la marca AM Medinas…'; }, 4000); } }
 $('#mConectar').onclick = conectarMotor;
-document.querySelectorAll('[data-m]').forEach((b) => (b.onclick = () => motor(b.dataset.m)));
+document.querySelectorAll('[data-m]').forEach((b) => (b.onclick = () => motor(($('#mAprender').checked ? 'aprender_' : '') + b.dataset.m)));
+$('#mAprender').onchange = () => document.querySelector('.remoto').classList.toggle('aprender', $('#mAprender').checked);
+$('#mPuente').onclick = () => { MOTOR.perfil = PUENTE; localStorage.setItem('amm360_motor', JSON.stringify(PUENTE)); $('#mPerfil').value = JSON.stringify(PUENTE, null, 1); estadoMotor('perfil del puente listo · toca Conectar motor y elige "AMM360 Puente"'); };
 $('#mPerfil').value = MOTOR.perfil ? JSON.stringify(MOTOR.perfil, null, 1) : '';
 $('#mGuardar').onclick = () => {
   try { MOTOR.perfil = JSON.parse($('#mPerfil').value); localStorage.setItem('amm360_motor', JSON.stringify(MOTOR.perfil)); estadoMotor('perfil guardado · toca Conectar motor'); }
