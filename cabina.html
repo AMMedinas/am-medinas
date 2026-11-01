@@ -4,6 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#0a0f36">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cabina 360">
+<link rel="manifest" href="cabina.webmanifest">
 <title>Cabina 360 · AM Medinas</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,500;0,700;0,800;1,600&display=swap" rel="stylesheet">
@@ -152,6 +157,7 @@ html,body{margin:0;height:100%;background:#000;color:var(--ink);font-family:Mont
     <details style="margin-top:6px"><summary>Perfil del motor (lo llena Claude)</summary><textarea id="mPerfil" rows="5" style="width:100%;margin-top:6px;font:12px monospace;background:#0a0f36;color:#fff;border:1px solid #2a3577;border-radius:8px" placeholder='{"servicio":"…","caracteristica":"…","start":"…","stop":"…","up":"…","down":"…","dir":"…"}'></textarea>
     <button class="btn" id="mGuardar" style="width:100%;margin-top:4px">Guardar perfil</button></details>
   </div>
+  <p class="small" id="sEquipo" style="margin-top:8px;color:#a9b0d6"></p>
   <button class="btn" id="sBle" style="width:100%;margin-top:8px">🔎 Diagnóstico Bluetooth del motor</button>
   <pre id="sBleOut" class="small" style="white-space:pre-wrap;max-height:160px;overflow:auto;display:none;background:#0a0f36;padding:8px;border-radius:8px"></pre>
   <p class="small">Tomas del evento en este equipo: <b id="sTot">0</b></p>
@@ -260,11 +266,31 @@ function texto(g, s, y, font, color, maxW = 960, stroke) {
   if (stroke) { g.lineWidth = stroke; g.strokeStyle = 'rgba(0,0,0,.45)'; g.strokeText(s, W / 2, y); }
   g.fillStyle = color; g.fillText(s, W / 2, y);
 }
+const FILTRO_CANVAS = (() => { try { const g = document.createElement('canvas').getContext('2d'); g.filter = 'grayscale(1)'; return g.filter === 'grayscale(1)'; } catch (e) { return false; } })();
+function filtroManual(c) {                       // respaldo para iPhone/Safari
+  const nombre = T.filter, efecto = T.effect;
+  if ((!nombre || nombre === 'Natural') && (!efecto || efecto === 'Ninguno')) return;
+  const g = c.getContext('2d'), im = g.getImageData(0, 0, c.width, c.height), d = im.data;
+  const sat = (r, gg, b, k) => { const l = .299 * r + .587 * gg + .114 * b; return [l + (r - l) * k, l + (gg - l) * k, l + (b - l) * k]; };
+  for (let i = 0; i < d.length; i += 4) {
+    let r = d[i], gg = d[i + 1], b = d[i + 2];
+    if (nombre === 'Blanco y negro' || efecto === 'Boceto IA') { const l = .299 * r + .587 * gg + .114 * b; r = gg = b = efecto === 'Boceto IA' ? Math.min(255, (l - 128) * 2 + 150) : l; }
+    else if (nombre === 'Vintage') { const R = .393 * r + .769 * gg + .189 * b, G = .349 * r + .686 * gg + .168 * b, B = .272 * r + .534 * gg + .131 * b; r = r * .4 + R * .6; gg = gg * .4 + G * .6; b = b * .4 + B * .6; }
+    else if (nombre === 'Cálido') { r *= 1.08; b *= .9; }
+    else if (nombre === 'Frío') { r *= .92; b *= 1.08; }
+    else if (nombre === 'Vívido' || efecto === 'Pop art IA') [r, gg, b] = sat(r, gg, b, efecto === 'Pop art IA' ? 2.2 : 1.5);
+    else if (nombre === 'Glam') { [r, gg, b] = sat(r * 1.06, gg * 1.06, b * 1.06, 1.15); }
+    if (efecto === 'Caricatura IA') { [r, gg, b] = sat(r, gg, b, 1.5); r = Math.round(r / 48) * 48; gg = Math.round(gg / 48) * 48; b = Math.round(b / 48) * 48; }
+    d[i] = Math.max(0, Math.min(255, r)); d[i + 1] = Math.max(0, Math.min(255, gg)); d[i + 2] = Math.max(0, Math.min(255, b));
+  }
+  g.putImageData(im, 0, 0);
+}
 function foto(src, w, h, mirror) {
   const c = document.createElement('canvas'); c.width = w; c.height = h;
   const g = c.getContext('2d');
   g.filter = [FILT[T.filter] || '', EFX[T.effect] || ''].join(' ').trim() || 'none';
   cover(g, src, 0, 0, w, h, mirror);
+  if (!FILTRO_CANVAS) filtroManual(c);
   if (belleza()) suavizar(c);
   return c;
 }
@@ -331,7 +357,10 @@ function tipoVideo() {
 const belleza = () => { const b = document.getElementById('sBelleza'); return !!(b && b.checked); };
 function suavizar(c) {                           // piel suave: mezcla una copia desenfocada y aclarada
   const g = c.getContext('2d'), t = document.createElement('canvas'); t.width = c.width; t.height = c.height;
-  const tg = t.getContext('2d'); tg.filter = `blur(${Math.max(2, c.width / 260)}px) brightness(1.06)`; tg.drawImage(c, 0, 0);
+  const tg = t.getContext('2d');
+  if (FILTRO_CANVAS) { tg.filter = `blur(${Math.max(2, c.width / 260)}px) brightness(1.06)`; tg.drawImage(c, 0, 0); }
+  else { const m = document.createElement('canvas'); m.width = Math.max(1, c.width / 6 | 0); m.height = Math.max(1, c.height / 6 | 0);
+    m.getContext('2d').drawImage(c, 0, 0, m.width, m.height); tg.imageSmoothingQuality = 'high'; tg.drawImage(m, 0, 0, c.width, c.height); }
   g.save(); g.globalAlpha = .38; g.drawImage(t, 0, 0); g.restore();
 }
 function modoVideo() { const m = document.getElementById('sModo'); return (m && m.value) || 'normal'; }
@@ -544,6 +573,10 @@ function pitido(f, d) {
     o.connect(g); g.connect(actx.destination); o.start(); o.stop(actx.currentTime + d); } catch (e) {}
 }
 function avisoMotor(t) { const n = $('#note2'); if (n) { n.textContent = t; setTimeout(() => { n.textContent = 'Aplicando tu marco y la marca AM Medinas…'; }, 4000); } }
+const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+$('#sEquipo').textContent = esIOS
+  ? '📱 iPhone/iPad: fotos, video, control negro (botón chico) y avisos funcionan. El motor por Bluetooth y el diagnóstico solo funcionan en Android con Chrome.'
+  : (navigator.bluetooth ? '📱 Android/Chrome: todas las funciones disponibles.' : '📱 Este navegador no tiene Bluetooth web: usa Chrome para conectar el motor.');
 $('#mConectar').onclick = conectarMotor;
 document.querySelectorAll('[data-m]').forEach((b) => (b.onclick = () => motor(($('#mAprender').checked ? 'aprender_' : '') + b.dataset.m)));
 $('#mAprender').onchange = () => document.querySelector('.remoto').classList.toggle('aprender', $('#mAprender').checked);
@@ -589,7 +622,14 @@ $('#bShare').onclick = async () => {
     else { $('#fmsg').textContent = 'Este equipo no permite compartir directo: usa "Descargar".'; }
   } catch (e) {}
 };
-$('#bfull').onclick = () => { const d = document.documentElement; (document.fullscreenElement ? document.exitFullscreen() : (d.requestFullscreen || d.webkitRequestFullscreen).call(d)).catch?.(() => {}); };
+$('#bfull').onclick = async () => {
+  const d = document.documentElement, pedir = d.requestFullscreen || d.webkitRequestFullscreen, salir = document.exitFullscreen || document.webkitExitFullscreen;
+  try {
+    if (document.fullscreenElement || document.webkitFullscreenElement) await salir.call(document);
+    else if (pedir) await pedir.call(d);
+    else throw new Error('sin pantalla completa');
+  } catch (e) { alert('En iPhone: toca Compartir ⬆ y luego "Agregar a inicio". Abre la cabina desde ese ícono y se verá en pantalla completa.'); }
+};
 $('#bset').onclick = () => $('#set').classList.toggle('hidden');
 $('#sOk').onclick = () => { $('#set').classList.add('hidden'); try { localStorage.setItem('amm360_ajustes', JSON.stringify({ seg: $('#sSeg').value, cnt: $('#sCnt').value, g: $('#sGuardar').checked, mot: $('#sMot').value, vel: $('#sVel').value, beep: $('#sBeep').checked, modo: $('#sModo').value, fmt: $('#sFmt').value, bel: $('#sBelleza').checked, dir: $('#sDir').value })); } catch (e) {} };
 $('#sCam').onchange = (e) => abrirCamara(e.target.value).catch((x) => alert(x.message));
