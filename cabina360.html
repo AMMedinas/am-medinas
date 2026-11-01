@@ -1,0 +1,447 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cabina 360 · AM Medinas</title>
+<meta name="description" content="Activa la cabina 360 de AM Medinas para tu evento: tu Página de Facebook, tu estilo y tu autorización.">
+<script src="config.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--navy:#10184f;--navy-2:#1b2670;--navy-3:#0a0f36;--gold:#e8b94a;--gold-2:#f5d98b;--green:#25a55f;--ink:#f3f4fb;--muted:#a9b0d6;--line:#2a3577;--card:#141d5c;--bad:#ff6b81}
+*{box-sizing:border-box}
+html,body{margin:0;background:radial-gradient(1200px 600px at 50% -10%,#24308a 0%,var(--navy-3) 60%);color:var(--ink);font-family:Montserrat,system-ui,sans-serif;min-height:100%}
+a{color:var(--gold)}
+.wrap{max-width:1080px;margin:0 auto;padding:22px 16px 60px}
+header{text-align:center;padding:18px 0 8px}
+.brand{letter-spacing:.35em;color:var(--gold);font-weight:700;font-size:13px}
+h1{font-size:clamp(30px,6vw,48px);margin:6px 0 4px;font-weight:800}
+h1 span{font-family:'Great Vibes',cursive;color:var(--gold);font-weight:400;font-size:1.15em}
+.lead{color:var(--muted);max-width:640px;margin:0 auto;line-height:1.5}
+.steps{display:flex;gap:8px;justify-content:center;margin:22px 0 18px;flex-wrap:wrap}
+.step{display:flex;align-items:center;gap:8px;padding:9px 14px;border-radius:999px;border:1px solid var(--line);color:var(--muted);font-weight:600;font-size:14px}
+.step b{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--line);color:var(--ink);font-size:12px}
+.step.on{border-color:var(--gold);color:var(--gold)} .step.on b{background:var(--gold);color:var(--navy-3)}
+.step.ok{color:var(--green);border-color:var(--green)} .step.ok b{background:var(--green)}
+.card{background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.01));border:1px solid var(--line);border-radius:22px;padding:22px}
+.card h2{margin:0 0 6px;font-size:22px}
+.card p.sub{margin:0 0 16px;color:var(--muted);line-height:1.5}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:720px){.grid2{grid-template-columns:1fr}}
+label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin:0 0 6px}
+input,select,textarea{width:100%;padding:13px 14px;border-radius:14px;border:1px solid var(--line);background:#0d1546;color:var(--ink);font:inherit;font-size:16px}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--gold);border-color:transparent}
+.field{margin-bottom:12px}
+.howto{background:#0d1546;border:1px dashed var(--line);border-radius:16px;padding:14px 16px;margin:6px 0 14px}
+.howto ol{margin:6px 0 0 18px;padding:0;line-height:1.6}
+.note{font-size:13px;color:var(--muted)}
+.err{color:var(--bad);font-weight:600;font-size:14px;min-height:20px;margin:8px 0 0}
+.btns{display:flex;gap:10px;justify-content:space-between;margin-top:18px;flex-wrap:wrap}
+.btn{border:0;border-radius:999px;padding:14px 22px;font:inherit;font-weight:700;font-size:16px;cursor:pointer;background:#0d1546;color:var(--ink);border:1px solid var(--line)}
+.btn.gold{background:linear-gradient(135deg,var(--gold-2),var(--gold));color:#1a1407;border:0}
+.btn.wa{background:var(--green);border:0;color:#fff;text-decoration:none;display:inline-block}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.style{display:grid;grid-template-columns:1fr 360px;gap:20px}
+@media (max-width:860px){.style{grid-template-columns:1fr}.prev{order:-1}}
+.group{margin-bottom:16px}
+.group h3{font-size:12px;letter-spacing:.18em;color:var(--gold);margin:0 0 8px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:11px 14px;border-radius:14px;border:2px solid var(--line);background:#0d1546;color:var(--ink);font:inherit;font-weight:600;font-size:14px;cursor:pointer;min-width:88px}
+.chip.on{border-color:var(--gold);background:#2a2a3f;color:var(--gold-2)}
+.chip i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+.prev{position:sticky;top:12px;align-self:start}
+canvas#pv{width:100%;aspect-ratio:4/5;border-radius:16px;background:#000;display:block;box-shadow:0 20px 50px rgba(0,0,0,.45)}
+.contract{max-height:340px;overflow:auto;background:#fbf8f1;color:#1d1d1d;border-radius:14px;padding:18px;font-size:14px;line-height:1.55;white-space:pre-wrap}
+.sig{position:relative;height:200px;background:#fbf8f1;border-radius:14px;margin-top:6px;touch-action:none}
+.sig canvas{width:100%;height:100%;display:block;cursor:crosshair}
+.sig span{position:absolute;left:16px;bottom:10px;color:#9a917f;font-size:13px;pointer-events:none}
+.check{display:flex;gap:10px;align-items:flex-start;margin:14px 0 0;font-weight:600}
+.check input{width:22px;height:22px;flex:0 0 auto}
+.done{text-align:center;padding:30px 10px}
+.done .big{font-size:56px}
+.hidden{display:none!important}
+footer{text-align:center;color:var(--muted);font-size:13px;margin-top:28px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">AM MEDINAS · FOTO Y VIDEO</div>
+    <h1>Cabina <span>360</span></h1>
+    <p class="lead">Activa la cabina de tu evento en 3 pasos: conecta tu Página de Facebook, elige el estilo de tus fotos y videos, y firma la autorización. El día del evento, cada invitado se lleva sus 6 fotos tipo postal y su video 360, y se publican al instante en tu Página.</p>
+  </header>
+
+  <nav class="steps" aria-label="Pasos">
+    <div class="step on" data-s="0"><b>1</b>Tu Página</div>
+    <div class="step" data-s="1"><b>2</b>Tu estilo</div>
+    <div class="step" data-s="2"><b>3</b>Autorización</div>
+  </nav>
+
+  <!-- PASO 1 -->
+  <section class="card" id="s0">
+    <h2>Tus datos y tu Página de Facebook</h2>
+    <p class="sub">Las fotos y videos se publican en tu Página y en la Página de AM Medinas. Facebook solo permite publicar en <b>Páginas</b>, no en perfiles personales (si no tienes, se crea gratis en minutos desde Facebook &gt; Páginas &gt; Crear).</p>
+    <div class="grid2">
+      <div class="field"><label for="cliente">Nombre completo *</label><input id="cliente" autocomplete="name" placeholder="Nombre y apellidos"></div>
+      <div class="field"><label for="telefono">WhatsApp *</label><input id="telefono" inputmode="tel" autocomplete="tel" placeholder="10 dígitos"></div>
+      <div class="field"><label for="correo">Correo</label><input id="correo" type="email" autocomplete="email" placeholder="opcional"></div>
+      <div class="field"><label for="evento">Evento *</label><input id="evento" placeholder="Boda Ana y Luis, XV años de Sofía…"></div>
+      <div class="field"><label for="fecha">Fecha del evento *</label><input id="fecha" type="date"></div>
+      <div class="field"><label for="lugar">Lugar *</label><input id="lugar" placeholder="Salón, ciudad"></div>
+    </div>
+    <div class="field"><label for="pagina">Enlace de tu Página de Facebook *</label><input id="pagina" inputmode="url" placeholder="https://www.facebook.com/tu-pagina"></div>
+    <div class="howto">
+      <b>Da acceso de publicación a AM Medinas (2 minutos):</b>
+      <ol>
+        <li>Abre tu Página en Facebook o en Meta Business Suite.</li>
+        <li>Ve a <b>Configuración &gt; Acceso a la Página</b> (o "Personas con acceso").</li>
+        <li>Toca <b>Agregar nuevo</b>, busca <b>AM Medinas</b> o el correo que te comparta Armando, y dale acceso de <b>Contenido</b> (crear y publicar). No necesitas darle control total.</li>
+        <li>Acepta y listo: la cabina publicará en tu Página durante el evento.</li>
+      </ol>
+      <p class="note">Puedes quitar el acceso cuando termine tu evento.</p>
+    </div>
+    <label class="check"><input type="checkbox" id="acceso"> Ya le di acceso de Contenido a AM Medinas (o lo haré antes del evento).</label>
+    <p class="err" id="e0"></p>
+    <div class="btns"><span></span><button class="btn gold" id="n0">Continuar</button></div>
+  </section>
+
+  <!-- PASO 2 -->
+  <section class="card hidden" id="s1">
+    <h2>Elige el estilo de tus recuerdos</h2>
+    <p class="sub">La vista previa es una referencia; el día del evento se aplica a las fotos reales. La marca de agua de AM Medinas siempre se incluye.</p>
+    <div class="style">
+      <div>
+        <div class="grid2">
+          <div class="field"><label for="titulo">Título en las fotos</label><input id="titulo" maxlength="28" placeholder="Ana & Luis"></div>
+          <div class="field"><label for="subtitulo">Subtítulo</label><input id="subtitulo" maxlength="36" placeholder="14 · noviembre · 2026"></div>
+        </div>
+        <div id="groups"></div>
+      </div>
+      <div class="prev"><canvas id="pv" width="540" height="675"></canvas></div>
+    </div>
+    <div class="btns"><button class="btn" id="b1">Atrás</button><button class="btn gold" id="n1">Continuar</button></div>
+  </section>
+
+  <!-- PASO 3 -->
+  <section class="card hidden" id="s2">
+    <h2>Contrato de confidencialidad y uso de imagen</h2>
+    <p class="sub">Autoriza a AM Medinas a respaldar y publicar las fotos y videos de la cabina en tu Página y en la de AM Medinas. Léelo y firma con tu dedo.</p>
+    <div class="contract" id="contrato"></div>
+    <div class="field" style="margin-top:14px"><label>Firma *</label>
+      <div class="sig"><canvas id="sig"></canvas><span>Firma del cliente</span></div>
+      <div style="text-align:right;margin-top:6px"><button class="btn" id="sigclr" style="padding:8px 14px;font-size:14px">Borrar firma</button></div>
+    </div>
+    <label class="check"><input type="checkbox" id="acepto"> He leído y acepto el contrato.</label>
+    <p class="err" id="e2"></p>
+    <div class="btns"><button class="btn" id="b2">Atrás</button><button class="btn gold" id="enviar">Firmar y activar mi cabina</button></div>
+  </section>
+
+  <!-- LISTO -->
+  <section class="card hidden" id="s3">
+    <div class="done">
+      <div class="big">🎉</div>
+      <h2 id="ok-title">¡Tu cabina 360 está lista!</h2>
+      <p class="sub" id="ok-msg"></p>
+      <p><button class="btn gold" id="pdf">Descargar mi contrato (PDF)</button></p>
+      <p><a class="btn wa" id="wa" target="_blank" rel="noopener">Avisar a AM Medinas por WhatsApp</a></p>
+      <p class="note">Folio: <b id="folio"></b></p>
+    </div>
+  </section>
+
+  <footer>AM Medinas · San Juan del Río, Qro. · WhatsApp 427 277 7193 · <a href="./">ammedinas.github.io/am-medinas</a></footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+(() => {
+const WA = '524272777193';
+const $ = (s) => document.querySelector(s);
+const OPC = {
+  marco: ['Elegante', 'Fiesta', 'Polaroid', 'Neón', 'Sin marco'],
+  color: { Dorado: '#D4AF37', Rosa: '#FF4F9A', Azul: '#3BA7FF', Esmeralda: '#2FCB8F', Lila: '#A77BFF', Rojo: '#FF4B4B', Plata: '#C9CED6', Negro: '#222222' },
+  filtro: ['Natural', 'Glam', 'Blanco y negro', 'Vintage', 'Cálido', 'Frío', 'Vívido'],
+  efecto: ['Ninguno', 'Caricatura IA', 'Boceto IA', 'Óleo IA', 'Pop art IA'],
+  stickers: ['Corazones', 'Estrellas', 'Corona', 'Globos', '¡Salud!', 'Party', 'Love'],
+  fondo: { 'Sin cambio': 'ninguno', 'Pantalla verde': 'verde', 'Fondo con IA': 'ia' },
+  musica: ['Cumbia', 'Pop bailable', 'Electrónica', 'Banda / Regional', 'Rock', 'Balada'],
+  velocidad: { Normal: 'normal', 'Cámara lenta': 'lenta', Boomerang: 'boomerang' },
+};
+const sel = { marco: 'Elegante', color: 'Dorado', filtro: 'Natural', efecto: 'Ninguno', stickers: ['Corazones'],
+  fondo: 'Sin cambio', musica: 'Pop bailable', velocidad: 'Normal' };
+const GRUPOS = [['marco', 'Marco'], ['color', 'Color del tema'], ['filtro', 'Filtro'], ['efecto', 'Efecto con IA'],
+  ['stickers', 'Stickers (hasta 3)'], ['fondo', 'Fondo'], ['musica', 'Música libre de derechos'], ['velocidad', 'Velocidad del video']];
+
+// ---------- navegación
+let paso = 0;
+function ir(n) {
+  paso = n;
+  ['#s0', '#s1', '#s2', '#s3'].forEach((id, i) => $(id).classList.toggle('hidden', i !== n));
+  document.querySelectorAll('.step').forEach((el, i) => { el.classList.toggle('on', i === n); el.classList.toggle('ok', i < n); });
+  if (n === 1) dibujar();
+  if (n === 2) { $('#contrato').textContent = contrato(); ajustarFirma(); }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ---------- paso 1
+const v = (id) => $('#' + id).value.trim();
+$('#n0').onclick = () => {
+  const faltan = [];
+  if (v('cliente').split(/\s+/).length < 2) faltan.push('nombre completo');
+  if (v('telefono').replace(/\D/g, '').length < 10) faltan.push('WhatsApp de 10 dígitos');
+  if (!v('evento')) faltan.push('evento');
+  if (!v('fecha')) faltan.push('fecha');
+  if (!v('lugar')) faltan.push('lugar');
+  const pg = v('pagina');
+  if (!/^(https?:\/\/)?(www\.|m\.|web\.)?(facebook|fb)\.com\/.+/i.test(pg)) faltan.push('enlace válido de tu Página de Facebook');
+  if (!$('#acceso').checked) faltan.push('confirmar el acceso de Contenido a AM Medinas');
+  $('#e0').textContent = faltan.length ? 'Falta: ' + faltan.join(', ') + '.' : '';
+  if (!faltan.length) {
+    if (!v('titulo')) $('#titulo').value = v('evento').slice(0, 28);
+    if (!v('subtitulo')) $('#subtitulo').value = fechaBonita(v('fecha'));
+    guardar(); ir(1);
+  }
+};
+function fechaBonita(f) {
+  if (!f) return '';
+  const [y, m, d] = f.split('-').map(Number);
+  const mes = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'][m - 1];
+  return `${d} · ${mes} · ${y}`;
+}
+
+// ---------- paso 2: grupos de botones
+const groups = $('#groups');
+GRUPOS.forEach(([k, titulo]) => {
+  const g = document.createElement('div');
+  g.className = 'group';
+  g.innerHTML = `<h3>${titulo.toUpperCase()}</h3><div class="chips"></div>`;
+  const box = g.querySelector('.chips');
+  const lista = Array.isArray(OPC[k]) ? OPC[k] : Object.keys(OPC[k]);
+  lista.forEach((op) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'chip';
+    b.innerHTML = (k === 'color' ? `<i style="background:${OPC.color[op]}"></i>` : '') + op;
+    b.onclick = () => {
+      if (k === 'stickers') {
+        const i = sel.stickers.indexOf(op);
+        if (i >= 0) sel.stickers.splice(i, 1); else if (sel.stickers.length < 3) sel.stickers.push(op);
+      } else sel[k] = op;
+      pintarChips(); dibujar(); guardar();
+    };
+    b.dataset.k = k; b.dataset.op = op;
+    box.appendChild(b);
+  });
+  groups.appendChild(g);
+});
+function pintarChips() {
+  document.querySelectorAll('.chip').forEach((b) => {
+    const k = b.dataset.k, op = b.dataset.op;
+    b.classList.toggle('on', k === 'stickers' ? sel.stickers.includes(op) : sel[k] === op);
+  });
+}
+$('#titulo').oninput = $('#subtitulo').oninput = () => { dibujar(); guardar(); };
+$('#b1').onclick = () => ir(0);
+$('#n1').onclick = () => ir(2);
+
+// ---------- vista previa (referencia visual del estilo)
+const pv = $('#pv'), cx = pv.getContext('2d');
+function foto(w, h) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const g = c.getContext('2d');
+  const gr = g.createLinearGradient(0, 0, w, h); gr.addColorStop(0, '#3b2a6b'); gr.addColorStop(1, '#0f5d6e');
+  g.fillStyle = gr; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 16; i++) { g.fillStyle = 'rgba(255,240,200,.35)'; g.beginPath(); g.arc((i * 97) % w, (i * 53) % (h * .55), 8 + (i % 4) * 4, 0, 7); g.fill(); }
+  g.fillStyle = '#7a1f2b'; g.beginPath(); g.ellipse(w * .5, h * 1.02, w * .34, h * .36, 0, Math.PI, 0); g.fill();
+  g.fillStyle = '#e6b99a'; g.beginPath(); g.ellipse(w * .5, h * .45, w * .15, h * .15, 0, 0, 7); g.fill();
+  g.fillStyle = '#2a1b14'; g.beginPath(); g.ellipse(w * .5, h * .33, w * .16, h * .07, 0, Math.PI, 0); g.fill();
+  g.fillStyle = '#222'; [-1, 1].forEach((s) => { g.beginPath(); g.arc(w * .5 + s * w * .055, h * .43, w * .012, 0, 7); g.fill(); });
+  g.strokeStyle = '#8a2b3b'; g.lineWidth = 3; g.beginPath(); g.arc(w * .5, h * .48, w * .05, .2, Math.PI - .2); g.stroke();
+  const filtros = { 'Blanco y negro': 'grayscale(1) contrast(1.1)', Vintage: 'sepia(.7) contrast(.95)', 'Cálido': 'sepia(.25) saturate(1.2)',
+    'Frío': 'hue-rotate(15deg) saturate(.9) brightness(1.03)', 'Vívido': 'saturate(1.6)', Glam: 'brightness(1.08) saturate(1.15) blur(.4px)' };
+  const efectos = { 'Caricatura IA': 'contrast(1.4) saturate(1.5)', 'Boceto IA': 'grayscale(1) contrast(2) brightness(1.3)',
+    'Óleo IA': 'saturate(1.3) blur(1px)', 'Pop art IA': 'saturate(2.2) contrast(1.5)' };
+  const out = document.createElement('canvas'); out.width = w; out.height = h;
+  const o = out.getContext('2d');
+  o.filter = [filtros[sel.filtro] || '', efectos[sel.efecto] || ''].join(' ').trim() || 'none';
+  o.drawImage(c, 0, 0);
+  return out;
+}
+const EMO = { Corazones: '❤️', Estrellas: '⭐', Corona: '👑', Globos: '🎈' };
+function dibujar() {
+  const W = pv.width, H = pv.height, col = OPC.color[sel.color];
+  const t = v('titulo') || 'Tu evento', st = v('subtitulo');
+  cx.save(); cx.clearRect(0, 0, W, H);
+  const m = sel.marco;
+  const txt = (s, y, font, color) => { cx.font = font; cx.fillStyle = color; cx.textAlign = 'center'; cx.fillText(s, W / 2, y); };
+  if (m === 'Elegante') {
+    cx.fillStyle = '#121014'; cx.fillRect(0, 0, W, H); cx.drawImage(foto(W - 60, H - 150), 30, 30);
+    cx.strokeStyle = col; cx.lineWidth = 2; cx.strokeRect(20, 20, W - 40, H - 130); cx.strokeRect(26, 26, W - 52, H - 142);
+    txt(t, H - 62, "italic 600 34px Montserrat", col); txt(st.toUpperCase(), H - 28, "500 14px Montserrat", '#ddd2bd');
+  } else if (m === 'Fiesta') {
+    cx.drawImage(foto(W, H), 0, 0);
+    for (let i = 0; i < 70; i++) { cx.fillStyle = [col, '#ffd600', '#00d2ff', '#ff50a0'][i % 4]; const y = i % 2 ? (i * 7) % 80 : H - 150 + (i * 11) % 150; cx.fillRect((i * 61) % W, y, 9, 5); }
+    const g = cx.createLinearGradient(0, H - 180, 0, H); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, col); cx.fillStyle = g; cx.fillRect(0, H - 180, W, 180);
+    cx.lineWidth = 5; cx.strokeStyle = 'rgba(0,0,0,.45)'; cx.font = '800 40px Montserrat'; cx.textAlign = 'center'; cx.strokeText(t, W / 2, H - 66);
+    txt(t, H - 66, '800 40px Montserrat', '#fff'); txt(st, H - 30, '500 16px Montserrat', '#fff');
+  } else if (m === 'Polaroid') {
+    cx.fillStyle = '#faf8f4'; cx.fillRect(0, 0, W, H); cx.drawImage(foto(W - 50, W - 5), 25, 25);
+    txt(t, H - 66, "italic 600 34px Montserrat", '#2a2a2a'); txt(st, H - 30, '500 15px Montserrat', col);
+  } else if (m === 'Neón') {
+    cx.fillStyle = '#08061a'; cx.fillRect(0, 0, W, H); cx.drawImage(foto(W - 70, H - 160), 35, 35);
+    cx.shadowColor = col; cx.shadowBlur = 22; cx.strokeStyle = col; cx.lineWidth = 6;
+    cx.beginPath(); cx.roundRect(25, 25, W - 50, H - 140, 16); cx.stroke();
+    txt(t, H - 60, '800 38px Montserrat', '#fff'); cx.shadowBlur = 0; txt(st, H - 26, '500 14px Montserrat', '#dfe0ff');
+  } else { cx.drawImage(foto(W, H), 0, 0); }
+  cx.shadowBlur = 0;
+  const slots = [[.8, .12, 70], [.14, .62, 60], [.86, .66, 48]];
+  sel.stickers.forEach((s, i) => {
+    const [rx, ry, sz] = slots[i];
+    if (EMO[s]) { cx.font = `${sz}px serif`; cx.textAlign = 'center'; cx.fillText(EMO[s], W * rx, H * ry + sz / 3); }
+    else {
+      cx.save(); cx.translate(W * rx, H * ry); cx.rotate(-.18);
+      cx.fillStyle = '#fff'; cx.strokeStyle = '#111'; cx.lineWidth = 3; cx.beginPath(); cx.roundRect(-58, -24, 116, 48, 24); cx.fill(); cx.stroke();
+      cx.fillStyle = '#111'; cx.font = '800 20px Montserrat'; cx.textAlign = 'center'; cx.fillText(s.toUpperCase() === 'PARTY' || s === 'Love' ? s.toUpperCase() : s, 0, 7); cx.restore();
+    }
+  });
+  cx.font = '700 15px Montserrat'; cx.textAlign = 'right'; cx.lineWidth = 3; cx.strokeStyle = 'rgba(0,0,0,.6)';
+  cx.strokeText('AM Medinas', W - 14, H - 10); cx.fillStyle = '#fff'; cx.fillText('AM Medinas', W - 14, H - 10);
+  cx.restore();
+}
+
+// ---------- paso 3: contrato
+function contrato() {
+  return `CONTRATO DE CONFIDENCIALIDAD Y AUTORIZACIÓN DE USO DE IMAGEN Y MATERIAL AUDIOVISUAL
+
+Que celebran, por una parte, AM MEDINAS, servicios de fotografía y video, representado por Armando Medina Romero (en adelante "EL PRESTADOR"), y por la otra ${v('cliente') || '[CLIENTE]'} (en adelante "EL CLIENTE"), respecto del evento "${v('evento')}" a realizarse el ${v('fecha')} en ${v('lugar')} (en adelante "EL EVENTO"), al tenor de las siguientes:
+
+CLÁUSULAS
+
+PRIMERA. OBJETO. EL PRESTADOR operará una cabina fotográfica 360 durante EL EVENTO, que captura fotografías y videos de los asistentes que voluntariamente la utilicen (en adelante "EL MATERIAL").
+
+SEGUNDA. AUTORIZACIÓN DE USO. EL CLIENTE autoriza a EL PRESTADOR, de forma gratuita y por tiempo indefinido, a almacenar, editar, reproducir y publicar EL MATERIAL en: (a) la Página de Facebook de EL CLIENTE (${v('pagina')}); (b) la Página de Facebook de AM Medinas; y (c) el respaldo en la nube de EL PRESTADOR (Google Drive), así como en su portafolio comercial.
+
+TERCERA. AVISO A LOS INVITADOS. EL CLIENTE se obliga a informar a sus invitados, antes y durante EL EVENTO, que la cabina publica automáticamente las fotos y videos en redes sociales, y a colocar el aviso visible que EL PRESTADOR le proporcione. Quien no desee aparecer puede abstenerse de usar la cabina. EL CLIENTE responderá frente a terceros que reclamen por la falta de este aviso.
+
+CUARTA. MENORES DE EDAD. Cuando aparezcan menores de edad, EL CLIENTE declara contar con la autorización de sus padres o tutores, o se obliga a obtenerla. Ante cualquier solicitud de padres o tutores, EL PRESTADOR retirará el material del menor de sus publicaciones.
+
+QUINTA. CONFIDENCIALIDAD Y ACCESO A LA PÁGINA. EL PRESTADOR guardará confidencialidad sobre los datos personales de EL CLIENTE y no compartirá EL MATERIAL con fines distintos a los señalados en la cláusula SEGUNDA. El acceso de publicación que EL CLIENTE otorgue a EL PRESTADOR en su Página se usará únicamente para publicar EL MATERIAL de EL EVENTO, y EL CLIENTE puede retirarlo en cualquier momento.
+
+SEXTA. RETIRO DE CONTENIDO. EL CLIENTE o cualquier persona que aparezca en EL MATERIAL podrá solicitar por escrito el retiro de una publicación específica; EL PRESTADOR la retirará de la Página de AM Medinas en un plazo no mayor a 5 días hábiles.
+
+SÉPTIMA. DATOS PERSONALES. El tratamiento de imágenes de personas identificables se realiza conforme a la Ley Federal de Protección de Datos Personales en Posesión de los Particulares y al aviso de privacidad de EL PRESTADOR, disponible a solicitud.
+
+OCTAVA. MÚSICA. La música incorporada a los videos proviene de bibliotecas con licencia comercial adquirida por EL PRESTADOR.
+
+NOVENA. JURISDICCIÓN. Para la interpretación y cumplimiento de este contrato, las partes se someten a las leyes y tribunales competentes del Estado de Querétaro, renunciando a cualquier otro fuero.
+
+Leído que fue el presente contrato y enteradas las partes de su contenido y alcance, EL CLIENTE lo firma de manera electrónica en la fecha y hora que se indican.`;
+}
+
+// firma
+const sc = $('#sig'), sg = sc.getContext('2d');
+let trazos = 0, dibujando = false;
+function ajustarFirma() {
+  const r = sc.getBoundingClientRect(), d = window.devicePixelRatio || 1;
+  if (sc.width === Math.round(r.width * d)) return;
+  sc.width = Math.round(r.width * d); sc.height = Math.round(r.height * d);
+  sg.scale(d, d); sg.lineWidth = 2.6; sg.lineCap = sg.lineJoin = 'round'; sg.strokeStyle = '#111';
+}
+const pos = (e) => { const r = sc.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+sc.addEventListener('pointerdown', (e) => { dibujando = true; sc.setPointerCapture(e.pointerId); sg.beginPath(); sg.moveTo(...pos(e)); });
+sc.addEventListener('pointermove', (e) => { if (!dibujando) return; sg.lineTo(...pos(e)); sg.stroke(); trazos++; });
+sc.addEventListener('pointerup', () => { dibujando = false; });
+$('#sigclr').onclick = () => { sg.clearRect(0, 0, sc.width, sc.height); trazos = 0; };
+$('#b2').onclick = () => ir(1);
+
+// ---------- envío
+let pdfBlob = null, pdfName = '';
+const aB64 = (s) => btoa(unescape(encodeURIComponent(s)));
+function plantilla() {
+  return { title: v('titulo') || v('evento'), subtitle: v('subtitulo'), frame: sel.marco, theme_color: OPC.color[sel.color],
+    filter: sel.filtro, effect: sel.efecto, stickers: sel.stickers.slice(), background_mode: OPC.fondo[sel.fondo],
+    music: sel.musica, speed: OPC.velocidad[sel.velocidad] };
+}
+function crearPDF(folio, firmado) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'pt', format: 'letter' });
+  const datos = { v: 1, tipo: 'cabina360', folio, cliente: v('cliente'), telefono: v('telefono'), correo: v('correo'),
+    evento: v('evento'), fecha: v('fecha'), lugar: v('lugar'), pagina_facebook: v('pagina'), firmado_en: firmado,
+    template: plantilla(), contrato: contrato() };
+  doc.setProperties({ title: 'Contrato Cabina 360 · ' + v('evento'), author: 'AM Medinas', subject: 'Cabina 360',
+    keywords: 'AMM360:' + aB64(JSON.stringify(datos)) + ':FIN' });
+  const M = 56, Wd = doc.internal.pageSize.getWidth() - M * 2, Hp = doc.internal.pageSize.getHeight();
+  let y = 60;
+  doc.setTextColor(184, 145, 47); doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
+  doc.text('AM MEDINAS · FOTO Y VIDEO · CABINA 360', M, y); y += 20;
+  doc.setTextColor(20, 20, 20);
+  contrato().split('\n').forEach((par, i) => {
+    if (!par.trim()) { y += 4; return; }
+    const titulo = i === 0;
+    doc.setFont('helvetica', titulo || /^[A-ZÁÉÍÓÚÑ ]+\.?$/.test(par) ? 'bold' : 'normal');
+    doc.setFontSize(titulo ? 12 : 9.5);
+    doc.splitTextToSize(par, Wd).forEach((ln) => { if (y > Hp - 70) { doc.addPage(); y = 60; } doc.text(ln, M, y); y += titulo ? 15 : 12.5; });
+    y += 4;
+  });
+  if (y > Hp - 190) { doc.addPage(); y = 60; }
+  y += 10;
+  const img = sc.toDataURL('image/png'), ratio = sc.height / sc.width;
+  doc.addImage(img, 'PNG', M, y, 220, 220 * ratio);
+  y += 220 * ratio + 6;
+  doc.setDrawColor(184, 145, 47); doc.line(M, y, M + 240, y); y += 16;
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.text('EL CLIENTE', M, y); y += 14;
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5);
+  [v('cliente'), 'Firmado electrónicamente: ' + firmado, 'Página de Facebook: ' + v('pagina'), 'Folio: ' + folio].forEach((t) => { doc.text(t, M, y); y += 13; });
+  return doc;
+}
+$('#enviar').onclick = async () => {
+  const faltan = [];
+  if (trazos < 15) faltan.push('tu firma');
+  if (!$('#acepto').checked) faltan.push('aceptar el contrato');
+  $('#e2').textContent = faltan.length ? 'Falta: ' + faltan.join(' y ') + '.' : '';
+  if (faltan.length) return;
+  const btn = $('#enviar'); btn.disabled = true; btn.textContent = 'Enviando…';
+  const now = new Date();
+  const folio = 'C360-' + now.toISOString().slice(2, 10).replace(/-/g, '') + '-' + Math.random().toString(36).slice(2, 6).toUpperCase();
+  const firmado = now.toLocaleString('es-MX', { timeZone: 'America/Mexico_City' }) + ' (hora del centro de México)';
+  const doc = crearPDF(folio, firmado);
+  pdfName = `Cabina360_${v('fecha')}_${v('cliente').replace(/\s+/g, '_')}.pdf`;
+  pdfBlob = doc.output('blob');
+  let enviado = false;
+  try {
+    if (window.AMM_URL && window.AMM_URL.indexOf('PEGA_AQUI') !== 0) {
+      const b64 = doc.output('datauristring').split(',')[1];
+      const r = await (await fetch(window.AMM_URL, { method: 'POST', body: JSON.stringify({
+        accion: 'cliente', folio, cliente: v('cliente'), telefono: v('telefono'), correo: v('correo'),
+        evento: 'Cabina 360 — ' + v('evento'), fecha: v('fecha'), lugar: v('lugar'), nombreArchivo: pdfName, pdfBase64: b64 }) })).json();
+      enviado = !!r.ok;
+    }
+  } catch (e) { enviado = false; }
+  $('#folio').textContent = folio;
+  $('#ok-msg').innerHTML = enviado
+    ? 'Tu autorización y tu estilo ya le llegaron a AM Medinas. El día del evento solo tienen que tocar <b>INICIAR</b> en la cabina.'
+    : 'Tu contrato está listo, pero no se pudo enviar automáticamente. <b>Descárgalo y envíalo por WhatsApp</b> con los botones de abajo.';
+  const msg = `Hola AM Medinas, ya activé la Cabina 360 para "${v('evento')}" (${v('fecha')}). Folio ${folio}. Mi Página: ${v('pagina')}` + (enviado ? '' : ' (te envío el PDF por aquí)');
+  $('#wa').href = `https://wa.me/${WA}?text=${encodeURIComponent(msg)}`;
+  localStorage.removeItem('amm360');
+  ir(3);
+  btn.disabled = false; btn.textContent = 'Firmar y activar mi cabina';
+};
+$('#pdf').onclick = () => {
+  if (!pdfBlob) return;
+  const a = document.createElement('a'); a.href = URL.createObjectURL(pdfBlob); a.download = pdfName; a.click();
+};
+
+// ---------- borrador local (por si cierran la página)
+const CAMPOS = ['cliente', 'telefono', 'correo', 'evento', 'fecha', 'lugar', 'pagina', 'titulo', 'subtitulo'];
+function guardar() { try { localStorage.setItem('amm360', JSON.stringify({ f: Object.fromEntries(CAMPOS.map((c) => [c, v(c)])), sel })); } catch (e) {} }
+try {
+  const d = JSON.parse(localStorage.getItem('amm360') || 'null');
+  if (d) { CAMPOS.forEach((c) => { if (d.f[c]) $('#' + c).value = d.f[c]; }); Object.assign(sel, d.sel || {}); }
+} catch (e) {}
+CAMPOS.forEach((c) => $('#' + c).addEventListener('change', guardar));
+pintarChips();
+document.fonts && document.fonts.ready.then(dibujar);
+})();
+</script>
+</body>
+</html>
