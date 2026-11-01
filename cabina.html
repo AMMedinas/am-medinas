@@ -71,7 +71,7 @@ html,body{margin:0;height:100%;background:#000;color:var(--ink);font-family:Mont
 <!-- INICIO -->
 <section class="screen" id="pIni">
   <button id="go">INICIAR</button>
-  <div class="hint">Un toque: 6 fotos tipo postal + video 360</div>
+  <div class="hint">Un toque o un clic en el control: 6 fotos tipo postal + video 360</div>
   <div class="sub" id="ia">Preparando cámara…</div>
 </section>
 
@@ -118,7 +118,16 @@ html,body{margin:0;height:100%;background:#000;color:var(--ink);font-family:Mont
   <label>Cámara</label><select id="sCam"></select>
   <label>Segundos de video 360</label><input id="sSeg" type="number" min="3" max="30" value="8">
   <label>Cuenta regresiva (s)</label><input id="sCnt" type="number" min="1" max="10" value="3">
+  <label>Tiempo para arrancar el motor con su control (s)</label><input id="sMot" type="number" min="0" max="10" value="3">
+  <label>Velocidad sugerida en el control del motor</label><select id="sVel"><option>Lenta (2-3)</option><option selected>Media (4-5)</option><option>Rápida (6-8)</option></select>
+  <label><input type="checkbox" id="sBeep" checked style="width:auto"> Avisos con sonido (para el operador)</label>
   <label><input type="checkbox" id="sGuardar" checked style="width:auto"> Descargar automáticamente cada toma en este equipo</label>
+  <div class="small" style="margin-top:10px;border-top:1px solid #2a3577;padding-top:10px">
+    <b>📸 Control de fotos (Bluetooth):</b> vincúlalo al celular en Ajustes &gt; Bluetooth y presiona su botón: <b id="sKey">esperando…</b><br>
+    Usa el botón de Android (no el de iOS). Cada clic hace lo mismo que tocar INICIAR.
+  </div>
+  <button class="btn" id="sBle" style="width:100%;margin-top:8px">🔎 Diagnóstico Bluetooth del motor</button>
+  <pre id="sBleOut" class="small" style="white-space:pre-wrap;max-height:160px;overflow:auto;display:none;background:#0a0f36;padding:8px;border-radius:8px"></pre>
   <p class="small">Tomas del evento en este equipo: <b id="sTot">0</b></p>
   <div style="display:flex;gap:8px;margin-top:10px"><button class="btn" id="sAll" style="flex:1">Descargar todo el evento</button><button class="btn gold" id="sOk" style="flex:1">Listo</button></div>
 </div>
@@ -360,11 +369,16 @@ async function tomar() {
       const th = $('#thumbs').children[i]; th.textContent = ''; th.classList.add('on'); th.style.backgroundImage = `url(${URL.createObjectURL(blob)})`;
       await sleep(1100);
     }
-    $('#msg').textContent = '¡A girar! Video 360'; $('#note').textContent = 'Enciende el giro de la cabina';
-    await sleep(1200);
+    $('#msg').textContent = '¡A girar! Video 360';
+    const espera = Math.max(0, +$('#sMot').value || 0);
+    $('#note').textContent = `Operador: presiona ⏻/▶ en el control del motor · velocidad ${$('#sVel').value}`;
+    pitido(880, .25);
+    for (let i = espera; i > 0; i--) { $('#note').textContent = `Operador: arranca el motor con su control ⏻ · grabando en ${i}…`; await sleep(1000); }
+    pitido(1320, .35);
     show(null); $('#rec').classList.remove('hidden');
     const v = await grabar(+$('#sSeg').value || 8, (s) => ($('#rect').textContent = `REC  ${s} s`));
     $('#rec').classList.add('hidden');
+    pitido(660, .5); avisoMotor('Operador: detén el motor con su control ⏻');
     show('#pProc'); $('#barI').style.width = '40%';
     const col = mosaico(cards), colBlob = await aBlob(col, .9);
     $('#barI').style.width = '100%'; await sleep(300);
@@ -385,7 +399,49 @@ async function tomar() {
 function inicio() { clearInterval(regreso); $('#vid').pause(); show('#pIni'); }
 
 $('#go').onclick = tomar;
-document.addEventListener('keydown', (e) => { if ((e.key === ' ' || e.key === 'Enter') && !$('#pIni').classList.contains('hidden')) tomar(); });
+// Control de fotos Bluetooth (botón selfie): llega como tecla Enter / Volumen / Play
+const TECLAS = new Set([' ', 'Enter', 'AudioVolumeUp', 'AudioVolumeDown', 'VolumeUp', 'VolumeDown', 'MediaPlayPause', 'MediaPlay', 'Camera']);
+let ultimaTecla = 0;
+document.addEventListener('keydown', (e) => {
+  const k = e.key || '', c = e.keyCode;
+  $('#sKey').textContent = `${k || 'tecla'} (${c}) ✓ recibido`;
+  if (!(TECLAS.has(k) || c === 13 || c === 32 || c === 175 || c === 174 || c === 179)) return;
+  e.preventDefault();
+  if (Date.now() - ultimaTecla < 1500) return;          // evita dobles disparos
+  ultimaTecla = Date.now();
+  if (!$('#pIni').classList.contains('hidden')) tomar();
+  else if (!$('#pFin').classList.contains('hidden')) inicio();
+});
+let actx = null;
+function pitido(f, d) {
+  if (!$('#sBeep').checked) return;
+  try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); const o = actx.createOscillator(), g = actx.createGain();
+    o.frequency.value = f; g.gain.setValueAtTime(.25, actx.currentTime); g.gain.exponentialRampToValueAtTime(.001, actx.currentTime + d);
+    o.connect(g); g.connect(actx.destination); o.start(); o.stop(actx.currentTime + d); } catch (e) {}
+}
+function avisoMotor(t) { const n = $('#note2'); if (n) { n.textContent = t; setTimeout(() => { n.textContent = 'Aplicando tu marco y la marca AM Medinas…'; }, 4000); } }
+// Diagnóstico: identifica el Bluetooth del motor para poder controlarlo desde la cabina más adelante
+$('#sBle').onclick = async () => {
+  const out = $('#sBleOut'); out.style.display = 'block';
+  if (!navigator.bluetooth) { out.textContent = 'Este navegador no tiene Bluetooth web. Usa Chrome en Android o en computadora (no funciona en iPhone).'; return; }
+  const SV = [0xffe0, 0xfff0, 0xffd0, 0xffc0, 0xff00, 0xae00, 0xfee7, 0x1910, 0xffb0, 0x180a, '0000ae30-0000-1000-8000-00805f9b34fb', '6e400001-b5a3-f393-e0a9-e50e24dcca9e'];
+  try {
+    out.textContent = 'Elige el motor de la cabina en la lista (enciéndelo y cierra la app CyraTok antes)…';
+    const dev = await navigator.bluetooth.requestDevice({ acceptAllDevices: true, optionalServices: SV });
+    const lineas = [`Dispositivo: ${dev.name || '(sin nombre)'} · id ${dev.id}`];
+    const srv = await dev.gatt.connect();
+    for (const s of await srv.getPrimaryServices()) {
+      lineas.push(`Servicio ${s.uuid}`);
+      for (const ch of await s.getCharacteristics()) {
+        const p = Object.entries(ch.properties).filter(([, v]) => v === true).map(([k]) => k).join(',');
+        lineas.push(`  · ${ch.uuid} [${p}]`);
+      }
+    }
+    dev.gatt.disconnect();
+    lineas.push('', 'Copia este texto y mándaselo a Claude.');
+    out.textContent = lineas.join('\n');
+  } catch (e) { out.textContent = 'No se pudo leer el motor: ' + (e.message || e); }
+};
 $('#bOtra').onclick = inicio;
 $('#bDown').onclick = () => { if (!ultima) return; ultima.fotos.forEach((f) => bajar(f.blob, f.nombre)); bajar(ultima.video.blob, ultima.video.nombre); };
 $('#bShare').onclick = async () => {
@@ -401,10 +457,10 @@ $('#bShare').onclick = async () => {
 };
 $('#bfull').onclick = () => { const d = document.documentElement; (document.fullscreenElement ? document.exitFullscreen() : (d.requestFullscreen || d.webkitRequestFullscreen).call(d)).catch?.(() => {}); };
 $('#bset').onclick = () => $('#set').classList.toggle('hidden');
-$('#sOk').onclick = () => { $('#set').classList.add('hidden'); try { localStorage.setItem('amm360_ajustes', JSON.stringify({ seg: $('#sSeg').value, cnt: $('#sCnt').value, g: $('#sGuardar').checked })); } catch (e) {} };
+$('#sOk').onclick = () => { $('#set').classList.add('hidden'); try { localStorage.setItem('amm360_ajustes', JSON.stringify({ seg: $('#sSeg').value, cnt: $('#sCnt').value, g: $('#sGuardar').checked, mot: $('#sMot').value, vel: $('#sVel').value, beep: $('#sBeep').checked })); } catch (e) {} };
 $('#sCam').onchange = (e) => abrirCamara(e.target.value).catch((x) => alert(x.message));
 $('#sAll').onclick = async () => { for (const t of await todas()) { t.fotos.forEach((f) => bajar(f.blob, f.nombre)); bajar(t.video.blob, t.video.nombre); await sleep(400); } };
-try { const a = JSON.parse(localStorage.getItem('amm360_ajustes') || 'null'); if (a) { $('#sSeg').value = a.seg; $('#sCnt').value = a.cnt; $('#sGuardar').checked = a.g; } } catch (e) {}
+try { const a = JSON.parse(localStorage.getItem('amm360_ajustes') || 'null'); if (a) { $('#sSeg').value = a.seg; $('#sCnt').value = a.cnt; $('#sGuardar').checked = a.g; if (a.mot != null) $('#sMot').value = a.mot; if (a.vel) $('#sVel').value = a.vel; if (a.beep != null) $('#sBeep').checked = a.beep; } } catch (e) {}
 
 // pantalla siempre encendida durante el evento
 async function despierta() { try { if ('wakeLock' in navigator) await navigator.wakeLock.request('screen'); } catch (e) {} }
