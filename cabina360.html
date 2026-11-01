@@ -244,6 +244,11 @@ $('#b1').onclick = () => ir(0);
 $('#n1').onclick = () => ir(2);
 
 // ---------- vista previa (referencia visual del estilo)
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+    r = Math.min(r, w / 2, h / 2); this.moveTo(x + r, y); this.arcTo(x + w, y, x + w, y + h, r);
+    this.arcTo(x + w, y + h, x, y + h, r); this.arcTo(x, y + h, x, y, r); this.arcTo(x, y, x + w, y, r); this.closePath(); };
+}
 const pv = $('#pv'), cx = pv.getContext('2d');
 function foto(w, h) {
   const c = document.createElement('canvas'); c.width = w; c.height = h;
@@ -384,8 +389,10 @@ function crearPDF(folio, firmado) {
   });
   if (y > Hp - 190) { doc.addPage(); y = 60; }
   y += 10;
-  const img = sc.toDataURL('image/png'), ratio = sc.height / sc.width;
-  doc.addImage(img, 'PNG', M, y, 220, 220 * ratio);
+  const tmp = document.createElement('canvas'); tmp.width = 600; tmp.height = Math.round(600 * sc.height / sc.width);
+  const tg = tmp.getContext('2d'); tg.fillStyle = '#fff'; tg.fillRect(0, 0, tmp.width, tmp.height); tg.drawImage(sc, 0, 0, tmp.width, tmp.height);
+  const img = tmp.toDataURL('image/jpeg', 0.85), ratio = tmp.height / tmp.width;
+  doc.addImage(img, 'JPEG', M, y, 220, 220 * ratio);
   y += 220 * ratio + 6;
   doc.setDrawColor(184, 145, 47); doc.line(M, y, M + 240, y); y += 16;
   doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.text('EL CLIENTE', M, y); y += 14;
@@ -393,41 +400,65 @@ function crearPDF(folio, firmado) {
   [v('cliente'), 'Firmado electrónicamente: ' + firmado, 'Página de Facebook: ' + v('pagina'), 'Folio: ' + folio].forEach((t) => { doc.text(t, M, y); y += 13; });
   return doc;
 }
+async function asegurarJsPDF() {
+  if (window.jspdf) return;
+  await new Promise((ok, mal) => {           // respaldo si cdnjs no carga
+    const sc2 = document.createElement('script');
+    sc2.src = 'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js';
+    sc2.onload = ok; sc2.onerror = mal; document.head.appendChild(sc2);
+  });
+}
+function terminar(folio, enviado) {
+  $('#folio').textContent = folio;
+  $('#ok-title').textContent = enviado ? '¡Tu cabina 360 está lista!' : '¡Contrato firmado!';
+  $('#ok-msg').innerHTML = enviado
+    ? 'Tu autorización y tu estilo ya le llegaron a AM Medinas. No tienes que hacer nada más: el día del evento tus invitados solo tocan <b>INICIAR</b> en la cabina.'
+    : 'Último paso: <b>descarga tu contrato y envíalo a AM Medinas por WhatsApp</b> con los botones de abajo (no se pudo enviar solo, quizá por la señal).';
+  const msg = `Hola AM Medinas, ya firmé la autorización de la Cabina 360 para "${v('evento')}" (${v('fecha')}). Folio ${folio}. Mi Página: ${v('pagina')}` + (enviado ? '' : '. Te envío el PDF por aquí.');
+  $('#wa').href = `https://wa.me/${WA}?text=${encodeURIComponent(msg)}`;
+  try { localStorage.removeItem('amm360'); } catch (e) {}
+  ir(3);
+}
 $('#enviar').onclick = async () => {
   const faltan = [];
   if (trazos < 15) faltan.push('tu firma');
   if (!$('#acepto').checked) faltan.push('aceptar el contrato');
   $('#e2').textContent = faltan.length ? 'Falta: ' + faltan.join(' y ') + '.' : '';
   if (faltan.length) return;
-  const btn = $('#enviar'); btn.disabled = true; btn.textContent = 'Enviando…';
+  const btn = $('#enviar'); btn.disabled = true;
   const now = new Date();
   const folio = 'C360-' + now.toISOString().slice(2, 10).replace(/-/g, '') + '-' + Math.random().toString(36).slice(2, 6).toUpperCase();
   const firmado = now.toLocaleString('es-MX', { timeZone: 'America/Mexico_City' }) + ' (hora del centro de México)';
-  const doc = crearPDF(folio, firmado);
-  pdfName = `Cabina360_${v('fecha')}_${v('cliente').replace(/\s+/g, '_')}.pdf`;
-  pdfBlob = doc.output('blob');
   let enviado = false;
   try {
+    btn.textContent = 'Preparando tu contrato…';
+    await asegurarJsPDF();
+    const doc = crearPDF(folio, firmado);
+    pdfName = `Cabina360_${v('fecha')}_${v('cliente').replace(/\s+/g, '_')}.pdf`;
+    pdfBlob = doc.output('blob');
     if (window.AMM_URL && window.AMM_URL.indexOf('PEGA_AQUI') !== 0) {
-      const b64 = doc.output('datauristring').split(',')[1];
-      const r = await (await fetch(window.AMM_URL, { method: 'POST', body: JSON.stringify({
-        accion: 'cliente', folio, cliente: v('cliente'), telefono: v('telefono'), correo: v('correo'),
-        evento: 'Cabina 360 — ' + v('evento'), fecha: v('fecha'), lugar: v('lugar'), nombreArchivo: pdfName, pdfBase64: b64 }) })).json();
-      enviado = !!r.ok;
+      btn.textContent = 'Enviando a AM Medinas…';
+      const ctl = new AbortController();
+      const timer = setTimeout(() => ctl.abort(), 25000);   // nunca se queda colgado
+      try {
+        const b64 = doc.output('datauristring').split(',')[1];
+        const resp = await fetch(window.AMM_URL, { method: 'POST', signal: ctl.signal, body: JSON.stringify({
+          accion: 'cliente', folio, cliente: v('cliente'), telefono: v('telefono'), correo: v('correo'),
+          evento: 'Cabina 360 — ' + v('evento'), fecha: v('fecha'), lugar: v('lugar'), nombreArchivo: pdfName, pdfBase64: b64 }) });
+        const txt = await resp.text();
+        try { enviado = !!JSON.parse(txt).ok; } catch (e) { enviado = resp.ok; }
+      } catch (e) { enviado = false; } finally { clearTimeout(timer); }
     }
-  } catch (e) { enviado = false; }
-  $('#folio').textContent = folio;
-  $('#ok-msg').innerHTML = enviado
-    ? 'Tu autorización y tu estilo ya le llegaron a AM Medinas. El día del evento solo tienen que tocar <b>INICIAR</b> en la cabina.'
-    : 'Tu contrato está listo, pero no se pudo enviar automáticamente. <b>Descárgalo y envíalo por WhatsApp</b> con los botones de abajo.';
-  const msg = `Hola AM Medinas, ya activé la Cabina 360 para "${v('evento')}" (${v('fecha')}). Folio ${folio}. Mi Página: ${v('pagina')}` + (enviado ? '' : ' (te envío el PDF por aquí)');
-  $('#wa').href = `https://wa.me/${WA}?text=${encodeURIComponent(msg)}`;
-  localStorage.removeItem('amm360');
-  ir(3);
-  btn.disabled = false; btn.textContent = 'Firmar y activar mi cabina';
+  } catch (e) {
+    console.error(e);
+    enviado = false;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Firmar y activar mi cabina';
+  }
+  terminar(folio, enviado);
 };
-$('#pdf').onclick = () => {
-  if (!pdfBlob) return;
+$('#pdf').onclick = async () => {
+  if (!pdfBlob) { try { await asegurarJsPDF(); pdfBlob = crearPDF($('#folio').textContent, new Date().toLocaleString('es-MX')).output('blob'); pdfName = pdfName || 'Cabina360.pdf'; } catch (e) { alert('No se pudo crear el PDF. Avísale a AM Medinas por WhatsApp.'); return; } }
   const a = document.createElement('a'); a.href = URL.createObjectURL(pdfBlob); a.download = pdfName; a.click();
 };
 
