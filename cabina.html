@@ -553,7 +553,11 @@ async function subirPendientes() {
 }
 setInterval(subirPendientes, 60000);
 window.addEventListener('online', subirPendientes);
-function bajar(blob, nombre) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = nombre; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }
+// ---------------- app de Android "Cabina 360 AM Medinas" (el control negro funciona como INICIAR)
+const APP = window.AMMApp || null;
+const mimeDe = (blob, nombre) => blob.type || (/\.mp4$/i.test(nombre) ? 'video/mp4' : /\.webm$/i.test(nombre) ? 'video/webm' : 'image/jpeg');
+function bajar(blob, nombre) {
+  if (APP) { b64De(blob).then((b) => APP.guardar(b, nombre, mimeDe(blob, nombre))).catch(() => {}); return; } const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = nombre; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }
 
 // ---------------- flujo de la toma (un solo toque)
 const show = (id) => ['#pIni', '#pCount', '#pCap', '#pProc', '#pFin', '#pErr'].forEach((p) => $(p).classList.toggle('hidden', p !== id));
@@ -703,7 +707,8 @@ function pitido(f, d) {
 }
 function avisoMotor(t) { const n = $('#note2'); if (n) { n.textContent = t; setTimeout(() => { n.textContent = 'Aplicando tu marco y la marca AM Medinas…'; }, 4000); } }
 const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-$('#sEquipo').textContent = esIOS
+if (APP) { $('#bfull').classList.add('hidden'); }
+$('#sEquipo').textContent = APP ? '📱 App Cabina 360: el control negro (botón de volumen) ya funciona como INICIAR. El motor por Bluetooth web no está disponible dentro de la app.' : esIOS
   ? '📱 iPhone/iPad: fotos, video, control negro (botón chico) y avisos funcionan. El motor por Bluetooth y el diagnóstico solo funcionan en Android con Chrome.'
   : (navigator.bluetooth ? '📱 Android/Chrome: todas las funciones disponibles.' : '📱 Este navegador no tiene Bluetooth web: usa Chrome para conectar el motor.');
 $('#mConectar').onclick = conectarMotor;
@@ -749,7 +754,11 @@ function archivos(cuales) {
   return [...fotos, video];
 }
 const TEXTO = () => `${T.title || 'Cabina 360'} · Cabina 360 AM Medinas`;
-async function compartir(files, msg) {          // menú del sistema: WhatsApp, Bluetooth, Quick Share, AirDrop, Facebook…
+async function compartir(files, msg, paquete) {   // menú del sistema: WhatsApp, Bluetooth, Quick Share, AirDrop, Facebook…
+  if (APP) {
+    try { APP.limpiar(); for (const f of files) APP.preparar(await b64De(f), f.name, f.type || mimeDe(f, f.name)); APP.compartir(TEXTO(), paquete || ''); return true; }
+    catch (e) { if (msg) msg.textContent = 'No se pudo compartir: ' + (e.message || e); return true; }
+  }
   const data = { files, title: T.title || 'Cabina 360', text: TEXTO() };
   try {
     if (navigator.canShare && navigator.canShare(data)) { await navigator.share(data); return true; }
@@ -766,19 +775,19 @@ function mantener() {                             // el invitado está usando la
 }
 $('#bWa').onclick = async () => {
   if (!ultima) return; mantener();
-  if (!(await compartir(archivos(), $('#fmsg')))) {
+  if (!(await compartir(archivos(), $('#fmsg'), 'com.whatsapp'))) {
     guardarAqui();
     window.open('https://wa.me/?text=' + encodeURIComponent(TEXTO() + ' (adjunta las fotos y el video que se acaban de descargar)'), '_blank');
   } else $('#fmsg').textContent = 'Elige WhatsApp y el chat donde quieres guardarlas.';
 };
 $('#bDown').onclick = () => { if (!ultima) return; mantener(); $('#hMsg').textContent = ''; $('#hoja').classList.remove('hidden'); };
 $('#hShare').onclick = async () => { mantener(); if (!(await compartir(archivos(), $('#hMsg')))) guardarAqui(); };
-$('#hSave').onclick = () => { mantener(); guardarAqui(); $('#hMsg').textContent = 'Listo: revisa la carpeta Descargas. Para pasarlas por USB, conecta el celular a la computadora y abre esa carpeta.'; };
+$('#hSave').onclick = () => { mantener(); guardarAqui(); $('#hMsg').textContent = APP ? 'Listo: están en Galería › AM Medinas 360 (fotos en Imágenes, video en Películas). Por USB: conecta el celular a la computadora y abre esas carpetas.' : 'Listo: revisa la carpeta Descargas. Para pasarlas por USB, conecta el celular a la computadora y abre esa carpeta.'; };
 $('#hClose').onclick = () => $('#hoja').classList.add('hidden');
 $('#hoja').onclick = (e) => { if (e.target.id === 'hoja') $('#hoja').classList.add('hidden'); };
 async function aRed(tipo) {
   if (!ultima) return; mantener();
-  if (await compartir(archivos(tipo), null)) { $('#fmsg').textContent = `Elige ${tipo === 'ig' ? 'Instagram' : 'Facebook'} en el menú para publicarlas.`; return; }
+  if (await compartir(archivos(tipo), null, tipo === 'ig' ? 'com.instagram.android' : 'com.facebook.katana')) { $('#fmsg').textContent = `Elige ${tipo === 'ig' ? 'Instagram' : 'Facebook'} en el menú para publicarlas.`; return; }
   guardarAqui();
   const ig = (CFG.instagram || 'socialesalan').replace(/^@/, '');
   window.open(tipo === 'ig' ? `https://www.instagram.com/${ig}/` : (CFG.pagina || 'https://www.facebook.com/sociales.alan'), '_blank');

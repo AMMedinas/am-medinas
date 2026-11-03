@@ -1,0 +1,42 @@
+name: App Android de la cabina
+
+on:
+  push:
+    branches: [main]
+    paths: ['android/app/**', 'android/*.gradle', 'android/gradle.properties', '.github/workflows/android.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  compilar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Compilar la app
+        id: build
+        continue-on-error: true
+        run: gradle -p android assembleRelease --no-daemon --stacktrace 2>&1 | tee /tmp/compilacion.log
+      - name: Guardar el resultado en el repositorio
+        run: |
+          git config user.name "AM Medinas"
+          git config user.email "armandomedinar@itbridge.edu.mx"
+          mkdir -p descargas
+          if [ "${{ steps.build.outcome }}" = "success" ]; then
+            cp android/app/build/outputs/apk/release/app-release.apk descargas/CabinaAMM360.apk
+            echo "OK $(date -u +%Y-%m-%dT%H:%M:%SZ) ${GITHUB_SHA}" > android/estado.txt
+            git add descargas/CabinaAMM360.apk android/estado.txt
+          else
+            { echo "ERROR $(date -u +%Y-%m-%dT%H:%M:%SZ) ${GITHUB_SHA}"; grep -n -E "error:|FAILURE|What went wrong|Could not|e: " /tmp/compilacion.log | head -80; echo '-----'; tail -c 30000 /tmp/compilacion.log; } > android/estado.txt
+            git add android/estado.txt
+          fi
+          git commit -m "App Android: resultado de la compilación" || exit 0
+          for i in 1 2 3; do git pull --rebase origin main && git push origin HEAD:main && break; sleep 5; done
