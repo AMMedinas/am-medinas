@@ -57,6 +57,13 @@ html,body{margin:0;height:100%;background:#000;color:var(--ink);font-family:Mont
 .btn{border:0;border-radius:999px;padding:15px 22px;font:700 16px Montserrat;cursor:pointer;background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.2)}
 .btn.gold{background:linear-gradient(135deg,var(--gold-2),var(--gold));color:#17120a;border:0}
 .btn.fb{background:#1877F2;border:0}
+.btn.wa{background:#25D366;color:#06210f;border:0;font-size:18px}
+.btn.ig{background:linear-gradient(45deg,#f9a825,#e1306c 45%,#833ab4);border:0}
+.redes{display:flex;gap:10px}.redes .btn{flex:1;padding:13px 10px}
+#hoja{position:fixed;inset:0;z-index:30;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center}
+#hoja .caja{width:min(100%,460px);background:#0d1546;border:1px solid #2a3577;border-radius:22px 22px 0 0;padding:20px 18px max(20px,env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:10px;text-align:left}
+#hoja h3{margin:0 0 4px;color:var(--gold);letter-spacing:.12em;font-size:14px}
+#hoja .btn{text-align:left}#hoja .btn small{display:block;font-weight:500;font-size:12px;opacity:.8;margin-top:2px}
 .small{font-size:13px;color:var(--muted)}
 .panel{position:fixed;inset:auto 12px 12px auto;width:min(92vw,380px);background:#0d1546;border:1px solid #2a3577;border-radius:18px;padding:16px;z-index:20;text-align:left}
 .panel h3{margin:0 0 10px;color:var(--gold);font-size:14px;letter-spacing:.15em}
@@ -109,14 +116,24 @@ html,body{margin:0;height:100%;background:#000;color:var(--ink);font-family:Mont
     <img id="collage" alt="Tus 6 postales">
     <div class="acts">
       <video id="vid" playsinline loop muted controls></video>
-      <button class="btn gold" id="bShare">Compartir (WhatsApp, Facebook…)</button>
-      <button class="btn" id="bDown">Descargar fotos y video</button>
+      <button class="btn wa" id="bWa">🟢 Guardar en WhatsApp</button>
+      <button class="btn" id="bDown">⬇ Descargar · USB · Bluetooth · Compartir</button>
+      <div class="redes" id="bRedes"><button class="btn fb" id="bFb">Facebook</button><button class="btn ig" id="bIg">Instagram</button></div>
       <button class="btn gold" id="bOtra">Nueva toma</button>
       <div class="small" id="fmsg"></div>
       <div class="small" id="back"></div>
     </div>
   </div>
 </section>
+
+<!-- DESCARGAR / COMPARTIR -->
+<div id="hoja" class="hidden"><div class="caja">
+  <h3>DESCARGAR O ENVIAR</h3>
+  <button class="btn gold" id="hShare">📲 Bluetooth, Quick Share, AirDrop, correo…<small>Abre el menú de compartir de este equipo y elige a dónde mandarlas.</small></button>
+  <button class="btn" id="hSave">💾 Guardar en este equipo<small>Quedan en Descargas: de ahí se pasan a la computadora por cable USB.</small></button>
+  <button class="btn" id="hClose">Cerrar</button>
+  <div class="small" id="hMsg"></div>
+</div></div>
 
 <!-- ERROR -->
 <section class="screen hidden" id="pErr"><div class="err"><h2>No pude abrir la cámara</h2><p id="errT"></p>
@@ -137,6 +154,12 @@ html,body{margin:0;height:100%;background:#000;color:var(--ink);font-family:Mont
   <label>Velocidad sugerida en el control del motor</label><select id="sVel"><option>Lenta (2-3)</option><option selected>Media (4-5)</option><option>Rápida (6-8)</option></select>
   <label><input type="checkbox" id="sBeep" checked style="width:auto"> Avisos con sonido (para el operador)</label>
   <label><input type="checkbox" id="sGuardar" checked style="width:auto"> Descargar automáticamente cada toma en este equipo</label>
+  <div class="small" style="margin-top:10px;border-top:1px solid #2a3577;padding-top:10px"><b>Botones para los invitados (pantalla final)</b>
+    <label><input type="checkbox" id="sWa" checked style="width:auto"> Guardar en WhatsApp</label>
+    <label><input type="checkbox" id="sDl" checked style="width:auto"> Descargar · USB · Bluetooth · Compartir</label>
+    <label><input type="checkbox" id="sFb" style="width:auto"> Facebook (publicar es opcional)</label>
+    <label><input type="checkbox" id="sIg" style="width:auto"> Instagram (publicar es opcional)</label>
+  </div>
   <div class="small" style="margin-top:10px;border-top:1px solid #2a3577;padding-top:10px">
     <b>📸 Control negro "CAMERA 360" (fotos):</b> préndelo, vincúlalo en Ajustes &gt; Bluetooth del celular y presiona su <b>botón chico</b> (Android). Si no responde, prueba el grande. Último botón recibido: <b id="sKey">esperando…</b><br>
     Cada clic hace lo mismo que tocar INICIAR; en la pantalla final, deja lista la siguiente toma.
@@ -550,7 +573,7 @@ async function tomar() {
     console.error(e); $('#note').textContent = 'Algo falló: ' + e.message; await sleep(2500); inicio();
   } finally { ocupado = false; }
 }
-function inicio() { clearInterval(regreso); $('#vid').pause(); show('#pIni'); }
+function inicio() { clearInterval(regreso); $('#vid').pause(); $('#hoja').classList.add('hidden'); show('#pIni'); }
 
 $('#go').onclick = tomar;
 // Control de fotos Bluetooth (botón selfie): llega como tecla Enter / Volumen / Play
@@ -611,18 +634,61 @@ $('#sBle').onclick = async () => {
   } catch (e) { out.textContent = 'No se pudo leer el motor: ' + (e.message || e); }
 };
 $('#bOtra').onclick = inicio;
-$('#bDown').onclick = () => { if (!ultima) return; ultima.fotos.forEach((f) => bajar(f.blob, f.nombre)); bajar(ultima.video.blob, ultima.video.nombre); };
-$('#bShare').onclick = async () => {
-  if (!ultima) return;
-  const files = [...ultima.fotos.map((f) => new File([f.blob], f.nombre, { type: 'image/jpeg' })),
-    new File([ultima.video.blob], ultima.video.nombre, { type: ultima.video.blob.type })];
-  const data = { files, title: T.title, text: `${T.title} · Cabina 360 AM Medinas` };
+// ---------------- entrega al invitado: WhatsApp, descarga (USB/Bluetooth) y redes opcionales
+function archivos(cuales) {
+  if (!ultima) return [];
+  const fotos = ultima.fotos.map((f) => new File([f.blob], f.nombre, { type: 'image/jpeg' }));
+  const video = new File([ultima.video.blob], ultima.video.nombre, { type: ultima.video.blob.type || 'video/mp4' });
+  const mosaico = new File([ultima.mosaico], `toma_${String(ultima.n).padStart(3, '0')}_postales.jpg`, { type: 'image/jpeg' });
+  if (cuales === 'ig') return [video, mosaico];
+  return [...fotos, video];
+}
+const TEXTO = () => `${T.title || 'Cabina 360'} · Cabina 360 AM Medinas`;
+async function compartir(files, msg) {          // menú del sistema: WhatsApp, Bluetooth, Quick Share, AirDrop, Facebook…
+  const data = { files, title: T.title || 'Cabina 360', text: TEXTO() };
   try {
-    if (navigator.canShare && navigator.canShare(data)) await navigator.share(data);
-    else if (navigator.canShare && navigator.canShare({ files: files.slice(0, 6) })) await navigator.share({ files: files.slice(0, 6), text: data.text });
-    else { $('#fmsg').textContent = 'Este equipo no permite compartir directo: usa "Descargar".'; }
-  } catch (e) {}
+    if (navigator.canShare && navigator.canShare(data)) { await navigator.share(data); return true; }
+    const pocos = files.filter((f) => f.type.startsWith('image/')).slice(0, 6);
+    if (navigator.canShare && pocos.length && navigator.canShare({ files: pocos })) { await navigator.share({ files: pocos, text: data.text }); return true; }
+  } catch (e) { if (e && e.name === 'AbortError') return true; }
+  if (msg) msg.textContent = 'Este equipo no permite compartir directo: se guardaron en Descargas.';
+  return false;
+}
+function guardarAqui() { if (!ultima) return; ultima.fotos.forEach((f) => bajar(f.blob, f.nombre)); bajar(ultima.video.blob, ultima.video.nombre); }
+function mantener() {                             // el invitado está usando la pantalla: no regresar todavía
+  clearInterval(regreso); let s = 60; $('#back').textContent = `Regresando en ${s} s`;
+  regreso = setInterval(() => { s--; $('#back').textContent = `Regresando en ${s} s`; if (s <= 0) { $('#hoja').classList.add('hidden'); inicio(); } }, 1000);
+}
+$('#bWa').onclick = async () => {
+  if (!ultima) return; mantener();
+  if (!(await compartir(archivos(), $('#fmsg')))) {
+    guardarAqui();
+    window.open('https://wa.me/?text=' + encodeURIComponent(TEXTO() + ' (adjunta las fotos y el video que se acaban de descargar)'), '_blank');
+  } else $('#fmsg').textContent = 'Elige WhatsApp y el chat donde quieres guardarlas.';
 };
+$('#bDown').onclick = () => { if (!ultima) return; mantener(); $('#hMsg').textContent = ''; $('#hoja').classList.remove('hidden'); };
+$('#hShare').onclick = async () => { mantener(); if (!(await compartir(archivos(), $('#hMsg')))) guardarAqui(); };
+$('#hSave').onclick = () => { mantener(); guardarAqui(); $('#hMsg').textContent = 'Listo: revisa la carpeta Descargas. Para pasarlas por USB, conecta el celular a la computadora y abre esa carpeta.'; };
+$('#hClose').onclick = () => $('#hoja').classList.add('hidden');
+$('#hoja').onclick = (e) => { if (e.target.id === 'hoja') $('#hoja').classList.add('hidden'); };
+async function aRed(tipo) {
+  if (!ultima) return; mantener();
+  if (await compartir(archivos(tipo), null)) { $('#fmsg').textContent = `Elige ${tipo === 'ig' ? 'Instagram' : 'Facebook'} en el menú para publicarlas.`; return; }
+  guardarAqui();
+  const ig = (CFG.instagram || 'socialesalan').replace(/^@/, '');
+  window.open(tipo === 'ig' ? `https://www.instagram.com/${ig}/` : (CFG.pagina || 'https://www.facebook.com/sociales.alan'), '_blank');
+  $('#fmsg').textContent = 'Se guardaron en Descargas: súbelas desde ahí.';
+}
+$('#bFb').onclick = () => aRed('fb');
+$('#bIg').onclick = () => aRed('ig');
+function botonesInvitado() {
+  $('#bWa').classList.toggle('hidden', !$('#sWa').checked);
+  $('#bDown').classList.toggle('hidden', !$('#sDl').checked);
+  $('#bFb').classList.toggle('hidden', !$('#sFb').checked);
+  $('#bIg').classList.toggle('hidden', !$('#sIg').checked);
+  $('#bRedes').classList.toggle('hidden', !$('#sFb').checked && !$('#sIg').checked);
+}
+['#sWa', '#sDl', '#sFb', '#sIg'].forEach((id) => $(id).addEventListener('change', botonesInvitado));
 $('#bfull').onclick = async () => {
   const d = document.documentElement, pedir = d.requestFullscreen || d.webkitRequestFullscreen, salir = document.exitFullscreen || document.webkitExitFullscreen;
   try {
@@ -632,17 +698,23 @@ $('#bfull').onclick = async () => {
   } catch (e) { alert('En iPhone: toca Compartir ⬆ y luego "Agregar a inicio". Abre la cabina desde ese ícono y se verá en pantalla completa.'); }
 };
 $('#bset').onclick = () => $('#set').classList.toggle('hidden');
-$('#sOk').onclick = () => { $('#sSeg').value = segVideo(); $('#set').classList.add('hidden'); try { localStorage.setItem('amm360_ajustes', JSON.stringify({ seg: $('#sSeg').value, cnt: $('#sCnt').value, g: $('#sGuardar').checked, mot: $('#sMot').value, vel: $('#sVel').value, beep: $('#sBeep').checked, modo: $('#sModo').value, fmt: $('#sFmt').value, bel: $('#sBelleza').checked, dir: $('#sDir').value })); } catch (e) {} };
+$('#sOk').onclick = () => { $('#sSeg').value = segVideo(); $('#set').classList.add('hidden'); try { localStorage.setItem('amm360_ajustes', JSON.stringify({ seg: $('#sSeg').value, cnt: $('#sCnt').value, g: $('#sGuardar').checked, mot: $('#sMot').value, vel: $('#sVel').value, beep: $('#sBeep').checked, modo: $('#sModo').value, fmt: $('#sFmt').value, bel: $('#sBelleza').checked, dir: $('#sDir').value, wa: $('#sWa').checked, dl: $('#sDl').checked, fb: $('#sFb').checked, ig: $('#sIg').checked })); } catch (e) {} };
 $('#sCam').onchange = (e) => abrirCamara(e.target.value).catch((x) => alert(x.message));
 $('#sAll').onclick = async () => { for (const t of await todas()) { t.fotos.forEach((f) => bajar(f.blob, f.nombre)); bajar(t.video.blob, t.video.nombre); await sleep(400); } };
-try { const a = JSON.parse(localStorage.getItem('amm360_ajustes') || 'null'); if (a) { $('#sSeg').value = Math.max(15, +a.seg || 15); $('#sCnt').value = a.cnt; $('#sGuardar').checked = a.g; if (a.mot != null) $('#sMot').value = a.mot; if (a.vel) $('#sVel').value = a.vel; if (a.beep != null) $('#sBeep').checked = a.beep; if (a.modo) $('#sModo').value = a.modo; if (a.fmt) $('#sFmt').value = a.fmt; if (a.bel != null) $('#sBelleza').checked = a.bel; if (a.dir) $('#sDir').value = a.dir; } } catch (e) {}
+try { const a = JSON.parse(localStorage.getItem('amm360_ajustes') || 'null'); if (a) { $('#sSeg').value = Math.max(15, +a.seg || 15); $('#sCnt').value = a.cnt; $('#sGuardar').checked = a.g; if (a.mot != null) $('#sMot').value = a.mot; if (a.vel) $('#sVel').value = a.vel; if (a.beep != null) $('#sBeep').checked = a.beep; if (a.modo) $('#sModo').value = a.modo; if (a.fmt) $('#sFmt').value = a.fmt; if (a.bel != null) $('#sBelleza').checked = a.bel; if (a.dir) $('#sDir').value = a.dir; if (a.wa != null) $('#sWa').checked = a.wa; if (a.dl != null) $('#sDl').checked = a.dl; if (a.fb != null) $('#sFb').checked = a.fb; if (a.ig != null) $('#sIg').checked = a.ig; } } catch (e) {}
 // el estilo que eligió el cliente (Normal / Cámara lenta / Boomerang) manda sobre el ajuste guardado
 try {
   const clave = (CFG.evento || '') + '|' + (CFG.fecha || '');
   if (CFG.evento && CFG.evento !== DEF.evento && localStorage.getItem('amm360_modo_evento') !== clave && ['normal', 'lenta', 'boomerang'].includes(T.speed)) {
     $('#sModo').value = T.speed; localStorage.setItem('amm360_modo_evento', clave);     // solo la primera vez por evento
   }
+  if (CFG.evento && CFG.evento !== DEF.evento && localStorage.getItem('amm360_redes_evento') !== clave) {   // lo que activó el cliente al firmar
+    $('#sFb').checked = !!(CFG.redes && CFG.pagina); $('#sIg').checked = !!(CFG.redes && CFG.instagram);
+    if (CFG.redes && !CFG.pagina && !CFG.instagram) $('#sFb').checked = true;
+    $('#sWa').checked = true; $('#sDl').checked = true; localStorage.setItem('amm360_redes_evento', clave);
+  }
 } catch (e) {}
+botonesInvitado();
 
 // pantalla siempre encendida durante el evento
 async function despierta() { try { if ('wakeLock' in navigator) await navigator.wakeLock.request('screen'); } catch (e) {} }

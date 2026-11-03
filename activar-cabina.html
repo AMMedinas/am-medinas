@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>Cabina 360 · AM Medinas</title>
-<meta name="description" content="Activa la cabina 360 de AM Medinas para tu evento: tu Página de Facebook, tu estilo y tu autorización.">
+<meta name="description" content="Activa la cabina 360 de AM Medinas para tu evento: tus datos, tu estilo y tu autorización.">
 <script src="config.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -59,6 +59,8 @@ canvas#pv{width:100%;aspect-ratio:4/5;border-radius:16px;background:#000;display
 .sig span{position:absolute;left:16px;bottom:10px;color:#9a917f;font-size:13px;pointer-events:none}
 .check{display:flex;gap:10px;align-items:flex-start;margin:14px 0 0;font-weight:600}
 .check input{width:22px;height:22px;flex:0 0 auto}
+.check small{font-weight:500;color:var(--muted)}
+.activa{margin-top:16px;border:2px solid var(--gold);border-radius:16px;padding:14px 16px;background:rgba(232,185,74,.07)}
 .done{text-align:center;padding:30px 10px}
 .done .big{font-size:56px}
 .hidden{display:none!important}
@@ -70,19 +72,19 @@ footer{text-align:center;color:var(--muted);font-size:13px;margin-top:28px}
   <header>
     <div class="brand">AM MEDINAS · FOTO Y VIDEO</div>
     <h1>Cabina <span>360</span></h1>
-    <p class="lead">Activa la cabina de tu evento en 3 pasos: conecta tu Página de Facebook, elige el estilo de tus fotos y videos, y firma la autorización. El día del evento, cada invitado se lleva sus 6 fotos tipo postal y su video 360, y se publican al instante en tu Página.</p>
+    <p class="lead">Activa la cabina de tu evento en 3 pasos: tus datos, el estilo de tus fotos y videos, y la autorización. El día del evento, cada invitado se lleva sus 6 fotos tipo postal y su video 360 a su WhatsApp o los descarga a su celular. Publicarlos en Facebook o Instagram es opcional.</p>
   </header>
 
   <nav class="steps" aria-label="Pasos">
-    <div class="step on" data-s="0"><b>1</b>Tu Página</div>
+    <div class="step on" data-s="0"><b>1</b>Tus datos</div>
     <div class="step" data-s="1"><b>2</b>Tu estilo</div>
     <div class="step" data-s="2"><b>3</b>Autorización</div>
   </nav>
 
   <!-- PASO 1 -->
   <section class="card" id="s0">
-    <h2>Tus datos y tu Página de Facebook</h2>
-    <p class="sub">Las fotos y videos se publican en tu Página y en la <a href="https://www.facebook.com/sociales.alan" target="_blank" rel="noopener">Página de AM Medinas</a>. Facebook solo permite publicar en <b>Páginas</b>, no en perfiles personales (si no tienes, se crea gratis en minutos desde Facebook &gt; Páginas &gt; Crear).</p>
+    <h2>Tus datos</h2>
+    <p class="sub">Cada invitado guarda sus fotos y su video en <b>WhatsApp</b> o los descarga a su celular (también por Bluetooth o cable USB). Nada se publica en redes si no lo activas abajo.</p>
     <div class="grid2">
       <div class="field"><label for="cliente">Nombre completo *</label><input id="cliente" autocomplete="name" placeholder="Nombre y apellidos"></div>
       <div class="field"><label for="telefono">WhatsApp *</label><input id="telefono" inputmode="tel" autocomplete="tel" placeholder="10 dígitos"></div>
@@ -91,18 +93,27 @@ footer{text-align:center;color:var(--muted);font-size:13px;margin-top:28px}
       <div class="field"><label for="fecha">Fecha del evento *</label><input id="fecha" type="date"></div>
       <div class="field"><label for="lugar">Lugar *</label><input id="lugar" placeholder="Salón, ciudad"></div>
     </div>
-    <div class="field"><label for="pagina">Enlace de tu Página de Facebook *</label><input id="pagina" inputmode="url" placeholder="https://www.facebook.com/tu-pagina"></div>
-    <div class="howto">
-      <b>Da acceso de publicación a AM Medinas (2 minutos):</b>
-      <ol>
-        <li>Abre tu Página en Facebook o en Meta Business Suite.</li>
-        <li>Ve a <b>Configuración &gt; Acceso a la Página</b> (o "Personas con acceso").</li>
-        <li>Toca <b>Agregar nuevo</b> y busca a <b>Armando Medina Romero</b> (administrador de la Página de AM Medinas). Dale acceso de <b>Contenido</b> (crear y publicar). No necesitas darle control total.</li>
-        <li>Acepta y listo: la cabina publicará en tu Página durante el evento.</li>
-      </ol>
-      <p class="note">Puedes quitar el acceso cuando termine tu evento.</p>
+    <div class="activa">
+      <label class="check" style="margin:0"><input type="checkbox" id="redes"> <span><b>Activar publicación en Facebook / Instagram</b> (opcional)<br><small>Si no lo activas, las fotos no se hacen públicas: solo se guardan en WhatsApp y se descargan.</small></span></label>
+      <div id="redesBox" class="hidden">
+        <p class="sub" style="margin-top:12px">Además de WhatsApp, la cabina mostrará botones para subirlas a tu Página y la de <a href="https://www.facebook.com/sociales.alan" target="_blank" rel="noopener">AM Medinas</a>. Facebook solo permite publicar en <b>Páginas</b>, no en perfiles personales (si no tienes, se crea gratis en minutos desde Facebook &gt; Páginas &gt; Crear).</p>
+        <div class="grid2">
+          <div class="field"><label for="pagina">Enlace de tu Página de Facebook</label><input id="pagina" inputmode="url" placeholder="https://www.facebook.com/tu-pagina"></div>
+          <div class="field"><label for="instagram">Tu Instagram</label><input id="instagram" autocapitalize="off" placeholder="@tu_cuenta"></div>
+        </div>
+        <div class="howto">
+          <b>Si pusiste tu Página de Facebook, da acceso de publicación a AM Medinas (2 minutos):</b>
+          <ol>
+            <li>Abre tu Página en Facebook o en Meta Business Suite.</li>
+            <li>Ve a <b>Configuración &gt; Acceso a la Página</b> (o "Personas con acceso").</li>
+            <li>Toca <b>Agregar nuevo</b> y busca a <b>Armando Medina Romero</b> (administrador de la Página de AM Medinas). Dale acceso de <b>Contenido</b> (crear y publicar). No necesitas darle control total.</li>
+            <li>Acepta y listo.</li>
+          </ol>
+          <p class="note">Puedes quitar el acceso cuando termine tu evento.</p>
+        </div>
+        <label class="check"><input type="checkbox" id="acceso"> Ya le di acceso de Contenido a AM Medinas (o lo haré antes del evento).</label>
+      </div>
     </div>
-    <label class="check"><input type="checkbox" id="acceso"> Ya le di acceso de Contenido a AM Medinas (o lo haré antes del evento).</label>
     <p class="err" id="e0"></p>
     <div class="btns"><span></span><button class="btn gold" id="n0">Continuar</button></div>
   </section>
@@ -127,7 +138,7 @@ footer{text-align:center;color:var(--muted);font-size:13px;margin-top:28px}
   <!-- PASO 3 -->
   <section class="card hidden" id="s2">
     <h2>Contrato de confidencialidad y uso de imagen</h2>
-    <p class="sub">Autoriza a AM Medinas a respaldar y publicar las fotos y videos de la cabina en tu Página y en la de AM Medinas. Léelo y firma con tu dedo.</p>
+    <p class="sub">Autoriza la entrega por WhatsApp y descarga, el respaldo de las fotos y videos y, solo si lo activaste, su publicación en tus redes. Léelo y firma con tu dedo.</p>
     <div class="contract" id="contrato"></div>
     <div class="field" style="margin-top:14px"><label>Firma *</label>
       <div class="sig"><canvas id="sig"></canvas><span>Firma del cliente</span></div>
@@ -188,6 +199,10 @@ function ir(n) {
 
 // ---------- paso 1
 const v = (id) => $('#' + id).value.trim();
+const redes = () => $('#redes').checked;
+const igUser = () => v('instagram').replace(/^.*instagram\.com\//i, '').replace(/^@+/, '').replace(/[/?\s].*$/, '');
+function verRedes() { $('#redesBox').classList.toggle('hidden', !redes()); }
+$('#redes').addEventListener('change', () => { verRedes(); guardar(); });
 $('#n0').onclick = () => {
   const faltan = [];
   if (v('cliente').split(/\s+/).length < 2) faltan.push('nombre completo');
@@ -195,9 +210,12 @@ $('#n0').onclick = () => {
   if (!v('evento')) faltan.push('evento');
   if (!v('fecha')) faltan.push('fecha');
   if (!v('lugar')) faltan.push('lugar');
-  const pg = v('pagina');
-  if (!/^(https?:\/\/)?(www\.|m\.|web\.)?(facebook|fb)\.com\/.+/i.test(pg)) faltan.push('enlace válido de tu Página de Facebook');
-  if (!$('#acceso').checked) faltan.push('confirmar el acceso de Contenido a AM Medinas');
+  if (redes()) {
+    const pg = v('pagina'), ig = v('instagram');
+    if (!pg && !ig) faltan.push('tu Página de Facebook o tu Instagram (o desactiva la publicación)');
+    if (pg && !/^(https?:\/\/)?(www\.|m\.|web\.)?(facebook|fb)\.com\/.+/i.test(pg)) faltan.push('enlace válido de tu Página de Facebook');
+    if (pg && !$('#acceso').checked) faltan.push('confirmar el acceso de Contenido a AM Medinas');
+  }
   $('#e0').textContent = faltan.length ? 'Falta: ' + faltan.join(', ') + '.' : '';
   if (!faltan.length) {
     if (!v('titulo')) $('#titulo').value = v('evento').slice(0, 48);
@@ -326,13 +344,13 @@ CLÁUSULAS
 
 PRIMERA. OBJETO. EL PRESTADOR operará una cabina fotográfica 360 durante EL EVENTO, que captura fotografías y videos de los asistentes que voluntariamente la utilicen (en adelante "EL MATERIAL").
 
-SEGUNDA. AUTORIZACIÓN DE USO. EL CLIENTE autoriza a EL PRESTADOR, de forma gratuita y por tiempo indefinido, a almacenar, editar, reproducir y publicar EL MATERIAL en: (a) la Página de Facebook de EL CLIENTE (${v('pagina')}); (b) la Página de Facebook de AM Medinas; y (c) el respaldo en la nube de EL PRESTADOR (Google Drive), así como en su portafolio comercial.
+SEGUNDA. ENTREGA Y AUTORIZACIÓN DE USO. EL MATERIAL se entrega a cada asistente al momento, para que lo guarde en WhatsApp o lo descargue a su equipo (descarga directa, Bluetooth, cable USB u otra forma de compartir de su celular). EL CLIENTE autoriza a EL PRESTADOR, de forma gratuita y por tiempo indefinido, a almacenar, editar y reproducir EL MATERIAL en el respaldo en la nube de EL PRESTADOR (Google Drive), en la Página de Facebook de AM Medinas y en su portafolio comercial. ${redes() ? `Por elección de EL CLIENTE, la cabina también ofrecerá publicar EL MATERIAL en sus redes sociales: ${[v('pagina') && 'Página de Facebook ' + v('pagina'), igUser() && 'Instagram @' + igUser()].filter(Boolean).join(' e ')}.` : 'EL CLIENTE eligió NO publicar EL MATERIAL en sus redes sociales; la cabina no lo hará público durante EL EVENTO.'}
 
-TERCERA. AVISO A LOS INVITADOS. EL CLIENTE se obliga a informar a sus invitados, antes y durante EL EVENTO, que la cabina publica automáticamente las fotos y videos en redes sociales, y a colocar el aviso visible que EL PRESTADOR le proporcione. Quien no desee aparecer puede abstenerse de usar la cabina. EL CLIENTE responderá frente a terceros que reclamen por la falta de este aviso.
+TERCERA. AVISO A LOS INVITADOS. EL CLIENTE se obliga a informar a sus invitados, antes y durante EL EVENTO, que la cabina captura fotos y videos que se entregan por WhatsApp o descarga${redes() ? ' y que pueden publicarse en redes sociales' : ''}, y a colocar el aviso visible que EL PRESTADOR le proporcione. Quien no desee aparecer puede abstenerse de usar la cabina. EL CLIENTE responderá frente a terceros que reclamen por la falta de este aviso.
 
 CUARTA. MENORES DE EDAD. Cuando aparezcan menores de edad, EL CLIENTE declara contar con la autorización de sus padres o tutores, o se obliga a obtenerla. Ante cualquier solicitud de padres o tutores, EL PRESTADOR retirará el material del menor de sus publicaciones.
 
-QUINTA. CONFIDENCIALIDAD Y ACCESO A LA PÁGINA. EL PRESTADOR guardará confidencialidad sobre los datos personales de EL CLIENTE y no compartirá EL MATERIAL con fines distintos a los señalados en la cláusula SEGUNDA. El acceso de publicación que EL CLIENTE otorgue a EL PRESTADOR en su Página se usará únicamente para publicar EL MATERIAL de EL EVENTO, y EL CLIENTE puede retirarlo en cualquier momento.
+QUINTA. CONFIDENCIALIDAD Y ACCESO A LA PÁGINA. EL PRESTADOR guardará confidencialidad sobre los datos personales de EL CLIENTE y no compartirá EL MATERIAL con fines distintos a los señalados en la cláusula SEGUNDA. El acceso de publicación que, en su caso, EL CLIENTE otorgue a EL PRESTADOR en su Página se usará únicamente para publicar EL MATERIAL de EL EVENTO, y EL CLIENTE puede retirarlo en cualquier momento.
 
 SEXTA. RETIRO DE CONTENIDO. EL CLIENTE o cualquier persona que aparezca en EL MATERIAL podrá solicitar por escrito el retiro de una publicación específica; EL PRESTADOR la retirará de la Página de AM Medinas en un plazo no mayor a 5 días hábiles.
 
@@ -373,7 +391,7 @@ function crearPDF(folio, firmado) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: 'pt', format: 'letter' });
   const datos = { v: 1, tipo: 'cabina360', folio, cliente: v('cliente'), telefono: v('telefono'), correo: v('correo'),
-    evento: v('evento'), fecha: v('fecha'), lugar: v('lugar'), pagina_facebook: v('pagina'), firmado_en: firmado,
+    evento: v('evento'), fecha: v('fecha'), lugar: v('lugar'), redes: redes(), pagina_facebook: redes() ? v('pagina') : '', instagram: redes() ? igUser() : '', firmado_en: firmado,
     template: plantilla(), contrato: contrato() };
   doc.setProperties({ title: 'Contrato Cabina 360 · ' + v('evento'), author: 'AM Medinas', subject: 'Cabina 360',
     keywords: 'AMM360:' + aB64(JSON.stringify(datos)) + ':FIN' });
@@ -400,7 +418,7 @@ function crearPDF(folio, firmado) {
   doc.setDrawColor(184, 145, 47); doc.line(M, y, M + 240, y); y += 16;
   doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.text('EL CLIENTE', M, y); y += 14;
   doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5);
-  [v('cliente'), 'Firmado electrónicamente: ' + firmado, 'Página de Facebook: ' + v('pagina'), 'Folio: ' + folio].forEach((t) => { doc.text(t, M, y); y += 13; });
+  [v('cliente'), 'Firmado electrónicamente: ' + firmado, 'Publicación en redes: ' + (redes() ? [v('pagina'), igUser() && '@' + igUser()].filter(Boolean).join(' · ') : 'no (solo WhatsApp y descarga)'), 'Folio: ' + folio].forEach((t) => { doc.text(t, M, y); y += 13; });
   return doc;
 }
 async function asegurarJsPDF() {
@@ -412,7 +430,7 @@ async function asegurarJsPDF() {
   });
 }
 function enlaceCabina() {
-  const cfg = { evento: v('evento'), fecha: v('fecha'), lugar: v('lugar'), pagina: v('pagina'), template: plantilla() };
+  const cfg = { evento: v('evento'), fecha: v('fecha'), lugar: v('lugar'), redes: redes(), pagina: redes() ? v('pagina') : '', instagram: redes() ? igUser() : '', template: plantilla() };
   const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(cfg)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   return new URL('cabina.html#' + b64, location.href).href;
 }
@@ -425,7 +443,7 @@ function terminar(folio, enviado) {
   $('#ok-msg').innerHTML = enviado
     ? 'Tu autorización y tu estilo ya le llegaron a AM Medinas. Toca <b>INICIAR CABINA 360</b> para abrirla.'
     : 'Tu cabina ya está lista: toca <b>INICIAR CABINA 360</b>. Además descarga tu contrato y envíalo a AM Medinas por WhatsApp (no se pudo enviar solo, quizá por la señal).';
-  const msg = `Hola AM Medinas, ya firmé la autorización de la Cabina 360 para "${v('evento')}" (${v('fecha')}). Folio ${folio}. Mi Página: ${v('pagina')}` + (enviado ? '' : '. Te envío el PDF por aquí.') + `\nCabina: ${cab}`;
+  const msg = `Hola AM Medinas, ya firmé la autorización de la Cabina 360 para "${v('evento')}" (${v('fecha')}). Folio ${folio}. Publicar en redes: ${redes() ? [v('pagina'), igUser() && '@' + igUser()].filter(Boolean).join(' · ') : 'no'}` + (enviado ? '' : '. Te envío el PDF por aquí.') + `\nCabina: ${cab}`;
   $('#wa').href = `https://wa.me/${WA}?text=${encodeURIComponent(msg)}`;
   try { localStorage.removeItem('amm360'); } catch (e) {}
   ir(3);
@@ -474,13 +492,14 @@ $('#pdf').onclick = async () => {
 };
 
 // ---------- borrador local (por si cierran la página)
-const CAMPOS = ['cliente', 'telefono', 'correo', 'evento', 'fecha', 'lugar', 'pagina', 'titulo', 'subtitulo'];
-function guardar() { try { localStorage.setItem('amm360', JSON.stringify({ f: Object.fromEntries(CAMPOS.map((c) => [c, v(c)])), sel })); } catch (e) {} }
+const CAMPOS = ['cliente', 'telefono', 'correo', 'evento', 'fecha', 'lugar', 'pagina', 'instagram', 'titulo', 'subtitulo'];
+function guardar() { try { localStorage.setItem('amm360', JSON.stringify({ f: Object.fromEntries(CAMPOS.map((c) => [c, v(c)])), sel, redes: redes() })); } catch (e) {} }
 try {
   const d = JSON.parse(localStorage.getItem('amm360') || 'null');
-  if (d) { CAMPOS.forEach((c) => { if (d.f[c]) $('#' + c).value = d.f[c]; }); Object.assign(sel, d.sel || {}); }
+  if (d) { CAMPOS.forEach((c) => { if (d.f[c]) $('#' + c).value = d.f[c]; }); Object.assign(sel, d.sel || {}); $('#redes').checked = !!d.redes; }
 } catch (e) {}
 CAMPOS.forEach((c) => $('#' + c).addEventListener('change', guardar));
+verRedes();
 pintarChips();
 document.fonts && document.fonts.ready.then(dibujar);
 })();
