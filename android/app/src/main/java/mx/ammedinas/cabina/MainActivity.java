@@ -157,20 +157,22 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public String guardar(String b64, String nombre, String mime) {
-            try { enGaleria(b64, nombre, mime); return "ok"; }
-            catch (Exception ex) { return "error: " + ex.getMessage(); }
+            final byte[] datos;
+            try { datos = Base64.decode(b64, Base64.DEFAULT); } catch (Exception ex) { return "error: " + ex.getMessage(); }
+            new Thread(() -> { try { enGaleria(datos, nombre, mime); } catch (Exception ignored) { } }).start();   // en segundo plano: la cabina no se traba
+            return "ok";
         }
 
         @JavascriptInterface
         public void limpiar() {
-            synchronized (listos) { listos.clear(); tipos.clear(); }
+            synchronized (listos) { listos.clear(); tipos.clear(); porPreparar.clear(); }
         }
 
         @JavascriptInterface
         public String preparar(String b64, String nombre, String mime) {
             try {
-                Uri u = enGaleria(b64, nombre, mime);
-                synchronized (listos) { listos.add(u); tipos.add(limpiarMime(mime, nombre)); }
+                byte[] datos = Base64.decode(b64, Base64.DEFAULT);
+                synchronized (listos) { porPreparar.add(new Object[]{datos, nombre, mime}); }
                 return "ok";
             } catch (Exception ex) {
                 return "error: " + ex.getMessage();
@@ -182,13 +184,26 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public String compartirA(String texto, String paquete, String numero) {
-            final ArrayList<Uri> uris;
-            final ArrayList<String> mimes;
-            synchronized (listos) {
-                if (listos.isEmpty()) return "error: no hay archivos";
-                uris = new ArrayList<>(listos);
-                mimes = new ArrayList<>(tipos);
-            }
+            final ArrayList<Object[]> trabajo;
+            synchronized (listos) { trabajo = new ArrayList<>(porPreparar); porPreparar.clear(); }
+            if (trabajo.isEmpty()) return "error: no hay archivos";
+            runOnUiThread(() -> Toast.makeText(MainActivity.this, "Preparando fotos y video…", Toast.LENGTH_SHORT).show());
+            new Thread(() -> {
+                ArrayList<Uri> uris = new ArrayList<>();
+                ArrayList<String> mimes = new ArrayList<>();
+                for (Object[] t : trabajo) {
+                    try { uris.add(enGaleria((byte[]) t[0], (String) t[1], (String) t[2])); mimes.add(limpiarMime((String) t[2], (String) t[1])); }
+                    catch (Exception ignored) { }
+                }
+                if (uris.isEmpty()) { runOnUiThread(() -> Toast.makeText(MainActivity.this, "No se pudieron preparar los archivos", Toast.LENGTH_LONG).show()); return; }
+                enviar(uris, mimes, texto, paquete, numero);
+            }).start();
+            return "ok";
+        }
+    }
+
+    private void enviar(ArrayList<Uri> uris, ArrayList<String> mimes, String texto, String paquete, String numero) {
+        {
             boolean imagenes = true, videos = true;
             for (String t : mimes) { if (!t.startsWith("image")) imagenes = false; if (!t.startsWith("video")) videos = false; }
             final String app = instalada(paquete) ? paquete
@@ -218,7 +233,9 @@ public class MainActivity extends Activity {
                 i.putExtra("jid", digitos + "@s.whatsapp.net");
             }
 
+            final int cuantos = uris.size();
             runOnUiThread(() -> {
+                Toast.makeText(MainActivity.this, "Abriendo " + (whats ? "WhatsApp" : "compartir") + " con " + cuantos + " archivos", Toast.LENGTH_SHORT).show();
                 try {
                     if (app != null) { i.setPackage(app); startActivity(i); }
                     else startActivity(Intent.createChooser(i, "Enviar con…").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION));
@@ -228,12 +245,12 @@ public class MainActivity extends Activity {
                     catch (Exception ex2) { Toast.makeText(MainActivity.this, "No se pudo compartir", Toast.LENGTH_LONG).show(); }
                 }
             });
-            return app != null ? "app" : "menu";
         }
     }
 
     // ---------------- archivos en la Galería (AM Medinas 360): WhatsApp y cualquier app los pueden leer
     private final HashMap<String, Uri> enGaleriaYa = new HashMap<>();
+    private final ArrayList<Object[]> porPreparar = new ArrayList<>();
 
     private static String limpiarMime(String mime, String nombre) {
         String m = mime == null ? "" : mime.split(";")[0].trim();
@@ -244,8 +261,7 @@ public class MainActivity extends Activity {
         return m.isEmpty() ? "application/octet-stream" : m;
     }
 
-    private synchronized Uri enGaleria(String b64, String nombre, String mimeOriginal) throws Exception {
-        byte[] datos = Base64.decode(b64, Base64.DEFAULT);
+    private synchronized Uri enGaleria(byte[] datos, String nombre, String mimeOriginal) throws Exception {
         String clave = nombre + ":" + datos.length;
         Uri ya = enGaleriaYa.get(clave);
         if (ya != null) return ya;

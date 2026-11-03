@@ -84,6 +84,7 @@ html,body{margin:0;height:100%;background:#000;color:var(--ink);font-family:Mont
 <div class="top">
   <div><div class="brand">AM MEDINAS 360 · <span id="fecha"></span></div><div class="title" id="evt">Cabina 360</div></div>
   <div class="tools">
+    <button class="ico" id="bReset" title="Nueva toma" style="width:auto;padding:0 14px;border-radius:999px;font:800 14px Montserrat;background:rgba(232,185,74,.9);color:#17120a">↻ Nueva toma</button>
     <button class="ico" id="bfull" title="Pantalla completa">⛶</button>
     <button class="ico" id="bset" title="Ajustes">⚙</button>
   </div>
@@ -644,13 +645,22 @@ async function tomar() {
     $('#fmsg').textContent = $('#sGuardar').checked ? 'Tus fotos y video ya se guardaron en la cabina.' : '';
     show('#pFin');
     if (APP && $('#sWaAuto').checked) setTimeout(() => { if (!$('#pFin').classList.contains('hidden')) $('#bWa').onclick(); }, 1200);   // WhatsApp automático
-    let s = 40; $('#back').textContent = `Regresando en ${s} s`;
+    let s = 30; $('#back').textContent = `Regresando en ${s} s`;
     regreso = setInterval(() => { s--; $('#back').textContent = `Regresando en ${s} s`; if (s <= 0) inicio(); }, 1000);
   } catch (e) {
     console.error(e); $('#note').textContent = 'Algo falló: ' + e.message; await sleep(2500); inicio();
   } finally { ocupado = false; }
 }
-function inicio() { clearInterval(regreso); $('#vid').pause(); $('#hoja').classList.add('hidden'); show('#pIni'); }
+function camaraViva() { const t = stream && stream.getVideoTracks()[0]; return !!(t && t.readyState === 'live' && !t.muted && cam.readyState >= 2 && !cam.paused); }
+async function revivirCamara() {                         // al volver de WhatsApp Android a veces deja la cámara congelada
+  try { if (!camaraViva()) await abrirCamara($('#sCam').value || undefined); else await cam.play(); } catch (e) { try { await abrirCamara(); } catch (x) {} }
+}
+function inicio() { clearInterval(regreso); $('#vid').pause(); $('#hoja').classList.add('hidden'); show('#pIni'); revivirCamara(); }
+// Botón siempre visible: deja la cabina lista para otra toma pase lo que pase
+$('#bReset').onclick = () => {
+  if (ocupado) { location.reload(); return; }          // si una toma se quedó trabada, se reinicia la cabina completa
+  $('#set').classList.add('hidden'); inicio();
+};
 
 $('#go').onclick = tomar;
 // Toque en cualquier parte de la pantalla de inicio = INICIAR (para el control negro con Key Mapper "tocar pantalla")
@@ -860,6 +870,19 @@ try {
 } catch (e) {}
 botonesInvitado();
 
+// al volver de WhatsApp (o de compartir), la cabina se restablece sola para la siguiente persona
+let salioAShare = false;
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden' && !$('#pFin').classList.contains('hidden')) salioAShare = true;
+  if (document.visibilityState === 'visible') setTimeout(revivirCamara, 400);
+  if (document.visibilityState === 'visible' && salioAShare) {
+    salioAShare = false;
+    if (!$('#pFin').classList.contains('hidden')) {
+      clearInterval(regreso); let s = 3; $('#back').textContent = `Lista para la siguiente persona en ${s} s`;
+      regreso = setInterval(() => { s--; $('#back').textContent = `Lista para la siguiente persona en ${s} s`; if (s <= 0) inicio(); }, 1000);
+    }
+  }
+});
 // pantalla siempre encendida durante el evento
 async function despierta() { try { if ('wakeLock' in navigator) await navigator.wakeLock.request('screen'); } catch (e) {} }
 document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && despierta());
