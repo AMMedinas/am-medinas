@@ -9,6 +9,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Cabina 360">
 <link rel="manifest" href="cabina.webmanifest">
+<script src="config.js"></script>
 <title>Cabina 360 · AM Medinas</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,500;0,700;0,800;1,600&display=swap" rel="stylesheet">
@@ -65,7 +66,7 @@ html,body{margin:0;height:100%;background:#000;color:var(--ink);font-family:Mont
 #hoja h3{margin:0 0 4px;color:var(--gold);letter-spacing:.12em;font-size:14px}
 #hoja .btn{text-align:left}#hoja .btn small{display:block;font-weight:500;font-size:12px;opacity:.8;margin-top:2px}
 .small{font-size:13px;color:var(--muted)}
-.panel{position:fixed;inset:auto 12px 12px auto;width:min(92vw,380px);background:#0d1546;border:1px solid #2a3577;border-radius:18px;padding:16px;z-index:20;text-align:left}
+.panel{position:fixed;inset:auto 12px 12px auto;width:min(92vw,380px);max-height:calc(100dvh - 24px);overflow-y:auto;-webkit-overflow-scrolling:touch;background:#0d1546;border:1px solid #2a3577;border-radius:18px;padding:16px;z-index:20;text-align:left}
 .panel h3{margin:0 0 10px;color:var(--gold);font-size:14px;letter-spacing:.15em}
 .panel label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
 .panel select,.panel input{width:100%;padding:10px;border-radius:10px;border:1px solid #2a3577;background:#0a0f36;color:#fff;font:inherit}
@@ -121,6 +122,7 @@ html,body{margin:0;height:100%;background:#000;color:var(--ink);font-family:Mont
       <div class="redes" id="bRedes"><button class="btn fb" id="bFb">Facebook</button><button class="btn ig" id="bIg">Instagram</button></div>
       <button class="btn gold" id="bOtra">Nueva toma</button>
       <div class="small" id="fmsg"></div>
+      <div class="small" id="nubeFin"></div>
       <div class="small" id="back"></div>
     </div>
   </div>
@@ -154,6 +156,11 @@ html,body{margin:0;height:100%;background:#000;color:var(--ink);font-family:Mont
   <label>Velocidad sugerida en el control del motor</label><select id="sVel"><option>Lenta (2-3)</option><option selected>Media (4-5)</option><option>Rápida (6-8)</option></select>
   <label><input type="checkbox" id="sBeep" checked style="width:auto"> Avisos con sonido (para el operador)</label>
   <label><input type="checkbox" id="sGuardar" checked style="width:auto"> Descargar automáticamente cada toma en este equipo</label>
+  <div class="small" style="margin-top:10px;border-top:1px solid #2a3577;padding-top:10px"><b>☁ Respaldo en tu Google Drive</b>
+    <label><input type="checkbox" id="sNube" checked style="width:auto"> Guardar cada toma en Drive: carpeta del evento con subcarpetas Fotos y Videos</label>
+    Estado: <b id="sDrive">revisando…</b>
+    <button class="btn" id="sSubir" style="width:100%;margin-top:6px">Subir pendientes ahora</button>
+  </div>
   <div class="small" style="margin-top:10px;border-top:1px solid #2a3577;padding-top:10px"><b>Botones para los invitados (pantalla final)</b>
     <label><input type="checkbox" id="sWa" checked style="width:auto"> Guardar en WhatsApp</label>
     <label><input type="checkbox" id="sDl" checked style="width:auto"> Descargar · USB · Bluetooth · Compartir</label>
@@ -496,11 +503,51 @@ const motorListo = () => !!(MOTOR.ch && MOTOR.perfil && MOTOR.perfil.start);
 let db = null;
 const idb = indexedDB.open('amm360', 1);
 idb.onupgradeneeded = () => idb.result.createObjectStore('tomas', { keyPath: 'id' });
-idb.onsuccess = () => { db = idb.result; contar(); };
+idb.onsuccess = () => { db = idb.result; contar(); subirPendientes(); };
 function guardarToma(t) { if (!db) return; try { db.transaction('tomas', 'readwrite').objectStore('tomas').put(t); contar(); } catch (e) {} }
 function todas() { return new Promise((r) => { if (!db) return r([]); const q = db.transaction('tomas').objectStore('tomas').getAll(); q.onsuccess = () => r(q.result.filter((x) => x.evento === slug)); q.onerror = () => r([]); }); }
 async function contar() { $('#sTot').textContent = (await todas()).length; }
 async function siguienteNumero() { const t = await todas(); return t.reduce((m, x) => Math.max(m, x.n), 0) + 1; }
+// ---------------- respaldo en Google Drive (por tu App de Apps Script; si no hay internet, se reintenta solo)
+const carpetaEvento = ((CFG.fecha ? CFG.fecha + ' · ' : '') + (CFG.evento || 'Cabina 360')).replace(/[\\/:*?"<>|]/g, '-');
+const nubeLista = () => !!(window.AMM_URL && window.AMM_URL.indexOf('PEGA_AQUI') !== 0);
+const nubeOn = () => nubeLista() && $('#sNube').checked;
+const b64De = (blob) => new Promise((ok, mal) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1]); r.onerror = mal; r.readAsDataURL(blob); });
+function todasDB() { return new Promise((r) => { if (!db) return r([]); const q = db.transaction('tomas').objectStore('tomas').getAll(); q.onsuccess = () => r(q.result); q.onerror = () => r([]); }); }
+function ponNube(t) { $('#sDrive').textContent = t; const f = $('#nubeFin'); if (f) f.textContent = '☁ Drive: ' + t; }
+async function estadoNube(extra) {
+  if (!nubeLista()) return ponNube('falta la dirección de tu App de Google (config.js)');
+  if (!$('#sNube').checked) return ponNube('apagado');
+  const t = await todasDB(), pend = t.filter((x) => !x.subido).length;
+  ponNube(extra || (pend ? `${pend} toma(s) por subir${navigator.onLine ? '' : ' · sin internet, se suben al volver la señal'}` : `todo guardado (${t.length} tomas)`));
+}
+let subiendo = false;
+async function subirPendientes() {
+  if (subiendo || !nubeOn() || !db) return estadoNube();
+  if (!navigator.onLine) return estadoNube();
+  subiendo = true;
+  try {
+    for (const t of await todasDB()) {
+      if (t.subido) continue;
+      const num = String(t.n).padStart(3, '0');
+      const lista = [...t.fotos, t.video, { nombre: `toma_${num}_postales.jpg`, blob: t.mosaico }];
+      t.hechos = t.hechos || [];
+      for (const f of lista) {
+        if (!f.blob || t.hechos.includes(f.nombre)) continue;
+        ponNube(`subiendo toma ${num}: ${f.nombre}…`);
+        const r = await fetch(window.AMM_URL, { method: 'POST', body: JSON.stringify({ accion: 'cabina', carpeta: t.carpeta || carpetaEvento,
+          nombre: f.nombre, sub: (f.blob.type || '').startsWith('video') ? 'Videos' : 'Fotos', tipo: f.blob.type || 'application/octet-stream', base64: await b64De(f.blob) }) });
+        let j = {}; try { j = JSON.parse(await r.text()); } catch (e) { throw new Error('Drive no respondió'); }
+        if (!j.ok) throw new Error(/no v[aá]lida/i.test(j.error || '') ? 'falta agregar la parte de la cabina a tu Apps Script' : (j.error || 'error de Drive'));
+        t.hechos.push(f.nombre); guardarToma(t);
+      }
+      t.subido = true; guardarToma(t);
+    }
+    subiendo = false; estadoNube();
+  } catch (e) { subiendo = false; estadoNube('pendiente: ' + (e.message || e) + ' · se reintenta solo'); }
+}
+setInterval(subirPendientes, 60000);
+window.addEventListener('online', subirPendientes);
 function bajar(blob, nombre) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = nombre; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }
 
 // ---------------- flujo de la toma (un solo toque)
@@ -561,7 +608,8 @@ async function tomar() {
     $('#barI').style.width = '100%'; await sleep(300);
     const video = { nombre: `toma_${num}_video.${v.ext}`, blob: v.blob };
     ultima = { n, fotos, video, mosaico: colBlob };
-    guardarToma({ id: slug + '_' + n, evento: slug, n, fotos, video, mosaico: colBlob, ts: Date.now() });
+    guardarToma({ id: slug + '_' + n, evento: slug, carpeta: carpetaEvento, n, fotos, video, mosaico: colBlob, ts: Date.now() });
+    subirPendientes();
     if ($('#sGuardar').checked) { fotos.forEach((f) => bajar(f.blob, f.nombre)); bajar(video.blob, video.nombre); }
     $('#collage').src = URL.createObjectURL(colBlob);
     $('#vid').src = URL.createObjectURL(v.blob); $('#vid').play().catch(() => {});
@@ -689,6 +737,8 @@ function botonesInvitado() {
   $('#bRedes').classList.toggle('hidden', !$('#sFb').checked && !$('#sIg').checked);
 }
 ['#sWa', '#sDl', '#sFb', '#sIg'].forEach((id) => $(id).addEventListener('change', botonesInvitado));
+$('#sSubir').onclick = subirPendientes;
+$('#sNube').addEventListener('change', subirPendientes);
 $('#bfull').onclick = async () => {
   const d = document.documentElement, pedir = d.requestFullscreen || d.webkitRequestFullscreen, salir = document.exitFullscreen || document.webkitExitFullscreen;
   try {
@@ -698,10 +748,10 @@ $('#bfull').onclick = async () => {
   } catch (e) { alert('En iPhone: toca Compartir ⬆ y luego "Agregar a inicio". Abre la cabina desde ese ícono y se verá en pantalla completa.'); }
 };
 $('#bset').onclick = () => $('#set').classList.toggle('hidden');
-$('#sOk').onclick = () => { $('#sSeg').value = segVideo(); $('#set').classList.add('hidden'); try { localStorage.setItem('amm360_ajustes', JSON.stringify({ seg: $('#sSeg').value, cnt: $('#sCnt').value, g: $('#sGuardar').checked, mot: $('#sMot').value, vel: $('#sVel').value, beep: $('#sBeep').checked, modo: $('#sModo').value, fmt: $('#sFmt').value, bel: $('#sBelleza').checked, dir: $('#sDir').value, wa: $('#sWa').checked, dl: $('#sDl').checked, fb: $('#sFb').checked, ig: $('#sIg').checked })); } catch (e) {} };
+$('#sOk').onclick = () => { $('#sSeg').value = segVideo(); $('#set').classList.add('hidden'); try { localStorage.setItem('amm360_ajustes', JSON.stringify({ seg: $('#sSeg').value, cnt: $('#sCnt').value, g: $('#sGuardar').checked, mot: $('#sMot').value, vel: $('#sVel').value, beep: $('#sBeep').checked, modo: $('#sModo').value, fmt: $('#sFmt').value, bel: $('#sBelleza').checked, dir: $('#sDir').value, nube: $('#sNube').checked, wa: $('#sWa').checked, dl: $('#sDl').checked, fb: $('#sFb').checked, ig: $('#sIg').checked })); } catch (e) {} };
 $('#sCam').onchange = (e) => abrirCamara(e.target.value).catch((x) => alert(x.message));
 $('#sAll').onclick = async () => { for (const t of await todas()) { t.fotos.forEach((f) => bajar(f.blob, f.nombre)); bajar(t.video.blob, t.video.nombre); await sleep(400); } };
-try { const a = JSON.parse(localStorage.getItem('amm360_ajustes') || 'null'); if (a) { $('#sSeg').value = Math.max(15, +a.seg || 15); $('#sCnt').value = a.cnt; $('#sGuardar').checked = a.g; if (a.mot != null) $('#sMot').value = a.mot; if (a.vel) $('#sVel').value = a.vel; if (a.beep != null) $('#sBeep').checked = a.beep; if (a.modo) $('#sModo').value = a.modo; if (a.fmt) $('#sFmt').value = a.fmt; if (a.bel != null) $('#sBelleza').checked = a.bel; if (a.dir) $('#sDir').value = a.dir; if (a.wa != null) $('#sWa').checked = a.wa; if (a.dl != null) $('#sDl').checked = a.dl; if (a.fb != null) $('#sFb').checked = a.fb; if (a.ig != null) $('#sIg').checked = a.ig; } } catch (e) {}
+try { const a = JSON.parse(localStorage.getItem('amm360_ajustes') || 'null'); if (a) { $('#sSeg').value = Math.max(15, +a.seg || 15); $('#sCnt').value = a.cnt; $('#sGuardar').checked = a.g; if (a.mot != null) $('#sMot').value = a.mot; if (a.vel) $('#sVel').value = a.vel; if (a.beep != null) $('#sBeep').checked = a.beep; if (a.modo) $('#sModo').value = a.modo; if (a.fmt) $('#sFmt').value = a.fmt; if (a.bel != null) $('#sBelleza').checked = a.bel; if (a.dir) $('#sDir').value = a.dir; if (a.nube != null) $('#sNube').checked = a.nube; if (a.wa != null) $('#sWa').checked = a.wa; if (a.dl != null) $('#sDl').checked = a.dl; if (a.fb != null) $('#sFb').checked = a.fb; if (a.ig != null) $('#sIg').checked = a.ig; } } catch (e) {}
 // el estilo que eligió el cliente (Normal / Cámara lenta / Boomerang) manda sobre el ajuste guardado
 try {
   const clave = (CFG.evento || '') + '|' + (CFG.fecha || '');
