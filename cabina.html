@@ -574,9 +574,13 @@ function bajar(blob, nombre) {
 const show = (id) => ['#pIni', '#pCount', '#pCap', '#pProc', '#pFin', '#pErr'].forEach((p) => $(p).classList.toggle('hidden', p !== id));
 let ocupado = false, ultima = null, regreso = null;
 function flash() { $('#flash').style.transition = 'none'; $('#flash').style.opacity = .95; requestAnimationFrame(() => { $('#flash').style.transition = 'opacity .45s'; $('#flash').style.opacity = 0; }); }
+let ocupadoDesde = 0;
 async function tomar() {
-  if (ocupado || !stream) return;
-  ocupado = true; clearInterval(regreso);
+  if (ocupado && Date.now() - ocupadoDesde > 120000) ocupado = false;   // nunca se queda trabada
+  if (ocupado) return;
+  ocupado = true; ocupadoDesde = Date.now(); clearInterval(regreso);
+  if (!camaraViva()) { $('#ia').textContent = 'Reactivando cámara…'; await revivirCamara(); }
+  if (!stream || !cam.videoWidth) { ocupado = false; $('#ia').textContent = 'No hay cámara: toca ↻ Nueva toma'; return; }
   try {
     const n = await siguienteNumero(), num = String(n).padStart(3, '0');
     const mirror = !cam.classList.contains('trasera');
@@ -779,29 +783,37 @@ $('#bOtra').onclick = inicio;
 function archivos(cuales) {
   if (!ultima) return [];
   const fotos = ultima.fotos.map((f) => new File([f.blob], f.nombre, { type: 'image/jpeg' }));
-  const video = new File([ultima.video.blob], ultima.video.nombre, { type: ultima.video.blob.type || 'video/mp4' });
+  const video = new File([ultima.video.blob], ultima.video.nombre, { type: (ultima.video.blob.type || 'video/mp4').split(';')[0] });
   const mosaico = new File([ultima.mosaico], `toma_${String(ultima.n).padStart(3, '0')}_postales.jpg`, { type: 'image/jpeg' });
   if (cuales === 'ig') return [video, mosaico];
   return [...fotos, video];
 }
 const TEXTO = () => `${T.title || 'Cabina 360'} · Cabina 360 AM Medinas`;
-async function compartir(files, msg, paquete, numero) {   // menú del sistema: WhatsApp, Bluetooth, Quick Share, AirDrop, Facebook…
+async function compartir(files, msg, paquete, numero) {   // WhatsApp, Bluetooth, Quick Share…: SOLO archivos (con texto, WhatsApp manda solo el texto)
   if (APP) {
-    try { APP.limpiar(); for (const f of files) APP.preparar(await b64De(f), f.name, f.type || mimeDe(f, f.name)); if (APP.compartirA) APP.compartirA(TEXTO(), paquete || '', numero || ''); else APP.compartir(TEXTO(), paquete || ''); return true; }
-    catch (e) { if (msg) msg.textContent = 'No se pudo compartir: ' + (e.message || e); return true; }
+    try {
+      APP.limpiar(); for (const f of files) APP.preparar(await b64De(f), f.name, f.type || mimeDe(f, f.name));
+      if (APP.compartirA) APP.compartirA('', paquete || '', numero || ''); else APP.compartir('', paquete || '');
+      listaTras(20);                                      // por si al volver no se detecta el regreso
+      return true;
+    } catch (e) { if (msg) msg.textContent = 'No se pudo compartir: ' + (e.message || e); return true; }
   }
-  const data = { files, title: T.title || 'Cabina 360', text: TEXTO() };
   try {
-    if (navigator.canShare && navigator.canShare(data)) { await navigator.share(data); return true; }
+    if (navigator.canShare && navigator.canShare({ files })) { await navigator.share({ files }); listaTras(3); return true; }
     const pocos = files.filter((f) => f.type.startsWith('image/')).slice(0, 6);
-    if (navigator.canShare && pocos.length && navigator.canShare({ files: pocos })) { await navigator.share({ files: pocos, text: data.text }); return true; }
-  } catch (e) { if (e && e.name === 'AbortError') return true; }
+    if (navigator.canShare && pocos.length && navigator.canShare({ files: pocos })) { await navigator.share({ files: pocos }); listaTras(3); return true; }
+  } catch (e) { if (e && e.name === 'AbortError') { listaTras(3); return true; } }
   if (msg) msg.textContent = 'Este equipo no permite compartir directo: se guardaron en Descargas.';
   return false;
 }
+function listaTras(seg) {                                 // deja la cabina lista para la siguiente persona
+  if ($('#pFin').classList.contains('hidden')) return;
+  clearInterval(regreso); let s = seg; $('#back').textContent = `Lista para la siguiente persona en ${s} s`;
+  regreso = setInterval(() => { s--; $('#back').textContent = `Lista para la siguiente persona en ${s} s`; if (s <= 0) inicio(); }, 1000);
+}
 function guardarAqui() { if (!ultima) return; ultima.fotos.forEach((f) => bajar(f.blob, f.nombre)); bajar(ultima.video.blob, ultima.video.nombre); }
 function mantener() {                             // el invitado está usando la pantalla: no regresar todavía
-  clearInterval(regreso); let s = 60; $('#back').textContent = `Regresando en ${s} s`;
+  clearInterval(regreso); let s = 30; $('#back').textContent = `Regresando en ${s} s`;
   regreso = setInterval(() => { s--; $('#back').textContent = `Regresando en ${s} s`; if (s <= 0) { $('#hoja').classList.add('hidden'); inicio(); } }, 1000);
 }
 $('#bWa').onclick = async () => {
