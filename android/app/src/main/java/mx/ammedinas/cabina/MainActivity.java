@@ -28,7 +28,15 @@ import android.widget.Toast;
 
 import androidx.core.content.FileProvider;
 
+import android.media.MediaCodec;
+import android.media.MediaExtractor;
+import android.media.MediaFormat;
+import android.media.MediaMuxer;
+
 import java.io.File;
+import java.io.FileInputStream;
+import java.nio.ByteBuffer;
+import java.util.HashMap;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
@@ -149,51 +157,20 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public String guardar(String b64, String nombre, String mime) {
-            try {
-                byte[] datos = Base64.decode(b64, Base64.DEFAULT);
-                if (mime == null || mime.isEmpty()) mime = "image/jpeg";
-                mime = mime.split(";")[0].trim();
-                boolean video = mime != null && mime.startsWith("video");
-                ContentValues v = new ContentValues();
-                v.put(MediaStore.MediaColumns.DISPLAY_NAME, nombre);
-                v.put(MediaStore.MediaColumns.MIME_TYPE, mime);
-                v.put(MediaStore.MediaColumns.RELATIVE_PATH, (video ? Environment.DIRECTORY_MOVIES : Environment.DIRECTORY_PICTURES) + "/AM Medinas 360");
-                v.put(MediaStore.MediaColumns.IS_PENDING, 1);
-                Uri coleccion = video
-                        ? MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
-                        : MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
-                ContentResolver cr = getContentResolver();
-                Uri u = cr.insert(coleccion, v);
-                if (u == null) return "error: no se pudo crear el archivo";
-                try (OutputStream o = cr.openOutputStream(u)) { if (o != null) o.write(datos); }
-                v.clear();
-                v.put(MediaStore.MediaColumns.IS_PENDING, 0);
-                cr.update(u, v, null, null);
-                return "ok";
-            } catch (Exception ex) {
-                return "error: " + ex.getMessage();
-            }
+            try { enGaleria(b64, nombre, mime); return "ok"; }
+            catch (Exception ex) { return "error: " + ex.getMessage(); }
         }
 
         @JavascriptInterface
         public void limpiar() {
             synchronized (listos) { listos.clear(); tipos.clear(); }
-            File dir = new File(getCacheDir(), "compartir");
-            File[] viejos = dir.listFiles();
-            if (viejos != null) for (File f : viejos) //noinspection ResultOfMethodCallIgnored
-                f.delete();
         }
 
         @JavascriptInterface
         public String preparar(String b64, String nombre, String mime) {
             try {
-                File dir = new File(getCacheDir(), "compartir");
-                //noinspection ResultOfMethodCallIgnored
-                dir.mkdirs();
-                File f = new File(dir, nombre.replaceAll("[\\\\/:*?\"<>|]", "-"));
-                try (FileOutputStream o = new FileOutputStream(f)) { o.write(Base64.decode(b64, Base64.DEFAULT)); }
-                Uri u = FileProvider.getUriForFile(MainActivity.this, AUTORIDAD, f);
-                synchronized (listos) { listos.add(u); tipos.add(mime == null ? "*/*" : mime); }
+                Uri u = enGaleria(b64, nombre, mime);
+                synchronized (listos) { listos.add(u); tipos.add(limpiarMime(mime, nombre)); }
                 return "ok";
             } catch (Exception ex) {
                 return "error: " + ex.getMessage();
@@ -203,30 +180,36 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public String compartir(String texto, String paquete) {
             final ArrayList<Uri> uris;
-            String tipo;
+            final ArrayList<String> mimes;
             synchronized (listos) {
                 if (listos.isEmpty()) return "error: no hay archivos";
                 uris = new ArrayList<>(listos);
-                boolean imagenes = true, videos = true;
-                for (String t : tipos) { if (!t.startsWith("image")) imagenes = false; if (!t.startsWith("video")) videos = false; }
-                tipo = imagenes ? "image/*" : videos ? "video/*" : "*/*";
+                mimes = new ArrayList<>(tipos);
             }
+            boolean imagenes = true, videos = true;
+            for (String t : mimes) { if (!t.startsWith("image")) imagenes = false; if (!t.startsWith("video")) videos = false; }
+            final String app = instalada(paquete) ? paquete
+                    : ("com.whatsapp".equals(paquete) && instalada("com.whatsapp.w4b") ? "com.whatsapp.w4b" : null);
+            final boolean whats = app != null && app.startsWith("com.whatsapp");
+
             final Intent i;
             if (uris.size() == 1) {
                 i = new Intent(Intent.ACTION_SEND);
                 i.putExtra(Intent.EXTRA_STREAM, uris.get(0));
+                i.setType(mimes.get(0));
             } else {
                 i = new Intent(Intent.ACTION_SEND_MULTIPLE);
                 i.putParcelableArrayListExtra(Intent.EXTRA_STREAM, uris);
+                i.setType(imagenes ? "image/*" : videos ? "video/*" : "*/*");
+                if (!imagenes && !videos) i.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"image/*", "video/*"});
             }
-            i.setType(tipo);
-            if (texto != null && !texto.isEmpty()) i.putExtra(Intent.EXTRA_TEXT, texto);
+            // WhatsApp: solo fotos y video (con texto, a veces manda solo el texto)
+            if (!whats && app == null && texto != null && !texto.isEmpty()) i.putExtra(Intent.EXTRA_TEXT, texto);
             ClipData clip = ClipData.newRawUri("", uris.get(0));
             for (int n = 1; n < uris.size(); n++) clip.addItem(new ClipData.Item(uris.get(n)));
             i.setClipData(clip);
             i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
-            final String app = instalada(paquete) ? paquete : (instalada("com.whatsapp.w4b") && "com.whatsapp".equals(paquete) ? "com.whatsapp.w4b" : null);
             runOnUiThread(() -> {
                 try {
                     if (app != null) { i.setPackage(app); startActivity(i); }
@@ -238,6 +221,102 @@ public class MainActivity extends Activity {
                 }
             });
             return app != null ? "app" : "menu";
+        }
+    }
+
+    // ---------------- archivos en la Galería (AM Medinas 360): WhatsApp y cualquier app los pueden leer
+    private final HashMap<String, Uri> enGaleriaYa = new HashMap<>();
+
+    private static String limpiarMime(String mime, String nombre) {
+        String m = mime == null ? "" : mime.split(";")[0].trim();
+        String n = nombre == null ? "" : nombre.toLowerCase();
+        if (n.endsWith(".mp4")) return "video/mp4";
+        if (n.endsWith(".webm")) return "video/webm";
+        if (n.endsWith(".jpg") || n.endsWith(".jpeg")) return "image/jpeg";
+        return m.isEmpty() ? "application/octet-stream" : m;
+    }
+
+    private synchronized Uri enGaleria(String b64, String nombre, String mimeOriginal) throws Exception {
+        byte[] datos = Base64.decode(b64, Base64.DEFAULT);
+        String clave = nombre + ":" + datos.length;
+        Uri ya = enGaleriaYa.get(clave);
+        if (ya != null) return ya;
+
+        String mime = limpiarMime(mimeOriginal, nombre);
+        boolean video = mime.startsWith("video");
+        if (video && mime.equals("video/mp4")) datos = mp4Normal(datos);   // MP4 "por partes" → MP4 normal que WhatsApp sí reproduce
+
+        ContentValues v = new ContentValues();
+        v.put(MediaStore.MediaColumns.DISPLAY_NAME, nombre);
+        v.put(MediaStore.MediaColumns.MIME_TYPE, mime);
+        v.put(MediaStore.MediaColumns.RELATIVE_PATH, (video ? Environment.DIRECTORY_MOVIES : Environment.DIRECTORY_PICTURES) + "/AM Medinas 360");
+        v.put(MediaStore.MediaColumns.IS_PENDING, 1);
+        Uri coleccion = video
+                ? MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+                : MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY);
+        ContentResolver cr = getContentResolver();
+        Uri u = cr.insert(coleccion, v);
+        if (u == null) throw new Exception("no se pudo crear el archivo en la Galería");
+        try (OutputStream o = cr.openOutputStream(u)) { if (o != null) o.write(datos); }
+        v.clear();
+        v.put(MediaStore.MediaColumns.IS_PENDING, 0);
+        cr.update(u, v, null, null);
+        enGaleriaYa.put(clave, u);
+        return u;
+    }
+
+    private byte[] mp4Normal(byte[] datos) {
+        File dir = new File(getCacheDir(), "video");
+        //noinspection ResultOfMethodCallIgnored
+        dir.mkdirs();
+        File ent = new File(dir, "entrada.mp4"), sal = new File(dir, "salida.mp4");
+        MediaExtractor ex = new MediaExtractor();
+        MediaMuxer mx = null;
+        try {
+            try (FileOutputStream o = new FileOutputStream(ent)) { o.write(datos); }
+            ex.setDataSource(ent.getAbsolutePath());
+            mx = new MediaMuxer(sal.getAbsolutePath(), MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
+            int n = ex.getTrackCount();
+            int[] pistas = new int[n];
+            int validas = 0;
+            for (int t = 0; t < n; t++) {
+                MediaFormat f = ex.getTrackFormat(t);
+                String m = f.getString(MediaFormat.KEY_MIME);
+                if (m != null && (m.startsWith("video/") || m.startsWith("audio/"))) { ex.selectTrack(t); pistas[t] = mx.addTrack(f); validas++; }
+                else pistas[t] = -1;
+            }
+            if (validas == 0) return datos;
+            mx.start();
+            ByteBuffer buf = ByteBuffer.allocate(16 * 1024 * 1024);
+            MediaCodec.BufferInfo info = new MediaCodec.BufferInfo();
+            long base = -1, anterior = -1;
+            while (true) {
+                int tam = ex.readSampleData(buf, 0);
+                if (tam < 0) break;
+                int t = ex.getSampleTrackIndex();
+                long ts = ex.getSampleTime();
+                if (base < 0) base = ts;
+                long pts = Math.max(0, ts - base);
+                if (pts <= anterior) pts = anterior + 1;            // tiempos siempre crecientes
+                anterior = pts;
+                info.set(0, tam, pts, (ex.getSampleFlags() & MediaExtractor.SAMPLE_FLAG_SYNC) != 0 ? MediaCodec.BUFFER_FLAG_KEY_FRAME : 0);
+                if (t >= 0 && pistas[t] >= 0) mx.writeSampleData(pistas[t], buf, info);
+                ex.advance();
+            }
+            mx.stop();
+            mx.release(); mx = null;
+            byte[] r = new byte[(int) sal.length()];
+            try (FileInputStream in = new FileInputStream(sal)) { int off = 0, k; while (off < r.length && (k = in.read(r, off, r.length - off)) > 0) off += k; }
+            return r.length > 1000 ? r : datos;
+        } catch (Exception e) {
+            return datos;                                         // si no se puede convertir, se usa el original
+        } finally {
+            try { if (mx != null) mx.release(); } catch (Exception ignored) { }
+            ex.release();
+            //noinspection ResultOfMethodCallIgnored
+            ent.delete();
+            //noinspection ResultOfMethodCallIgnored
+            sal.delete();
         }
     }
 
