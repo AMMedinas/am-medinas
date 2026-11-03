@@ -99,6 +99,7 @@ public class MainActivity extends Activity {
 
         web.loadUrl(preferencias().getString("ultima", BASE + "activar-cabina.html"));
         if (!tieneCamara()) pedirPermisos();
+        Toast.makeText(this, "App Cabina 360 lista: el control negro inicia la toma", Toast.LENGTH_LONG).show();
     }
 
     // ---------------- el control negro: "volumen" de un dispositivo Bluetooth = INICIAR
@@ -107,20 +108,33 @@ public class MainActivity extends Activity {
         int k = e.getKeyCode();
         boolean volumen = k == KeyEvent.KEYCODE_VOLUME_UP || k == KeyEvent.KEYCODE_VOLUME_DOWN;
         boolean camara = k == KeyEvent.KEYCODE_CAMERA || k == KeyEvent.KEYCODE_FOCUS;
-        if ((volumen && esExterno(e)) || camara) {
-            if (e.getAction() == KeyEvent.ACTION_DOWN && e.getRepeatCount() == 0) disparar();
-            return true;   // el volumen del teléfono NO cambia
+        if (volumen || camara) {
+            if (e.getAction() == KeyEvent.ACTION_DOWN && e.getRepeatCount() == 0) {
+                InputDevice d = e.getDevice();
+                String origen = d == null ? "control" : d.getName();
+                Toast.makeText(this, "📸 INICIAR · " + (k == KeyEvent.KEYCODE_VOLUME_DOWN ? "Vol −" : k == KeyEvent.KEYCODE_VOLUME_UP ? "Vol +" : "Cámara") + " · " + origen, Toast.LENGTH_SHORT).show();
+                disparar();
+            }
+            return true;   // el volumen NO cambia mientras la app está abierta
         }
         return super.dispatchKeyEvent(e);
     }
 
-    private boolean esExterno(KeyEvent e) {
-        if (preferencias().getBoolean("todos", false)) return true;   // la cabina puede pedir usar también los botones del celular
-        InputDevice d = e.getDevice();
-        return d == null || d.isExternal();
+    // respaldo: si algún equipo manda el botón por aquí, tampoco cambia el volumen
+    @Override
+    public boolean onKeyDown(int k, KeyEvent e) {
+        if (k == KeyEvent.KEYCODE_VOLUME_UP || k == KeyEvent.KEYCODE_VOLUME_DOWN) return true;
+        return super.onKeyDown(k, e);
+    }
+
+    @Override
+    public boolean onKeyUp(int k, KeyEvent e) {
+        if (k == KeyEvent.KEYCODE_VOLUME_UP || k == KeyEvent.KEYCODE_VOLUME_DOWN) return true;
+        return super.onKeyUp(k, e);
     }
 
     private void disparar() {
+        web.requestFocus();
         web.evaluateJavascript("(function(){var o={key:'Enter',code:'ControlNegro',keyCode:13,which:13,bubbles:true};"
                 + "window.dispatchEvent(new KeyboardEvent('keydown',o));window.dispatchEvent(new KeyboardEvent('keyup',o));})();", null);
     }

@@ -94,6 +94,7 @@ html,body{margin:0;height:100%;background:#000;color:var(--ink);font-family:Mont
   <button id="go">INICIAR</button>
   <div class="hint">Toca la pantalla o presiona el control: 6 fotos tipo postal + video 360</div>
   <div class="sub" id="ia">Preparando cámara…</div>
+  <div id="modoApp" class="sub" style="margin-top:14px;font-weight:700"></div>
 </section>
 
 <!-- CUENTA -->
@@ -707,7 +708,8 @@ function pitido(f, d) {
 }
 function avisoMotor(t) { const n = $('#note2'); if (n) { n.textContent = t; setTimeout(() => { n.textContent = 'Aplicando tu marco y la marca AM Medinas…'; }, 4000); } }
 const esIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-if (APP) { $('#bfull').classList.add('hidden'); }
+if (APP) { $('#bfull').classList.add('hidden'); $('#modoApp').innerHTML = '<span style="color:#25D366">● App Cabina 360 · control negro listo</span>'; }
+else if (/Android/i.test(navigator.userAgent)) $('#modoApp').innerHTML = '<a href="app.html" onclick="event.stopPropagation()" style="display:inline-block;background:#ff6b81;color:#fff;padding:10px 16px;border-radius:999px;text-decoration:none">⚠ Estás en Chrome: aquí el control negro sube el volumen. Toca para usar la app</a>';
 $('#sEquipo').textContent = APP ? '📱 App Cabina 360: el control negro (botón de volumen) ya funciona como INICIAR. El motor por Bluetooth web no está disponible dentro de la app.' : esIOS
   ? '📱 iPhone/iPad: fotos, video, control negro (botón chico) y avisos funcionan. El motor por Bluetooth y el diagnóstico solo funcionan en Android con Chrome.'
   : (navigator.bluetooth ? '📱 Android/Chrome: todas las funciones disponibles.' : '📱 Este navegador no tiene Bluetooth web: usa Chrome para conectar el motor.');
