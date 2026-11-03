@@ -178,7 +178,10 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
-        public String compartir(String texto, String paquete) {
+        public String compartir(String texto, String paquete) { return compartirA(texto, paquete, ""); }
+
+        @JavascriptInterface
+        public String compartirA(String texto, String paquete, String numero) {
             final ArrayList<Uri> uris;
             final ArrayList<String> mimes;
             synchronized (listos) {
@@ -209,6 +212,11 @@ public class MainActivity extends Activity {
             for (int n = 1; n < uris.size(); n++) clip.addItem(new ClipData.Item(uris.get(n)));
             i.setClipData(clip);
             i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            String digitos = numero == null ? "" : numero.replaceAll("\\D", "");
+            if (whats && digitos.length() >= 10) {                    // abre directo el chat de ese número
+                if (digitos.length() == 10) digitos = "52" + digitos;
+                i.putExtra("jid", digitos + "@s.whatsapp.net");
+            }
 
             runOnUiThread(() -> {
                 try {

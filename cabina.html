@@ -161,8 +161,16 @@ html,body{margin:0;height:100%;background:#000;color:var(--ink);font-family:Mont
   <label><input type="checkbox" id="sGuardar" checked style="width:auto"> Descargar automáticamente cada toma en este equipo</label>
   <div class="small" style="margin-top:10px;border-top:1px solid #2a3577;padding-top:10px"><b>☁ Respaldo en tu Google Drive</b>
     <label><input type="checkbox" id="sNube" checked style="width:auto"> Guardar cada toma en Drive: "Cabina 360 AM Medinas" › Fotos (JPG) y Videos 360 (MP4)</label>
+    <label>Dirección de tu App de Google para la cabina (termina en /exec)</label>
+    <input id="sDriveUrl" placeholder="https://script.google.com/macros/s/…/exec" autocapitalize="off" autocomplete="off">
+    <div style="display:flex;gap:6px;margin-top:6px"><button class="btn" id="sDriveGuardar" style="flex:1">Guardar</button><button class="btn" id="sDriveProbar" style="flex:1">Probar conexión</button></div>
     Estado: <b id="sDrive">revisando…</b>
     <button class="btn" id="sSubir" style="width:100%;margin-top:6px">Subir pendientes ahora</button>
+  </div>
+  <div class="small" style="margin-top:10px;border-top:1px solid #2a3577;padding-top:10px"><b>📲 WhatsApp automático</b>
+    <label><input type="checkbox" id="sWaAuto" checked style="width:auto"> Al terminar cada toma, abrir WhatsApp con las fotos y el video listos (solo falta tocar Enviar)</label>
+    <label>Enviar directo a este WhatsApp (opcional, 10 dígitos; vacío = elegir chat)</label>
+    <input id="sWaNum" inputmode="tel" placeholder="4271234567">
   </div>
   <div class="small" style="margin-top:10px;border-top:1px solid #2a3577;padding-top:10px"><b>Botones para los invitados (pantalla final)</b>
     <label><input type="checkbox" id="sWa" checked style="width:auto"> Guardar en WhatsApp</label>
@@ -516,13 +524,14 @@ async function contar() { $('#sTot').textContent = (await todas()).length; }
 async function siguienteNumero() { const t = await todas(); return t.reduce((m, x) => Math.max(m, x.n), 0) + 1; }
 // ---------------- respaldo en Google Drive (por tu App de Apps Script; si no hay internet, se reintenta solo)
 const carpetaEvento = ((CFG.fecha ? CFG.fecha + ' · ' : '') + (CFG.evento || 'Cabina 360')).replace(/[\\/:*?"<>|]/g, '-');
-const nubeLista = () => !!(window.AMM_URL && window.AMM_URL.indexOf('PEGA_AQUI') !== 0);
+const nubeURL = () => { let u = ''; try { u = localStorage.getItem('amm360_drive_url') || ''; } catch (e) {} return u || window.AMM_CABINA_URL || window.AMM_URL || ''; };
+const nubeLista = () => /^https:\/\/script\.google(usercontent)?\.com\//.test(nubeURL());
 const nubeOn = () => nubeLista() && $('#sNube').checked;
 const b64De = (blob) => new Promise((ok, mal) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1]); r.onerror = mal; r.readAsDataURL(blob); });
 function todasDB() { return new Promise((r) => { if (!db) return r([]); const q = db.transaction('tomas').objectStore('tomas').getAll(); q.onsuccess = () => r(q.result); q.onerror = () => r([]); }); }
 function ponNube(t) { $('#sDrive').textContent = t; const f = $('#nubeFin'); if (f) f.textContent = '☁ Drive: ' + t; }
 async function estadoNube(extra) {
-  if (!nubeLista()) return ponNube('falta la dirección de tu App de Google (config.js)');
+  if (!nubeLista()) return ponNube('falta la dirección de tu App de Google de la cabina');
   if (!$('#sNube').checked) return ponNube('apagado');
   const t = await todasDB(), pend = t.filter((x) => !x.subido).length;
   ponNube(extra || (pend ? `${pend} toma(s) por subir${navigator.onLine ? '' : ' · sin internet, se suben al volver la señal'}` : `todo guardado (${t.length} tomas)`));
@@ -541,10 +550,10 @@ async function subirPendientes() {
       for (const f of lista) {
         if (!f.blob || t.hechos.includes(f.nombre)) continue;
         ponNube(`subiendo toma ${num}: ${f.nombre}…`);
-        const r = await fetch(window.AMM_URL, { method: 'POST', body: JSON.stringify({ accion: 'cabina', carpeta: t.carpeta || carpetaEvento,
+        const r = await fetch(nubeURL(), { method: 'POST', body: JSON.stringify({ accion: 'cabina', carpeta: t.carpeta || carpetaEvento,
           nombre: f.nombre, sub: (f.blob.type || '').startsWith('video') ? 'Videos' : 'Fotos', tipo: f.blob.type || 'application/octet-stream', base64: await b64De(f.blob) }) });
         let j = {}; try { j = JSON.parse(await r.text()); } catch (e) { throw new Error('Drive no respondió'); }
-        if (!j.ok) throw new Error(/no v[aá]lida/i.test(j.error || '') ? 'falta agregar la parte de la cabina a tu Apps Script' : (j.error || 'error de Drive'));
+        if (!j.ok) throw new Error(/no v[aá]lida/i.test(j.error || '') ? 'falta conectar tu App de Google de la cabina (pega su dirección arriba)' : (j.error || 'error de Drive'));
         t.hechos.push(f.nombre); guardarToma(t);
       }
       t.subido = true; guardarToma(t);
@@ -634,6 +643,7 @@ async function tomar() {
     $('#vid').src = URL.createObjectURL(v.blob); $('#vid').play().catch(() => {});
     $('#fmsg').textContent = $('#sGuardar').checked ? 'Tus fotos y video ya se guardaron en la cabina.' : '';
     show('#pFin');
+    if (APP && $('#sWaAuto').checked) setTimeout(() => { if (!$('#pFin').classList.contains('hidden')) $('#bWa').onclick(); }, 1200);   // WhatsApp automático
     let s = 40; $('#back').textContent = `Regresando en ${s} s`;
     regreso = setInterval(() => { s--; $('#back').textContent = `Regresando en ${s} s`; if (s <= 0) inicio(); }, 1000);
   } catch (e) {
@@ -765,9 +775,9 @@ function archivos(cuales) {
   return [...fotos, video];
 }
 const TEXTO = () => `${T.title || 'Cabina 360'} · Cabina 360 AM Medinas`;
-async function compartir(files, msg, paquete) {   // menú del sistema: WhatsApp, Bluetooth, Quick Share, AirDrop, Facebook…
+async function compartir(files, msg, paquete, numero) {   // menú del sistema: WhatsApp, Bluetooth, Quick Share, AirDrop, Facebook…
   if (APP) {
-    try { APP.limpiar(); for (const f of files) APP.preparar(await b64De(f), f.name, f.type || mimeDe(f, f.name)); APP.compartir(TEXTO(), paquete || ''); return true; }
+    try { APP.limpiar(); for (const f of files) APP.preparar(await b64De(f), f.name, f.type || mimeDe(f, f.name)); if (APP.compartirA) APP.compartirA(TEXTO(), paquete || '', numero || ''); else APP.compartir(TEXTO(), paquete || ''); return true; }
     catch (e) { if (msg) msg.textContent = 'No se pudo compartir: ' + (e.message || e); return true; }
   }
   const data = { files, title: T.title || 'Cabina 360', text: TEXTO() };
@@ -786,7 +796,7 @@ function mantener() {                             // el invitado está usando la
 }
 $('#bWa').onclick = async () => {
   if (!ultima) return; mantener();
-  if (!(await compartir(archivos(), $('#fmsg'), 'com.whatsapp'))) {
+  if (!(await compartir(archivos(), $('#fmsg'), 'com.whatsapp', $('#sWaNum').value))) {
     guardarAqui();
     window.open('https://wa.me/?text=' + encodeURIComponent(TEXTO() + ' (adjunta las fotos y el video que se acaban de descargar)'), '_blank');
   } else $('#fmsg').textContent = 'Elige WhatsApp y el chat donde quieres guardarlas.';
@@ -815,6 +825,13 @@ function botonesInvitado() {
 }
 ['#sWa', '#sDl', '#sFb', '#sIg'].forEach((id) => $(id).addEventListener('change', botonesInvitado));
 $('#sSubir').onclick = subirPendientes;
+try { $('#sDriveUrl').value = localStorage.getItem('amm360_drive_url') || window.AMM_CABINA_URL || ''; } catch (e) {}
+$('#sDriveGuardar').onclick = () => { const u = $('#sDriveUrl').value.trim(); try { localStorage.setItem('amm360_drive_url', u); } catch (e) {} subirPendientes(); };
+$('#sDriveProbar').onclick = async () => {
+  const u = $('#sDriveUrl').value.trim() || nubeURL(); ponNube('probando…');
+  try { const j = JSON.parse(await (await fetch(u)).text()); ponNube(j.ok ? '✓ ' + (j.mensaje || 'conectada') : 'no respondió bien'); }
+  catch (e) { ponNube('no se pudo conectar: revisa la dirección'); }
+};
 $('#sNube').addEventListener('change', subirPendientes);
 $('#bfull').onclick = async () => {
   const d = document.documentElement, pedir = d.requestFullscreen || d.webkitRequestFullscreen, salir = document.exitFullscreen || document.webkitExitFullscreen;
@@ -825,10 +842,10 @@ $('#bfull').onclick = async () => {
   } catch (e) { alert('En iPhone: toca Compartir ⬆ y luego "Agregar a inicio". Abre la cabina desde ese ícono y se verá en pantalla completa.'); }
 };
 $('#bset').onclick = () => $('#set').classList.toggle('hidden');
-$('#sOk').onclick = () => { $('#sSeg').value = segVideo(); $('#set').classList.add('hidden'); try { localStorage.setItem('amm360_ajustes', JSON.stringify({ seg: $('#sSeg').value, cnt: $('#sCnt').value, g: $('#sGuardar').checked, mot: $('#sMot').value, vel: $('#sVel').value, beep: $('#sBeep').checked, modo: $('#sModo').value, fmt: $('#sFmt').value, bel: $('#sBelleza').checked, dir: $('#sDir').value, nube: $('#sNube').checked, wa: $('#sWa').checked, dl: $('#sDl').checked, fb: $('#sFb').checked, ig: $('#sIg').checked })); } catch (e) {} };
+$('#sOk').onclick = () => { $('#sSeg').value = segVideo(); $('#set').classList.add('hidden'); try { localStorage.setItem('amm360_ajustes', JSON.stringify({ seg: $('#sSeg').value, cnt: $('#sCnt').value, g: $('#sGuardar').checked, mot: $('#sMot').value, vel: $('#sVel').value, beep: $('#sBeep').checked, modo: $('#sModo').value, fmt: $('#sFmt').value, bel: $('#sBelleza').checked, dir: $('#sDir').value, nube: $('#sNube').checked, waAuto: $('#sWaAuto').checked, waNum: $('#sWaNum').value, wa: $('#sWa').checked, dl: $('#sDl').checked, fb: $('#sFb').checked, ig: $('#sIg').checked })); } catch (e) {} };
 $('#sCam').onchange = (e) => abrirCamara(e.target.value).catch((x) => alert(x.message));
 $('#sAll').onclick = async () => { for (const t of await todas()) { t.fotos.forEach((f) => bajar(f.blob, f.nombre)); bajar(t.video.blob, t.video.nombre); await sleep(400); } };
-try { const a = JSON.parse(localStorage.getItem('amm360_ajustes') || 'null'); if (a) { $('#sSeg').value = Math.max(15, +a.seg || 15); $('#sCnt').value = a.cnt; $('#sGuardar').checked = a.g; if (a.mot != null) $('#sMot').value = a.mot; if (a.vel) $('#sVel').value = a.vel; if (a.beep != null) $('#sBeep').checked = a.beep; if (a.modo) $('#sModo').value = a.modo; if (a.fmt) $('#sFmt').value = a.fmt; if (a.bel != null) $('#sBelleza').checked = a.bel; if (a.dir) $('#sDir').value = a.dir; if (a.nube != null) $('#sNube').checked = a.nube; if (a.wa != null) $('#sWa').checked = a.wa; if (a.dl != null) $('#sDl').checked = a.dl; if (a.fb != null) $('#sFb').checked = a.fb; if (a.ig != null) $('#sIg').checked = a.ig; } } catch (e) {}
+try { const a = JSON.parse(localStorage.getItem('amm360_ajustes') || 'null'); if (a) { $('#sSeg').value = Math.max(15, +a.seg || 15); $('#sCnt').value = a.cnt; $('#sGuardar').checked = a.g; if (a.mot != null) $('#sMot').value = a.mot; if (a.vel) $('#sVel').value = a.vel; if (a.beep != null) $('#sBeep').checked = a.beep; if (a.modo) $('#sModo').value = a.modo; if (a.fmt) $('#sFmt').value = a.fmt; if (a.bel != null) $('#sBelleza').checked = a.bel; if (a.dir) $('#sDir').value = a.dir; if (a.nube != null) $('#sNube').checked = a.nube; if (a.waAuto != null) $('#sWaAuto').checked = a.waAuto; if (a.waNum) $('#sWaNum').value = a.waNum; if (a.wa != null) $('#sWa').checked = a.wa; if (a.dl != null) $('#sDl').checked = a.dl; if (a.fb != null) $('#sFb').checked = a.fb; if (a.ig != null) $('#sIg').checked = a.ig; } } catch (e) {}
 // el estilo que eligió el cliente (Normal / Cámara lenta / Boomerang) manda sobre el ajuste guardado
 try {
   const clave = (CFG.evento || '') + '|' + (CFG.fecha || '');
