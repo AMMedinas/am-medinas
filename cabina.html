@@ -575,24 +575,27 @@ async function tomar() {
     $('#num').textContent = '¡Sonríe!'; await sleep(500);
     show('#pCap');
     $('#thumbs').innerHTML = [1, 2, 3, 4, 5, 6].map((i) => `<div>${i}</div>`).join('');
-    const cards = [], fotos = [];
+    const crudas = [], fotos = [], RAFAGA = 2000;          // cada foto de la ráfaga dura 2 segundos
     for (let i = 0; i < 6; i++) {
+      const t0 = Date.now();
       $('#msg').textContent = `Foto ${i + 1} de 6`;
-      let card, intentos = 0;
+      let raw, intentos = 0;
       while (true) {
-        const raw = document.createElement('canvas'); raw.width = cam.videoWidth; raw.height = cam.videoHeight;
+        raw = document.createElement('canvas'); raw.width = cam.videoWidth; raw.height = cam.videoHeight;
         raw.getContext('2d').drawImage(cam, 0, 0);
         flash();
         const a = analizar(raw), motivo = a.blur < .3 ? 'una foto movida' : a.cerrados ? 'ojos cerrados' : '';
-        if (motivo && intentos < 2) { intentos++; $('#note').textContent = `La IA detectó ${motivo}: repetimos la foto ${i + 1}`; await sleep(900); continue; }
-        $('#note').textContent = '';
-        card = postal(raw, mirror); break;
+        if (motivo && intentos < 2 && Date.now() - t0 < RAFAGA - 700) { intentos++; $('#note').textContent = `La IA detectó ${motivo}: repetimos la foto ${i + 1}`; await sleep(300); continue; }
+        break;
       }
-      cards.push(card);
-      const blob = await aBlob(card);
-      fotos.push({ nombre: `toma_${num}_foto_${i + 1}.jpg`, blob });
-      const th = $('#thumbs').children[i]; th.textContent = ''; th.classList.add('on'); th.style.backgroundImage = `url(${URL.createObjectURL(blob)})`;
-      await sleep(1100);
+      $('#note').textContent = '';
+      crudas.push(raw);
+      const mini = document.createElement('canvas'); mini.width = 160; mini.height = Math.round(160 * raw.height / raw.width);
+      const mg = mini.getContext('2d');
+      if (mirror) { mg.translate(mini.width, 0); mg.scale(-1, 1); }
+      mg.drawImage(raw, 0, 0, mini.width, mini.height);
+      const th = $('#thumbs').children[i]; th.textContent = ''; th.classList.add('on'); th.style.backgroundImage = `url(${mini.toDataURL('image/jpeg', .6)})`;
+      await sleep(Math.max(0, RAFAGA - (Date.now() - t0)));
     }
     $('#msg').textContent = '¡A girar! Video 360';
     const espera = Math.max(0, +$('#sMot').value || 0), auto = motorListo();
@@ -614,6 +617,12 @@ async function tomar() {
     else { pitido(660, .5); avisoMotor('Operador: detén el motor con su control ⏻'); }
     show('#pProc'); $('#barI').style.width = '40%';
     if (modoVideo() === 'lenta') $('#note2').textContent = 'Creando tu cámara lenta…';
+    const cards = [];                                     // el marco y los filtros se aplican mientras se procesa
+    for (let i = 0; i < crudas.length; i++) {
+      const card = postal(crudas[i], mirror); cards.push(card);
+      fotos.push({ nombre: `toma_${num}_foto_${i + 1}.jpg`, blob: await aBlob(card) });
+      $('#barI').style.width = (40 + (i + 1) * 9) + '%'; await sleep(0);
+    }
     const col = mosaico(cards), colBlob = await aBlob(col, .9);
     $('#barI').style.width = '100%'; await sleep(300);
     const video = { nombre: `toma_${num}_video.${v.ext}`, blob: v.blob };
