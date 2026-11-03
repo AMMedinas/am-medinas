@@ -38,6 +38,7 @@ html,body{margin:0;height:100%;background:#000;color:var(--ink);font-family:Mont
 .thumbs{display:flex;gap:8px;margin-top:22px;flex-wrap:wrap;justify-content:center}
 .thumbs div{width:min(13vw,96px);aspect-ratio:4/5;border-radius:10px;border:2px dashed rgba(255,255,255,.35);background:rgba(0,0,0,.35) center/cover;display:grid;place-items:center;font-weight:800;color:rgba(255,255,255,.6)}
 .thumbs div.on{border:3px solid var(--gold)}
+#aviso{position:fixed;left:50%;bottom:max(24px,env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--gold);color:#17120a;font-weight:800;padding:10px 18px;border-radius:999px;z-index:40}
 #flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:9;transition:opacity .35s}
 /* control blanco en pantalla */
 .remoto{display:grid;grid-template-columns:1fr 1fr;gap:8px;background:#f4f4f2;border-radius:18px;padding:12px}
@@ -77,6 +78,7 @@ html,body{margin:0;height:100%;background:#000;color:var(--ink);font-family:Mont
 <video id="cam" playsinline muted autoplay></video>
 <div class="shade"></div>
 <div id="flash"></div>
+<div id="aviso" class="hidden">📸 Control recibido</div>
 <div id="rec" class="hidden"><b></b><span id="rect">REC</span></div>
 
 <div class="top">
@@ -168,7 +170,10 @@ html,body{margin:0;height:100%;background:#000;color:var(--ink);font-family:Mont
     <label><input type="checkbox" id="sIg" style="width:auto"> Instagram (publicar es opcional)</label>
   </div>
   <div class="small" style="margin-top:10px;border-top:1px solid #2a3577;padding-top:10px">
-    <b>📸 Control negro "CAMERA 360" (fotos):</b> préndelo, vincúlalo en Ajustes &gt; Bluetooth del celular y presiona su <b>botón chico</b> (Android). Si no responde, prueba el grande. Último botón recibido: <b id="sKey">esperando…</b><br>
+    <b>📸 Control negro "CAMERA 360" (fotos):</b> préndelo, vincúlalo en Ajustes &gt; Bluetooth del celular y <b>toca una vez la pantalla de la cabina</b> (así el celular le pasa los botones). Prueba los dos botones.<br>
+    Último botón recibido: <b id="sKey">esperando…</b> · Botones multimedia: <b id="sMulti">se activan al tocar la pantalla</b><br>
+    <label><input type="checkbox" id="sPrueba" style="width:auto"> Modo prueba: los botones del control solo se muestran aquí (no disparan)</label>
+    <pre id="sLog" style="white-space:pre-wrap;margin:6px 0 0;background:#0a0f36;padding:8px;border-radius:8px;min-height:20px;font-size:11px"></pre>
     Cada clic hace lo mismo que tocar INICIAR; en la pantalla final, deja lista la siguiente toma.
   </div>
   <div class="small" style="margin-top:10px;border-top:1px solid #2a3577;padding-top:10px">
@@ -625,18 +630,68 @@ function inicio() { clearInterval(regreso); $('#vid').pause(); $('#hoja').classL
 
 $('#go').onclick = tomar;
 // Control de fotos Bluetooth (botón selfie): llega como tecla Enter / Volumen / Play
-const TECLAS = new Set([' ', 'Enter', 'AudioVolumeUp', 'AudioVolumeDown', 'VolumeUp', 'VolumeDown', 'MediaPlayPause', 'MediaPlay', 'Camera']);
+// ---------------- control negro Bluetooth: acepta cualquier botón que llegue (teclado, multimedia o volumen)
 let ultimaTecla = 0;
-document.addEventListener('keydown', (e) => {
-  const k = e.key || '', c = e.keyCode;
-  $('#sKey').textContent = `${k || 'tecla'} (${c}) ✓ recibido`;
-  if (!(TECLAS.has(k) || c === 13 || c === 32 || c === 175 || c === 174 || c === 179)) return;
-  e.preventDefault();
-  if (Date.now() - ultimaTecla < 1500) return;          // evita dobles disparos
+const bitacora = [];
+function anotar(t) {
+  bitacora.unshift(new Date().toLocaleTimeString('es-MX') + '  ' + t); bitacora.length = Math.min(bitacora.length, 8);
+  $('#sKey').textContent = t + ' ✓ recibido';
+  const l = document.getElementById('sLog'); if (l) l.textContent = bitacora.join('\n');
+}
+function avisoControl() {
+  const a = document.getElementById('aviso'); if (!a) return;
+  a.classList.remove('hidden'); clearTimeout(avisoControl.t); avisoControl.t = setTimeout(() => a.classList.add('hidden'), 900);
+}
+function disparo(origen) {
+  if (Date.now() - ultimaTecla < 1200) return;            // evita dobles disparos (algunos controles mandan 2 señales)
   ultimaTecla = Date.now();
+  avisoControl();
+  if (!$('#set').classList.contains('hidden') && !$('#sPrueba').checked) $('#set').classList.add('hidden');
+  if ($('#sPrueba').checked) return;                        // modo prueba: solo muestra lo que llega
+  if (!$('#hoja').classList.contains('hidden')) $('#hoja').classList.add('hidden');
   if (!$('#pIni').classList.contains('hidden')) tomar();
   else if (!$('#pFin').classList.contains('hidden')) inicio();
-});
+}
+const IGNORAR = new Set(['Shift', 'Control', 'Alt', 'Meta', 'CapsLock', 'Tab', 'Escape', 'Backspace']);
+function teclaControl(e, tipo) {
+  const t = e.target, escribiendo = t && (t.tagName === 'INPUT' && !/checkbox|radio/.test(t.type) || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT');
+  if (escribiendo || IGNORAR.has(e.key)) return;
+  anotar(`${tipo}: ${e.key || 'sin nombre'} · ${e.code || '-'} · ${e.keyCode || 0}`);
+  e.preventDefault(); e.stopPropagation();
+  disparo('tecla');
+}
+let bajada = false;
+window.addEventListener('keydown', (e) => { if (e.repeat) return; bajada = true; teclaControl(e, 'tecla'); }, true);
+window.addEventListener('keyup', (e) => { if (!bajada) teclaControl(e, 'tecla (soltar)'); bajada = false; }, true);   // controles que solo mandan "soltar"
+window.addEventListener('keypress', (e) => { if (!bajada) teclaControl(e, 'tecla (pulsar)'); }, true);
+
+// Botones multimedia (play, siguiente, anterior): Android los manda a la página que tiene audio activo
+const SILENCIO = (() => {                                  // 1 s de silencio en WAV para "tener" el control multimedia
+  const n = 8000, b = new ArrayBuffer(44 + n), v = new DataView(b), w = (o, t) => [...t].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
+  w(0, 'RIFF'); v.setUint32(4, 36 + n, true); w(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, 8000, true); v.setUint32(28, 8000, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true); w(36, 'data'); v.setUint32(40, n, true);
+  for (let i = 0; i < n; i++) v.setUint8(44 + i, 128);
+  return URL.createObjectURL(new Blob([b], { type: 'audio/wav' }));
+})();
+const pista = new Audio(SILENCIO); pista.loop = true; pista.volume = 1;
+let multimediaListo = false;
+function activarMultimedia() {
+  if (multimediaListo) return;
+  pista.play().then(() => {
+    multimediaListo = true;
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.metadata = new MediaMetadata({ title: 'Cabina 360 · AM Medinas', artist: 'Control listo' });
+      ['play', 'pause', 'stop', 'nexttrack', 'previoustrack', 'seekforward', 'seekbackward'].forEach((a) => {
+        try { navigator.mediaSession.setActionHandler(a, () => { anotar('multimedia: ' + a); if (a === 'pause' || a === 'stop') pista.play().catch(() => {}); navigator.mediaSession.playbackState = 'playing'; disparo('multimedia'); }); } catch (x) {}
+      });
+      navigator.mediaSession.playbackState = 'playing';
+    }
+    const m = document.getElementById('sMulti'); if (m) m.textContent = 'activos';
+  }).catch(() => {});
+}
+['pointerdown', 'keydown', 'touchstart'].forEach((ev) => window.addEventListener(ev, activarMultimedia, { capture: true }));
+pista.addEventListener('pause', () => { if (multimediaListo) pista.play().catch(() => {}); });
+
 let actx = null;
 function pitido(f, d) {
   if (!$('#sBeep').checked) return;
