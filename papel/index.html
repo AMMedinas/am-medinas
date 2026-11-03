@@ -466,6 +466,10 @@
       </form>
     </div>
 
+    <div class="card" id="boxEjemplo" style="background:#fff7e0;border:1px solid #e0b84a">
+      <b>🧪 Ejemplo de llenado</b> · <span class="note" id="ejemploEstado">Registros de práctica marcados como EJEMPLO para ver cómo se llena la captura y el RCA.</span>
+      <div style="margin-top:8px"><button type="button" class="btn small" id="btnEjCargar">Cargar ejemplo</button> <button type="button" class="btn danger small" id="btnEjQuitar">Quitar ejemplo</button></div>
+    </div>
     <h2 class="section">Registro de auditorías capturadas</h2>
     <div class="tablewrap"><table id="tblAud"></table></div>
   </section>
@@ -828,6 +832,7 @@ function enterApp(acc){
   session = acc;
   document.getElementById('loginGate').style.display='none';
   document.getElementById('appRoot').style.display='block';
+  try{ if(db && acc.role==='administrador' && !localStorage.getItem('papel_ejemplo_cargado')) setTimeout(cargarEjemplo, 800); }catch(e){}
   if(window.PAPEL_DEMO && !document.getElementById('avisoEjemplo')){
     const d=document.createElement('div'); d.id='avisoEjemplo';
     d.style.cssText='background:#fff0c2;color:#6b5314;border:2px solid #e0b84a;border-radius:10px;padding:10px 14px;margin:10px 0;font-weight:bold';
@@ -929,6 +934,8 @@ async function init(){
   fillSelect('rf_responsable', RESPONSABLES);
   document.getElementById('rf_categoria').addEventListener('change', (e)=>{ const r=respPorCategoria(e.target.value); if(r) document.getElementById('rf_responsable').value = r; });
   document.getElementById('rf_limpiar').addEventListener('click', limpiarFormRca);
+  document.getElementById('btnEjCargar').addEventListener('click', cargarEjemplo);
+  document.getElementById('btnEjQuitar').addEventListener('click', quitarEjemplo);
 
   document.getElementById('af_hallazgo').addEventListener('input', (e)=>{
     document.getElementById('af_deviationFields').style.display = e.target.value.trim() ? 'block' : 'none';
@@ -1050,6 +1057,53 @@ async function deleteAuditoria(id){
   else { auditorias = auditorias.filter(a=>a.id!==id); saveLocalData(); renderAll(); }
 }
 function val(id){ return document.getElementById(id).value.trim(); }
+
+/* ---------------- ejemplo de llenado (registros marcados EJEMPLO) ---------------- */
+const EJ_AUD = {
+  ejemplo_01: {fecha:'2026-10-20', tipo:'Clasificación', rotativa:'M601', auditor:'Adrián Sánchez Ramón', hallazgo:'', origen:'Ronda semanal'},
+  ejemplo_02: {fecha:'2026-10-21', tipo:'Arranque', rotativa:'M601', auditor:'Adrián Sánchez Ramón', origen:'Orden 45210 · turno 2',
+    hallazgo:'Arranque con 450 giros; el estándar es 250. Registro fuera en la unidad 3 (3.ª vez en el mes).',
+    contencion:'Sí', detContencion:'Se paró, se ajustó el registro y se separaron 200 giros de papel malo.',
+    escalamiento:'Sí', detEscalamiento:'Supervisor turno 2 · 21/10 15:40', rcaFolio:'EJEMPLO-001'},
+  ejemplo_03: {fecha:'2026-10-28', tipo:'Sobretiro', rotativa:'Sunday 1', auditor:'Adrián Sánchez Ramón', origen:'Orden 45390',
+    hallazgo:'Sobretiro de 3.5 % contra 2.5 % autorizado en la orden.', contencion:'Sí', detContencion:'Se ajustó el contador de salida al tiraje autorizado.', escalamiento:'No', detEscalamiento:''},
+  ejemplo_04: {fecha:'2026-10-29', tipo:'Merma', rotativa:'M602', auditor:'Adrián Sánchez Ramón', origen:'Pareto de desperdicio — Doblador M602 (39 %)',
+    hallazgo:'Doblador de la M602 con atascos repetidos: 380 giros de merma en el turno. La cuchilla de corte muestra desgaste.',
+    contencion:'Sí', detContencion:'Se bajó la velocidad a 28,000 y se limpió el doblador; se separó el producto con corte irregular.',
+    escalamiento:'Sí', detEscalamiento:'Mantenimiento turno 1 · 29/10 10:15', rcaFolio:'EJEMPLO-002'},
+  ejemplo_05: {fecha:'2026-11-02', tipo:'Handoffs', rotativa:'M602', auditor:'Adrián Sánchez Ramón', origen:'Cambio de turno 1 → 2',
+    hallazgo:'La bitácora de entrega no indica la bobina en uso ni el ajuste pendiente de tinta.', contencion:'', detContencion:'', escalamiento:'', detEscalamiento:''},
+};
+const EJ_RCA = {
+  'EJEMPLO-001': {folio:'EJEMPLO-001', fecha:'2026-10-21', maquina:'M601', origen:'Arranque', categoria:'Método',
+    problema:'Arranque con 450 giros; el estándar es 250. Registro fuera en la unidad 3 (3.ª vez en el mes).',
+    causa:'¿Por qué 450 giros? El registro tarda en quedar. ¿Por qué? Cada operador preajusta distinto. ¿Por qué? No existe un estándar de preajuste de registro.',
+    accion:'Crear hoja de preajuste de registro por unidad y capacitar a los 3 turnos.',
+    responsable:'Ana Patricia Acosta · Jefa de Producción', ejecutor:'Supervisor turno 2', compromiso:'2026-10-31', cierre:'2026-10-30',
+    evidencia:'4 arranques seguidos con menos de 250 giros (prom. 230) y hoja de preajuste firmada por los 3 turnos.', auditoriaId:'ejemplo_02'},
+  'EJEMPLO-002': {folio:'EJEMPLO-002', fecha:'2026-10-29', maquina:'M602', origen:'Merma', categoria:'Máquina',
+    problema:'Doblador de la M602 con atascos repetidos: 380 giros de merma en el turno. La cuchilla de corte muestra desgaste.',
+    causa:'¿Por qué hay atascos? El corte sale irregular. ¿Por qué? La cuchilla está desgastada. ¿Por qué? No tiene frecuencia de cambio en el plan de mantenimiento preventivo; se cambia hasta que falla.',
+    accion:'Cambiar la cuchilla y agregar su cambio al preventivo cada 1,500,000 giros, con registro de contador.',
+    responsable:'Mario Bernal · Jefe de Mantenimiento', ejecutor:'Técnico mecánico turno 1', compromiso:'2026-11-09', cierre:'', evidencia:'', auditoriaId:'ejemplo_04'},
+};
+async function cargarEjemplo(){
+  if(!db) return;
+  const ahora = new Date().toISOString();
+  for(const [id, a] of Object.entries(EJ_AUD)) await db.doc('auditorias/'+id).set({...a, ejemplo:true, createdAt:ahora});
+  for(const [id, r] of Object.entries(EJ_RCA)) await db.doc('rca/'+id).set({...r, ejemplo:true, createdAt:ahora});
+  try{ localStorage.setItem('papel_ejemplo_cargado','1'); }catch(e){}
+  const e=document.getElementById('ejemploEstado'); if(e) e.textContent='✓ Ejemplo cargado: 5 auditorías y 2 casos RCA marcados como EJEMPLO. Revisa también RCA y Resumen.';
+}
+async function quitarEjemplo(){
+  if(!db) return;
+  if(!confirm('¿Quitar los registros de EJEMPLO? Tus registros reales no se tocan.')) return;
+  for(const id of Object.keys(EJ_AUD)) await db.doc('auditorias/'+id).delete();
+  for(const id of Object.keys(EJ_RCA)) await db.doc('rca/'+id).delete();
+  try{ localStorage.setItem('papel_ejemplo_cargado','quitado'); }catch(e){}
+  const e=document.getElementById('ejemploEstado'); if(e) e.textContent='Ejemplo quitado. Puedes volver a cargarlo cuando quieras.';
+}
+const marcaEj = (x)=> x && x.ejemplo ? ' <span class="pill" style="background:#fff0c2;color:#6b5314">EJEMPLO</span>' : '';
 
 /* ---------------- captura: rca ---------------- */
 async function onAddRca(e){
@@ -1281,7 +1335,7 @@ function renderTablaAud(){
     const est = etiquetaAud(a);
     const conHallazgo = a.hallazgo && a.hallazgo.trim();
     return `<tr>
-      <td>${fmtDate(a.fecha)}</td><td>${escapeHtml(a.tipo)}</td><td>${escapeHtml(a.rotativa)}</td><td>${escapeHtml(a.auditor)}</td>
+      <td>${fmtDate(a.fecha)}${marcaEj(a)}</td><td>${escapeHtml(a.tipo)}</td><td>${escapeHtml(a.rotativa)}</td><td>${escapeHtml(a.auditor)}</td>
       <td>${escapeHtml(a.hallazgo)}${a.origen?'<br><span class="note">Origen: '+escapeHtml(a.origen)+'</span>':''}</td>
       <td>${escapeHtml(a.contencion)}${a.detContencion?' — '+escapeHtml(a.detContencion):''}</td>
       <td>${escapeHtml(a.escalamiento)}${a.detEscalamiento?' — '+escapeHtml(a.detEscalamiento):''}</td>
@@ -1301,7 +1355,7 @@ function renderTablaRca(){
   tbl.innerHTML = `<thead><tr><th>Folio</th><th>Fecha</th><th>Máquina</th><th>Origen</th><th>Problema</th><th>Categoría</th><th>Causa raíz</th><th>Acción correctiva</th><th>Responsable / ejecutor</th><th>Compromiso</th><th>Cierre real</th><th>Evidencia de cierre</th><th>Avance</th><th></th></tr></thead>
   <tbody>${rows.map(r=>{
     return `<tr>
-      <td><b>${escapeHtml(r.folio)}</b></td><td>${fmtDate(r.fecha)}</td><td>${escapeHtml(r.maquina)}</td><td>${escapeHtml(r.origen)}</td>
+      <td><b>${escapeHtml(r.folio)}</b>${marcaEj(r)}</td><td>${fmtDate(r.fecha)}</td><td>${escapeHtml(r.maquina)}</td><td>${escapeHtml(r.origen)}</td>
       <td>${escapeHtml(r.problema)}</td><td>${escapeHtml(r.categoria)}</td><td>${escapeHtml(r.causa||'')}</td><td>${escapeHtml(r.accion)}</td>
       <td>${escapeHtml(r.responsable)}${r.ejecutor?'<br><span class="note">Ejecuta: '+escapeHtml(r.ejecutor)+'</span>':''}</td><td>${fmtDate(r.compromiso)}</td><td>${fmtDate(r.cierre)}</td>
       <td>${escapeHtml(r.evidencia)}</td>
