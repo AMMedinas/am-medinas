@@ -460,12 +460,7 @@
             </div>
             <div><label>Detalle del escalamiento (a quién / fecha)</label><input type="text" id="af_detEscalamiento"></div>
           </div>
-          <div class="grid cols-2">
-            <div><label>¿Hay evidencia de cierre?</label>
-              <select id="af_evidencia"><option value="">—</option><option>Sí</option><option>No</option></select>
-            </div>
-            <div><label>Detalle de la evidencia de cierre</label><input type="text" id="af_detEvidencia"></div>
-          </div>
+          <p class="note">El cierre con evidencia se hace en el RCA. Si el hallazgo se repite o es grave, ábrelo con el botón <b>Abrir RCA</b> en la tabla de abajo.</p>
         </div>
         <button type="submit" class="btn">Agregar registro</button>
       </form>
@@ -495,16 +490,24 @@
             <select id="rf_categoria"><option value="">Selecciona…</option></select>
           </div>
         </div>
+        <div id="rf_vinculo" class="note" style="display:none"></div>
         <label>Problema (breve)</label><input type="text" id="rf_problema">
-        <label>Acción correctiva</label><input type="text" id="rf_accion">
+        <label>Causa raíz (5 porqués: ¿por qué pasó realmente?)</label>
+        <textarea id="rf_causa" placeholder="Ej. No hay estándar de preajuste de registro; cada turno arranca distinto"></textarea>
+        <label>Acción correctiva (qué elimina la causa raíz)</label><input type="text" id="rf_accion">
         <div class="grid cols-2">
-          <div><label>Responsable</label><input type="text" id="rf_responsable"></div>
-          <div><label>Fecha compromiso de cierre</label><input type="date" id="rf_compromiso"></div>
+          <div><label>Responsable</label>
+            <select id="rf_responsable"><option value="">Selecciona…</option></select>
+            <span class="note" id="rf_respNota">Se sugiere solo según la categoría: Máquina → Mantenimiento; lo demás (operativo) → Producción.</span>
+          </div>
+          <div><label>Ejecutor (lo asigna el responsable)</label><input type="text" id="rf_ejecutor" placeholder="Quién realiza la acción"></div>
         </div>
+        <label>Fecha compromiso de cierre</label><input type="date" id="rf_compromiso">
         <label>Fecha real de cierre (déjalo vacío si sigue abierto)</label><input type="date" id="rf_cierre">
         <label>Evidencia de cierre (qué demuestra que ya se resolvió)</label>
         <textarea id="rf_evidencia" placeholder="Ej. dato o verificación que confirma que la causa raíz ya no se repite, referencia a foto, reporte o firma de conformidad"></textarea>
-        <button type="submit" class="btn">Agregar caso RCA</button>
+        <button type="submit" class="btn" id="rf_guardar">Agregar caso RCA</button>
+        <button type="button" class="btn secondary" id="rf_limpiar">Limpiar</button>
       </form>
     </div>
 
@@ -625,6 +628,8 @@ const HIST_MAP = {m600:'M601',m601:'M601',m600i:'M601',m600ii:'M602',m602:'M602'
   sundayii:'Sunday 2',sunday2:'Sunday 2',sundayduplex:'Sunday Duplo',sundayduplo:'Sunday Duplo'};
 function rotDeNombre(s){ return HIST_MAP[normKey(s)] || null; }
 const CATEGORIAS = ['Método','Máquina','Mano de obra','Material','Medición','Medio ambiente'];
+const RESPONSABLES = ['Mario Bernal · Jefe de Mantenimiento','Ana Patricia Acosta · Jefa de Producción'];
+const respPorCategoria = (c)=> c==='Máquina' ? RESPONSABLES[0] : (c ? RESPONSABLES[1] : '');
 const SEMANAS = ['Semana 1','Semana 2','Semana 3','Semana 4'];
 const TIPOS_SEMANALES = ['Clasificación','Sobretiro','Arranque','Handoffs','Merma'];
 
@@ -869,10 +874,19 @@ function fmtDate(s){
   if (isNaN(d)) return s;
   return d.toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'});
 }
-function estatusAud(a){
+function rcaDeAud(a){ return a && a.rcaFolio ? rcaCases.find(r=>r.folio===a.rcaFolio) : null; }
+function etiquetaAud(a){                 // lo que se muestra en la tabla
   if(!a.hallazgo || !a.hallazgo.trim()) return 'Sin desviación';
-  if(a.evidencia === 'Sí') return 'Cerrada';
+  const r = rcaDeAud(a);
+  if(r) return r.cierre ? 'RCA cerrado' : 'En RCA';
+  if(a.evidencia === 'Sí') return 'Cerrada';            // registros anteriores
+  if(a.contencion === 'Sí') return 'Contenida';
   return 'Abierta';
+}
+function estatusAud(a){                  // para conteos: Abierta / Cerrada / Sin desviación
+  const e = etiquetaAud(a);
+  if(e==='Sin desviación') return e;
+  return (e==='Abierta' || e==='En RCA') ? 'Abierta' : 'Cerrada';
 }
 function estatusRca(r){ return r.cierre ? 'Cerrado' : 'Abierto'; }
 function diasEntre(a,b){ return Math.round((a-b)/86400000); }
@@ -893,7 +907,7 @@ function estadoAvanceRca(r){
   return 'Abierta en tiempo';
 }
 function pillClass(estatus){
-  const m = {'Sin desviación':'sin','Abierta':'abierta','Cerrada':'cerrada','Abierto':'abierto','Cerrado':'cerrado'};
+  const m = {'Sin desviación':'sin','Abierta':'abierta','Cerrada':'cerrada','Abierto':'abierto','Cerrado':'cerrado','Contenida':'cerrada','RCA cerrado':'cerrada','En RCA':'porvencer2'};
   return m[estatus] || 'sin';
 }
 
@@ -905,6 +919,9 @@ async function init(){
   fillSelect('rf_maquina', ROTATIVAS);
   fillSelect('rf_origen', TIPOS);
   fillSelect('rf_categoria', CATEGORIAS);
+  fillSelect('rf_responsable', RESPONSABLES);
+  document.getElementById('rf_categoria').addEventListener('change', (e)=>{ const r=respPorCategoria(e.target.value); if(r) document.getElementById('rf_responsable').value = r; });
+  document.getElementById('rf_limpiar').addEventListener('click', limpiarFormRca);
 
   document.getElementById('af_hallazgo').addEventListener('input', (e)=>{
     document.getElementById('af_deviationFields').style.display = e.target.value.trim() ? 'block' : 'none';
@@ -1009,7 +1026,7 @@ async function onAddAuditoria(e){
     fecha: val('af_fecha'), tipo: val('af_tipo'), rotativa: val('af_rotativa'), auditor: val('af_auditor'),
     hallazgo: val('af_hallazgo'), contencion: val('af_contencion'), detContencion: val('af_detContencion'),
     escalamiento: val('af_escalamiento'), detEscalamiento: val('af_detEscalamiento'),
-    evidencia: val('af_evidencia'), detEvidencia: val('af_detEvidencia'), origen: val('af_origen'), createdAt: new Date().toISOString(),
+    origen: val('af_origen'), createdAt: new Date().toISOString(),
   };
   if(!rec.fecha || !rec.tipo || !rec.rotativa){ alert('Completa fecha, tipo y rotativa.'); return; }
   try{
@@ -1030,18 +1047,68 @@ function val(id){ return document.getElementById(id).value.trim(); }
 /* ---------------- captura: rca ---------------- */
 async function onAddRca(e){
   e.preventDefault();
+  const form = document.getElementById('formRca');
   const rec = {
-    folio: val('rf_folio'), fecha: val('rf_fecha'), maquina: val('rf_maquina'), origen: val('rf_origen'),
-    categoria: val('rf_categoria'), problema: val('rf_problema'), accion: val('rf_accion'),
-    responsable: val('rf_responsable'), compromiso: val('rf_compromiso'), cierre: val('rf_cierre'),
-    evidencia: val('rf_evidencia'), createdAt: new Date().toISOString(),
+    folio: val('rf_folio') || siguienteFolio(), fecha: val('rf_fecha'), maquina: val('rf_maquina'), origen: val('rf_origen'),
+    categoria: val('rf_categoria'), problema: val('rf_problema'), causa: val('rf_causa'), accion: val('rf_accion'),
+    responsable: val('rf_responsable'), ejecutor: val('rf_ejecutor'), compromiso: val('rf_compromiso'), cierre: val('rf_cierre'),
+    evidencia: val('rf_evidencia'), auditoriaId: form.dataset.auditoria || '', createdAt: form.dataset.creado || new Date().toISOString(),
   };
-  if(!rec.folio){ alert('Captura al menos el folio.'); return; }
+  if(!rec.problema){ alert('Escribe el problema.'); return; }
+  if(rec.cierre && !rec.evidencia){ alert('Para cerrar el caso escribe la evidencia de cierre.'); return; }
   try{
-    if(db){ await db.collection('rca').doc(rec.folio.replace(/[^a-zA-Z0-9_\-.]/g,'_')).set(rec); }
-    else { rec.id = rec.folio; rcaCases = rcaCases.filter(r=>r.id!==rec.id); rcaCases.push(rec); saveLocalData(); renderAll(); }
-    e.target.reset();
+    if(db){
+      await db.collection('rca').doc(rec.folio.replace(/[^a-zA-Z0-9_\-.]/g,'_')).set(rec);
+      if(rec.auditoriaId){ await db.doc('auditorias/'+rec.auditoriaId).update({rcaFolio: rec.folio}); }
+    } else {
+      rec.id = rec.folio; rcaCases = rcaCases.filter(r=>r.id!==rec.id); rcaCases.push(rec);
+      const a = auditorias.find(x=>x.id===rec.auditoriaId); if(a) a.rcaFolio = rec.folio;
+      saveLocalData(); renderAll();
+    }
+    limpiarFormRca();
   }catch(err){ alert('No se pudo guardar: '+(err && err.message ? err.message : err)); }
+}
+function siguienteFolio(){
+  const y = new Date().getFullYear();
+  const n = rcaCases.map(r=>{ const m=String(r.folio||'').match(new RegExp('RCA-'+y+'-(\\d+)')); return m?+m[1]:0; }).reduce((a,b)=>Math.max(a,b),0)+1;
+  return 'RCA-'+y+'-'+String(n).padStart(3,'0');
+}
+function limpiarFormRca(){
+  const f = document.getElementById('formRca'); f.reset(); delete f.dataset.auditoria; delete f.dataset.creado;
+  document.getElementById('rf_folio').readOnly = false;
+  document.getElementById('rf_vinculo').style.display='none';
+  document.getElementById('rf_guardar').textContent = 'Agregar caso RCA';
+}
+function irARca(){
+  document.querySelector('[data-tab="rca"]').click();
+  document.getElementById('formRca').scrollIntoView({behavior:'smooth', block:'start'});
+}
+// Abrir RCA desde una auditoría: se llena con los datos de la captura (nada se escribe dos veces)
+function abrirRcaDesdeAud(id){
+  const a = auditorias.find(x=>x.id===id); if(!a) return;
+  limpiarFormRca();
+  const f = document.getElementById('formRca'); f.dataset.auditoria = id;
+  const set = (k,v)=>{ document.getElementById(k).value = v || ''; };
+  set('rf_folio', siguienteFolio()); set('rf_fecha', a.fecha); set('rf_maquina', a.rotativa); set('rf_origen', a.tipo);
+  set('rf_problema', a.hallazgo);
+  const v = document.getElementById('rf_vinculo'); v.style.display='block';
+  v.innerHTML = '🔗 Viene de la auditoría de <b>'+escapeHtml(a.auditor||'')+'</b> del '+fmtDate(a.fecha)+' ('+escapeHtml(a.tipo)+', '+escapeHtml(a.rotativa)+'). Completa la causa raíz, la acción y el responsable.';
+  irARca();
+}
+// Editar un caso (para dar seguimiento o cerrarlo con evidencia)
+function editarRca(id){
+  const r = rcaCases.find(x=>x.id===id); if(!r) return;
+  limpiarFormRca();
+  const f = document.getElementById('formRca'); if(r.auditoriaId) f.dataset.auditoria = r.auditoriaId; if(r.createdAt) f.dataset.creado = r.createdAt;
+  const set = (k,v)=>{ document.getElementById(k).value = v || ''; };
+  set('rf_folio', r.folio); set('rf_fecha', r.fecha); set('rf_maquina', r.maquina); set('rf_origen', r.origen); set('rf_categoria', r.categoria);
+  set('rf_problema', r.problema); set('rf_causa', r.causa); set('rf_accion', r.accion); set('rf_responsable', r.responsable);
+  set('rf_ejecutor', r.ejecutor); set('rf_compromiso', r.compromiso); set('rf_cierre', r.cierre); set('rf_evidencia', r.evidencia);
+  if(r.responsable && !RESPONSABLES.includes(r.responsable)){ const o=document.createElement('option'); o.textContent=o.value=r.responsable; document.getElementById('rf_responsable').appendChild(o); set('rf_responsable', r.responsable); }
+  document.getElementById('rf_folio').readOnly = true;
+  const v = document.getElementById('rf_vinculo'); v.style.display='block'; v.innerHTML = '✏ Editando <b>'+escapeHtml(r.folio)+'</b>. Para cerrarlo pon la fecha real de cierre y la evidencia.';
+  document.getElementById('rf_guardar').textContent = 'Guardar cambios';
+  irARca();
 }
 async function deleteRca(id){
   if(!confirm('¿Eliminar este caso de RCA?')) return;
@@ -1202,19 +1269,19 @@ function paretoSVG(data){
 function renderTablaAud(){
   const tbl = document.getElementById('tblAud');
   const rows = [...auditorias].sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''));
-  tbl.innerHTML = `<thead><tr><th>Fecha</th><th>Tipo</th><th>Rotativa</th><th>Auditor</th><th>Hallazgo</th><th>Contención</th><th>Escalamiento</th><th>Evidencia</th><th>Estatus</th><th></th></tr></thead>
+  tbl.innerHTML = `<thead><tr><th>Fecha</th><th>Tipo</th><th>Rotativa</th><th>Auditor</th><th>Hallazgo</th><th>Contención</th><th>Escalamiento</th><th>Estatus</th><th></th></tr></thead>
   <tbody>${rows.map(a=>{
-    const est = estatusAud(a);
+    const est = etiquetaAud(a);
+    const conHallazgo = a.hallazgo && a.hallazgo.trim();
     return `<tr>
       <td>${fmtDate(a.fecha)}</td><td>${escapeHtml(a.tipo)}</td><td>${escapeHtml(a.rotativa)}</td><td>${escapeHtml(a.auditor)}</td>
       <td>${escapeHtml(a.hallazgo)}${a.origen?'<br><span class="note">Origen: '+escapeHtml(a.origen)+'</span>':''}</td>
       <td>${escapeHtml(a.contencion)}${a.detContencion?' — '+escapeHtml(a.detContencion):''}</td>
       <td>${escapeHtml(a.escalamiento)}${a.detEscalamiento?' — '+escapeHtml(a.detEscalamiento):''}</td>
-      <td>${escapeHtml(a.evidencia)}${a.detEvidencia?' — '+escapeHtml(a.detEvidencia):''}</td>
-      <td><span class="pill ${pillClass(est)}">${est}</span></td>
-      <td><button class="btn danger small" onclick="deleteAuditoria('${a.id}')">Eliminar</button></td>
+      <td><span class="pill ${pillClass(est)}" style="${est==='En RCA'?'background:#fff0c2;color:#6b5314;':''}">${est}</span>${a.rcaFolio?'<br><span class="note">'+escapeHtml(a.rcaFolio)+'</span>':''}</td>
+      <td style="white-space:nowrap">${conHallazgo && !a.rcaFolio ? `<button class="btn small" onclick="abrirRcaDesdeAud('${a.id}')">Abrir RCA</button> ` : ''}${a.rcaFolio ? `<button class="btn secondary small" onclick="editarRca('${(rcaDeAud(a)||{}).id||''}')">Ver RCA</button> ` : ''}<button class="btn danger small" onclick="deleteAuditoria('${a.id}')">Eliminar</button></td>
     </tr>`;
-  }).join('') || '<tr><td colspan="10" style="text-align:center;color:var(--muted)">Sin registros todavía</td></tr>'}</tbody>`;
+  }).join('') || '<tr><td colspan="9" style="text-align:center;color:var(--muted)">Sin registros todavía</td></tr>'}</tbody>`;
 }
 
 function renderTablaRca(){
@@ -1224,17 +1291,17 @@ function renderTablaRca(){
     const m = {'Vencida':'abierta','Por vencer':'porvencer2','Abierta en tiempo':'sin','Abierta sin compromiso':'sin','Cerrado a tiempo':'cerrada','Cerrado con atraso':'porvencer2'};
     return `<span class="pill ${m[e]||'sin'}" style="${e==='Por vencer'||e==='Cerrado con atraso'?'background:#fff0c2;color:#6b5314;':''}">${e}</span>`;
   };
-  tbl.innerHTML = `<thead><tr><th>Folio</th><th>Fecha</th><th>Máquina</th><th>Origen</th><th>Problema</th><th>Categoría</th><th>Acción correctiva</th><th>Responsable</th><th>Compromiso</th><th>Cierre real</th><th>Evidencia de cierre</th><th>Avance</th><th></th></tr></thead>
+  tbl.innerHTML = `<thead><tr><th>Folio</th><th>Fecha</th><th>Máquina</th><th>Origen</th><th>Problema</th><th>Categoría</th><th>Causa raíz</th><th>Acción correctiva</th><th>Responsable / ejecutor</th><th>Compromiso</th><th>Cierre real</th><th>Evidencia de cierre</th><th>Avance</th><th></th></tr></thead>
   <tbody>${rows.map(r=>{
     return `<tr>
       <td><b>${escapeHtml(r.folio)}</b></td><td>${fmtDate(r.fecha)}</td><td>${escapeHtml(r.maquina)}</td><td>${escapeHtml(r.origen)}</td>
-      <td>${escapeHtml(r.problema)}</td><td>${escapeHtml(r.categoria)}</td><td>${escapeHtml(r.accion)}</td>
-      <td>${escapeHtml(r.responsable)}</td><td>${fmtDate(r.compromiso)}</td><td>${fmtDate(r.cierre)}</td>
+      <td>${escapeHtml(r.problema)}</td><td>${escapeHtml(r.categoria)}</td><td>${escapeHtml(r.causa||'')}</td><td>${escapeHtml(r.accion)}</td>
+      <td>${escapeHtml(r.responsable)}${r.ejecutor?'<br><span class="note">Ejecuta: '+escapeHtml(r.ejecutor)+'</span>':''}</td><td>${fmtDate(r.compromiso)}</td><td>${fmtDate(r.cierre)}</td>
       <td>${escapeHtml(r.evidencia)}</td>
       <td>${avancePill(estadoAvanceRca(r))}</td>
-      <td><button class="btn danger small" onclick="deleteRca('${r.id}')">Eliminar</button></td>
+      <td style="white-space:nowrap"><button class="btn secondary small" onclick="editarRca('${r.id}')">Editar / cerrar</button> <button class="btn danger small" onclick="deleteRca('${r.id}')">Eliminar</button></td>
     </tr>`;
-  }).join('') || '<tr><td colspan="13" style="text-align:center;color:var(--muted)">Sin casos todavía</td></tr>'}</tbody>`;
+  }).join('') || '<tr><td colspan="14" style="text-align:center;color:var(--muted)">Sin casos todavía</td></tr>'}</tbody>`;
 }
 
 function renderCalendario(){
@@ -1270,9 +1337,9 @@ async function exportExcel(){
     registroRows.push([a.fecha,a.tipo,a.rotativa,a.auditor,a.hallazgo,a.contencion,a.detContencion,a.escalamiento,a.detEscalamiento,a.evidencia,a.detEvidencia,estatusAud(a)]);
   });
 
-  const rcaRows = [['Folio','Fecha','Máquina','Tipo de auditoría origen','Problema','Categoría de causa raíz','Acción correctiva','Responsable','Fecha compromiso','Fecha real de cierre','Evidencia de cierre','Estatus','Avance']];
+  const rcaRows = [['Folio','Fecha','Máquina','Tipo de auditoría origen','Problema','Categoría de causa raíz','Causa raíz','Acción correctiva','Responsable','Ejecutor','Fecha compromiso','Fecha real de cierre','Evidencia de cierre','Estatus','Avance']];
   [...rcaCases].sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||'')).forEach(r=>{
-    rcaRows.push([r.folio,r.fecha,r.maquina,r.origen,r.problema,r.categoria,r.accion,r.responsable,r.compromiso,r.cierre,r.evidencia,estatusRca(r),estadoAvanceRca(r)]);
+    rcaRows.push([r.folio,r.fecha,r.maquina,r.origen,r.problema,r.categoria,r.causa||'',r.accion,r.responsable,r.ejecutor||'',r.compromiso,r.cierre,r.evidencia,estatusRca(r),estadoAvanceRca(r)]);
   });
 
   const paretoRows = [['Tipo de auditoría','Desviaciones','% del total','% acumulado']];
@@ -2527,8 +2594,8 @@ async function backupMensual(ym){
   const reg=[['Fecha','Tipo','Rotativa','Auditor','Hallazgo / desviación','Contención','Detalle contención','Escalamiento','Detalle escalamiento','Evidencia de cierre','Detalle evidencia','Estatus']];
   auds.forEach(a=>reg.push([a.fecha,a.tipo,a.rotativa,a.auditor,a.hallazgo,a.contencion,a.detContencion,a.escalamiento,a.detEscalamiento,a.evidencia,a.detEvidencia,estatusAud(a)]));
 
-  const rca=[['Folio','Fecha','Máquina','Tipo de auditoría origen','Problema','Categoría de causa raíz','Acción correctiva','Responsable','Fecha compromiso','Fecha real de cierre','Evidencia de cierre','Estatus','Avance']];
-  rcas.forEach(r=>rca.push([r.folio,r.fecha,r.maquina,r.origen,r.problema,r.categoria,r.accion,r.responsable,r.compromiso,r.cierre,r.evidencia,estatusRca(r),estadoAvanceRca(r)]));
+  const rca=[['Folio','Fecha','Máquina','Tipo de auditoría origen','Problema','Categoría de causa raíz','Causa raíz','Acción correctiva','Responsable','Ejecutor','Fecha compromiso','Fecha real de cierre','Evidencia de cierre','Estatus','Avance']];
+  rcas.forEach(r=>rca.push([r.folio,r.fecha,r.maquina,r.origen,r.problema,r.categoria,r.causa||'',r.accion,r.responsable,r.ejecutor||'',r.compromiso,r.cierre,r.evidencia,estatusRca(r),estadoAvanceRca(r)]));
 
   const wb=XLSX.utils.book_new();
   const add=(n,aoa,cols)=>{ const ws=XLSX.utils.aoa_to_sheet(aoa); if(cols) ws['!cols']=cols.map(w=>({wch:w})); XLSX.utils.book_append_sheet(wb,ws,n); };
