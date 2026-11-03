@@ -619,6 +619,7 @@
 </div><!-- /#appRoot -->
 
 <script>
+const SES_KEY = window.PAPEL_DEMO ? 'auditApp_session_ejemplo' : 'auditApp_session';
 const TIPOS = ['Clasificación','Sobretiro','Arranque','Handoffs','Merma','Registro de giros y bobinas','RCA'];
 const ROTATIVAS = ['M601','M602','Sunday 1','Sunday 2','Sunday Duplo'];
 // Equivalencia de nombres de Metrics -> programa
@@ -680,7 +681,7 @@ function setupLogin(){
     if(!c || !c.hash || (await hashPass(pw, c.salt))!==c.hash){ lgMsg('Usuario o contraseña incorrectos.'); return; }
     lgMsg('');
     const remember = document.getElementById('lg_remember').checked;
-    try{ (remember ? localStorage : sessionStorage).setItem('auditApp_session', JSON.stringify({user:c.usuario})); }catch(err){}
+    try{ (remember ? localStorage : sessionStorage).setItem(SES_KEY, JSON.stringify({user:c.usuario})); }catch(err){}
     enterApp(cuentaASesion(c));
   });
 
@@ -754,11 +755,11 @@ function decidirPantallaInicial(){
     return;
   }
   let saved = null;
-  try{ saved = JSON.parse(localStorage.getItem('auditApp_session') || sessionStorage.getItem('auditApp_session') || 'null'); }catch(e){}
+  try{ saved = JSON.parse(localStorage.getItem(SES_KEY) || sessionStorage.getItem(SES_KEY) || 'null'); }catch(e){}
   if(saved && cuentas[saved.user] && cuentas[saved.user].estado==='activo'){
     enterApp(cuentaASesion(cuentas[saved.user])); return;
   }
-  if(saved){ try{ localStorage.removeItem('auditApp_session'); sessionStorage.removeItem('auditApp_session'); }catch(e){} }
+  if(saved){ try{ localStorage.removeItem(SES_KEY); sessionStorage.removeItem(SES_KEY); }catch(e){} }
   if(Object.keys(cuentas).length===0){
     if(amOwner){ showPanel('pnlSetup'); }
     else { showPanel('pnlEspera'); document.getElementById('esperaMsg').textContent = 'El administrador aún no configura las cuentas del programa.'; }
@@ -827,6 +828,12 @@ function enterApp(acc){
   session = acc;
   document.getElementById('loginGate').style.display='none';
   document.getElementById('appRoot').style.display='block';
+  if(window.PAPEL_DEMO && !document.getElementById('avisoEjemplo')){
+    const d=document.createElement('div'); d.id='avisoEjemplo';
+    d.style.cssText='background:#fff0c2;color:#6b5314;border:2px solid #e0b84a;border-radius:10px;padding:10px 14px;margin:10px 0;font-weight:bold';
+    d.innerHTML='🧪 LINK DE EJEMPLO: estos registros son de práctica y se guardan aparte. Tus datos reales no se tocan.';
+    document.getElementById('appRoot').prepend(d);
+  }
   document.getElementById('userBadge').innerHTML =
     `👤 ${escapeHtml(acc.label)} (${escapeHtml(acc.user)}) <button id="btnLogout">Salir</button>`;
   document.getElementById('btnLogout').addEventListener('click', logout);
@@ -850,8 +857,8 @@ function enterApp(acc){
   }
 }
 function logout(){
-  localStorage.removeItem('auditApp_session');
-  sessionStorage.removeItem('auditApp_session');
+  localStorage.removeItem(SES_KEY);
+  sessionStorage.removeItem(SES_KEY);
   session = null;
   document.getElementById('appRoot').style.display='none';
   document.getElementById('loginGate').style.display='flex';

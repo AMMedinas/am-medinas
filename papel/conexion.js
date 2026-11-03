@@ -1,7 +1,9 @@
 /* Base de datos de la app guardada en este dispositivo (IndexedDB), sin Claude ni servidor.
    La primera vez carga los datos de la planta (cifrados) usando la clave que viene en el link (#k=...). */
 (function(){
-  const NOMBRE_DB = 'papel_metrocolor', TABLA = 'docs';
+  const DEMO = /[?&]ejemplo\b/.test(location.search);       // link de ejemplo: base aparte, no toca los datos reales
+  window.PAPEL_DEMO = DEMO;
+  const NOMBRE_DB = DEMO ? 'papel_metrocolor_ejemplo' : 'papel_metrocolor', TABLA = 'docs';
   const store = new Map();            // ruta -> datos
   const subs = new Set();
   let idb = null;
@@ -46,6 +48,7 @@
     try{ return localStorage.getItem('papel_clave'); }catch(e){ return null; }
   }
   async function sembrar(){
+    if(DEMO){ return sembrarEjemplo(); }
     if(store.get('_sistema/semilla')) return;
     const clave = claveDelLink();
     if(!clave) throw new Error('sin clave');
@@ -56,6 +59,45 @@
     }
     const marca = {cargada:new Date().toISOString(), version:paquete.version};
     store.set('_sistema/semilla', marca); await persistir('_sistema/semilla', marca);
+  }
+
+  // ---------- datos del link de ejemplo ----------
+  async function sembrarEjemplo(){
+    try{ sessionStorage.setItem('auditApp_session_ejemplo', JSON.stringify({user:'ejemplo'})); }catch(e){}
+    if(store.get('_sistema/ejemplo_v1')) return;
+    const docs = {
+      'cuentas/ejemplo': {usuario:'ejemplo', nombre:'Ejemplo (Armando Medina)', rol:'administrador', estado:'activo'},
+      'auditorias/ej01': {fecha:'2026-10-20', tipo:'Clasificación', rotativa:'M601', auditor:'Adrián Sánchez Ramón', hallazgo:'', origen:'Ronda semanal', createdAt:'2026-10-20T15:00:00Z'},
+      'auditorias/ej02': {fecha:'2026-10-21', tipo:'Arranque', rotativa:'M601', auditor:'Adrián Sánchez Ramón', origen:'Orden 45210 · turno 2',
+        hallazgo:'Arranque con 450 giros; el estándar es 250. Registro fuera en la unidad 3 (3.ª vez en el mes).',
+        contencion:'Sí', detContencion:'Se paró, se ajustó el registro y se separaron 200 giros de papel malo.',
+        escalamiento:'Sí', detEscalamiento:'Supervisor turno 2 · 21/10 15:40', rcaFolio:'RCA-2026-001', createdAt:'2026-10-21T21:40:00Z'},
+      'auditorias/ej03': {fecha:'2026-10-28', tipo:'Sobretiro', rotativa:'Sunday 1', auditor:'Adrián Sánchez Ramón', origen:'Orden 45390',
+        hallazgo:'Sobretiro de 3.5 % contra 2.5 % autorizado en la orden.', contencion:'Sí', detContencion:'Se ajustó el contador de salida al tiraje autorizado.',
+        escalamiento:'No', detEscalamiento:'', createdAt:'2026-10-28T17:00:00Z'},
+      'auditorias/ej04': {fecha:'2026-11-02', tipo:'Merma', rotativa:'M602', auditor:'Adrián Sánchez Ramón', origen:'Pareto de desperdicio — Doblador M602',
+        hallazgo:'Doblador de la M602 con atascos repetidos: 380 giros de merma en el turno. La cuchilla de corte muestra desgaste.',
+        contencion:'Sí', detContencion:'Se bajó la velocidad a 28,000 y se limpió el doblador; se separó el producto con corte irregular.',
+        escalamiento:'Sí', detEscalamiento:'Mantenimiento turno 1 · 02/11 10:15', rcaFolio:'RCA-2026-002', createdAt:'2026-11-02T16:15:00Z'},
+      'auditorias/ej05': {fecha:'2026-11-02', tipo:'Handoffs', rotativa:'M602', auditor:'Adrián Sánchez Ramón', origen:'Cambio de turno 1 → 2',
+        hallazgo:'La bitácora de entrega no indica la bobina en uso ni el ajuste pendiente de tinta.', contencion:'', detContencion:'',
+        escalamiento:'', detEscalamiento:'', createdAt:'2026-11-02T20:00:00Z'},
+      'rca/RCA-2026-001': {folio:'RCA-2026-001', fecha:'2026-10-21', maquina:'M601', origen:'Arranque', categoria:'Método',
+        problema:'Arranque con 450 giros; el estándar es 250. Registro fuera en la unidad 3 (3.ª vez en el mes).',
+        causa:'¿Por qué 450 giros? El registro tarda en quedar. ¿Por qué? Cada operador preajusta distinto. ¿Por qué? No existe un estándar de preajuste de registro.',
+        accion:'Crear hoja de preajuste de registro por unidad y capacitar a los 3 turnos.',
+        responsable:'Ana Patricia Acosta · Jefa de Producción', ejecutor:'Supervisor turno 2', compromiso:'2026-10-31', cierre:'2026-10-30',
+        evidencia:'4 arranques seguidos con menos de 250 giros (prom. 230) y hoja de preajuste firmada por los 3 turnos.', auditoriaId:'ej02', createdAt:'2026-10-21T22:00:00Z'},
+      'rca/RCA-2026-002': {folio:'RCA-2026-002', fecha:'2026-11-02', maquina:'M602', origen:'Merma', categoria:'Máquina',
+        problema:'Doblador de la M602 con atascos repetidos: 380 giros de merma en el turno. La cuchilla de corte muestra desgaste.',
+        causa:'¿Por qué hay atascos? El corte sale irregular. ¿Por qué? La cuchilla está desgastada. ¿Por qué? No tiene frecuencia de cambio en el plan de mantenimiento preventivo; se cambia hasta que falla.',
+        accion:'Cambiar la cuchilla y agregar su cambio al preventivo cada 1,500,000 giros, con registro de contador.',
+        responsable:'Mario Bernal · Jefe de Mantenimiento', ejecutor:'Técnico mecánico turno 1', compromiso:'2026-11-09', cierre:'', evidencia:'',
+        auditoriaId:'ej04', createdAt:'2026-11-02T16:30:00Z'},
+    };
+    for(const [ruta, datos] of Object.entries(docs)){ store.set(ruta, datos); await persistir(ruta, datos); }
+    const marca = {cargada:new Date().toISOString()};
+    store.set('_sistema/ejemplo_v1', marca); await persistir('_sistema/ejemplo_v1', marca);
   }
 
   // ---------- interfaz tipo base de datos que usa la app ----------
