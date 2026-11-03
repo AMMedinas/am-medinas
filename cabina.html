@@ -92,7 +92,7 @@ html,body{margin:0;height:100%;background:#000;color:var(--ink);font-family:Mont
 <!-- INICIO -->
 <section class="screen" id="pIni">
   <button id="go">INICIAR</button>
-  <div class="hint">Un toque o un clic en el control: 6 fotos tipo postal + video 360</div>
+  <div class="hint">Toca la pantalla o presiona el control: 6 fotos tipo postal + video 360</div>
   <div class="sub" id="ia">Preparando cámara…</div>
 </section>
 
@@ -629,6 +629,8 @@ async function tomar() {
 function inicio() { clearInterval(regreso); $('#vid').pause(); $('#hoja').classList.add('hidden'); show('#pIni'); }
 
 $('#go').onclick = tomar;
+// Toque en cualquier parte de la pantalla de inicio = INICIAR (para el control negro con Key Mapper "tocar pantalla")
+$('#pIni').addEventListener('click', (e) => { if (e.target.id === 'go') return; if ($('#set').classList.contains('hidden')) tomar(); });
 // Control de fotos Bluetooth (botón selfie): llega como tecla Enter / Volumen / Play
 // ---------------- control negro Bluetooth: acepta cualquier botón que llegue (teclado, multimedia o volumen)
 let ultimaTecla = 0;
