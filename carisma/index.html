@@ -1,0 +1,1594 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gimnasio de Carisma</title>
+<meta name="description" content="Practica voz, conversaciones difíciles, lenguaje corporal y liderazgo 10 minutos al día.">
+<meta name="theme-color" content="#0b0f17">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%23ff7a45'/><text x='50' y='68' font-size='56' text-anchor='middle' font-family='Arial' font-weight='bold' fill='white'>C</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0b0f17;--panel:#121826;--panel2:#182033;--panel3:#1f2940;--line:#26324b;
+  --text:#e9edf5;--muted:#95a2bb;--dim:#6b7892;
+  --acc:#ff7a45;--acc-soft:rgba(255,122,69,.14);
+  --vio:#8b6cff;--vio-soft:rgba(139,108,255,.15);
+  --cyan:#36cfe3;--cyan-soft:rgba(54,207,227,.14);
+  --ok:#2ecc8f;--ok-soft:rgba(46,204,143,.14);
+  --warn:#ffc547;--warn-soft:rgba(255,197,71,.14);
+  --bad:#ff5d6c;--bad-soft:rgba(255,93,108,.14);
+  --r:16px;--r-sm:11px;
+  --head:'Outfit',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --body:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --nav-h:68px;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.55 var(--body);min-height:100vh;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(900px 500px at 85% -10%,rgba(139,108,255,.13),transparent 60%),radial-gradient(700px 400px at -10% 10%,rgba(255,122,69,.10),transparent 60%)}
+h1,h2,h3,h4{font-family:var(--head);margin:0;line-height:1.2;letter-spacing:-.01em}
+h1{font-size:clamp(24px,5vw,34px);font-weight:800}
+h2{font-size:clamp(20px,3.6vw,24px);font-weight:700}
+h3{font-size:17px;font-weight:700}
+p{margin:0}
+a{color:var(--cyan)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+[hidden]{display:none!important}
+.muted{color:var(--muted)}.dim{color:var(--dim)}.small{font-size:13px}.tiny{font-size:12px}
+.mt8{margin-top:8px}.mt12{margin-top:12px}.mt16{margin-top:16px}.mt24{margin-top:24px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.between{justify-content:space-between}
+.grow{flex:1}
+
+/* Layout */
+.app{position:relative;z-index:1;display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+.side{position:sticky;top:0;height:100vh;padding:22px 14px;border-right:1px solid var(--line);background:rgba(11,15,23,.7);backdrop-filter:blur(10px);display:flex;flex-direction:column;gap:6px}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 10px 18px}
+.logo{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,var(--acc),var(--vio));display:grid;place-items:center;font:800 20px var(--head);color:#fff;flex:none;box-shadow:0 6px 20px rgba(255,122,69,.3)}
+.brand b{font:700 16px/1.1 var(--head);display:block}
+.brand span{font-size:12px;color:var(--muted)}
+.nav-btn{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:12px;border:0;background:none;color:var(--muted);font-weight:600;text-align:left;width:100%;transition:.15s}
+.nav-btn svg{width:21px;height:21px;flex:none}
+.nav-btn:hover{background:var(--panel);color:var(--text)}
+.nav-btn.on{background:var(--panel2);color:var(--text);box-shadow:inset 3px 0 0 var(--acc)}
+.side .spacer{flex:1}
+.main{padding:28px clamp(16px,4vw,44px) 60px;max-width:1120px;width:100%}
+.topbar{display:none}
+.bottom{display:none}
+
+@media (max-width:860px){
+  .app{grid-template-columns:1fr}
+  .side{display:none}
+  .topbar{display:flex;position:sticky;top:0;z-index:20;align-items:center;gap:10px;padding:10px 16px;padding-top:max(10px,env(safe-area-inset-top));background:rgba(11,15,23,.88);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+  .topbar .logo{width:32px;height:32px;font-size:17px;border-radius:10px}
+  .topbar b{font:700 16px var(--head)}
+  .main{padding:18px 16px calc(var(--nav-h) + 28px + env(safe-area-inset-bottom))}
+  .bottom{display:grid;grid-template-columns:repeat(6,1fr);position:fixed;bottom:0;left:0;right:0;z-index:30;background:rgba(14,19,30,.96);backdrop-filter:blur(12px);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+  .bottom .nav-btn{flex-direction:column;gap:3px;padding:9px 2px 8px;font-size:10.5px;justify-content:center;align-items:center;text-align:center;border-radius:0;box-shadow:none}
+  .bottom .nav-btn.on{background:none;color:var(--acc)}
+  .bottom .nav-btn svg{width:22px;height:22px}
+}
+.icon-btn{width:40px;height:40px;border-radius:12px;border:1px solid var(--line);background:var(--panel);display:grid;place-items:center;color:var(--muted)}
+.icon-btn svg{width:20px;height:20px}
+.icon-btn:hover{color:var(--text)}
+
+/* Components */
+.view{animation:fade .25s ease}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.head{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap;margin-bottom:20px}
+.head p{color:var(--muted);margin-top:6px;max-width:640px}
+.kicker{font:700 12px var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--acc);margin-bottom:6px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px}
+.card.pad-lg{padding:22px}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:980px){.g4{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:620px){.g2,.g3{grid-template-columns:1fr}}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line);background:var(--panel2);color:var(--text);padding:10px 16px;border-radius:12px;font-weight:600;transition:.15s;min-height:42px;text-decoration:none}
+.btn:hover{background:var(--panel3)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn svg{width:18px;height:18px}
+.btn.pri{background:var(--acc);border-color:var(--acc);color:#fff}
+.btn.pri:hover{filter:brightness(1.08)}
+.btn.vio{background:var(--vio);border-color:var(--vio);color:#fff}
+.btn.ghost{background:none}
+.btn.danger{color:var(--bad);border-color:rgba(255,93,108,.4);background:none}
+.btn.sm{padding:7px 12px;min-height:34px;font-size:13px;border-radius:10px}
+.btn.block{width:100%}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:600;background:var(--panel2);border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.chip.acc{background:var(--acc-soft);border-color:transparent;color:var(--acc)}
+.chip.vio{background:var(--vio-soft);border-color:transparent;color:#b3a2ff}
+.chip.cyan{background:var(--cyan-soft);border-color:transparent;color:var(--cyan)}
+.chip.ok{background:var(--ok-soft);border-color:transparent;color:var(--ok)}
+.chip.warn{background:var(--warn-soft);border-color:transparent;color:var(--warn)}
+.chip.bad{background:var(--bad-soft);border-color:transparent;color:var(--bad)}
+.seg{display:inline-flex;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:4px;gap:4px;flex-wrap:wrap}
+.seg button{border:0;background:none;color:var(--muted);padding:8px 14px;border-radius:9px;font-weight:600;font-size:14px}
+.seg button.on{background:var(--panel3);color:var(--text)}
+label.lbl{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px}
+.inp,select.inp,textarea.inp{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:11px;padding:11px 13px;outline:none;transition:.15s}
+.inp:focus{border-color:var(--vio);box-shadow:0 0 0 3px var(--vio-soft)}
+textarea.inp{resize:vertical;min-height:70px}
+.note{display:flex;gap:10px;padding:12px 14px;border-radius:12px;background:var(--panel2);border:1px solid var(--line);font-size:13.5px;color:var(--muted)}
+.note.warn{background:var(--warn-soft);border-color:rgba(255,197,71,.3);color:#f1dfae}
+.note.bad{background:var(--bad-soft);border-color:rgba(255,93,108,.3);color:#ffc3c9}
+.note.ok{background:var(--ok-soft);border-color:rgba(46,204,143,.3);color:#b8f0d8}
+.note svg{width:18px;height:18px;flex:none;margin-top:1px}
+.divider{height:1px;background:var(--line);margin:16px 0}
+
+/* Home */
+.hero{position:relative;overflow:hidden;background:linear-gradient(135deg,#1b1630,#121826 55%);border:1px solid var(--line);border-radius:22px;padding:26px}
+.hero::after{content:"";position:absolute;right:-60px;top:-60px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(255,122,69,.35),transparent 70%)}
+.hero > *{position:relative;z-index:1}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.stat .v{font:800 28px/1 var(--head);margin-top:8px}
+.stat .l{font-size:12.5px;color:var(--muted);font-weight:600}
+.routine{display:grid;gap:10px}
+.rt{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:13px;background:var(--panel2);border:1px solid var(--line);cursor:pointer;transition:.15s;text-align:left;width:100%;color:var(--text)}
+.rt:hover{border-color:var(--dim)}
+.rt .ck{width:26px;height:26px;border-radius:50%;border:2px solid var(--dim);display:grid;place-items:center;flex:none}
+.rt.done .ck{background:var(--ok);border-color:var(--ok)}
+.rt.done .ck svg{display:block}
+.rt .ck svg{display:none;width:15px;height:15px;color:#fff}
+.rt .t{font-weight:600}
+.rt .m{font-size:12.5px;color:var(--muted)}
+.rt .min{margin-left:auto;font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap}
+.weeks{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:760px){.weeks{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.wk{padding:14px;border-radius:14px;background:var(--panel2);border:1px solid var(--line)}
+.wk.now{border-color:var(--acc);background:linear-gradient(180deg,var(--acc-soft),var(--panel2))}
+.wk h4{font-size:15px;margin:6px 0 8px}
+.wk ul{margin:0;padding-left:16px;font-size:13px;color:var(--muted)}
+.lessons{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+.lesson{position:relative;text-align:left;padding:14px;border-radius:14px;background:var(--panel);border:1px solid var(--line);color:var(--text);transition:.15s;min-height:104px;display:flex;flex-direction:column;gap:8px}
+.lesson:hover{border-color:var(--vio);transform:translateY(-2px)}
+.lesson .n{font:800 13px var(--head);color:var(--vio)}
+.lesson .tt{font-weight:600;font-size:14.5px;line-height:1.35}
+.lesson .ft{margin-top:auto;display:flex;gap:6px;flex-wrap:wrap}
+.lesson.master{border-color:rgba(46,204,143,.5)}
+.lesson.master .n{color:var(--ok)}
+details.guide{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:0 18px}
+details.guide summary{cursor:pointer;list-style:none;padding:16px 0;font:700 16px var(--head);display:flex;justify-content:space-between;align-items:center}
+details.guide summary::-webkit-details-marker{display:none}
+details.guide summary::after{content:"+";font-size:22px;color:var(--muted)}
+details.guide[open] summary::after{content:"−"}
+details.guide .gbody{padding-bottom:18px;color:var(--muted);font-size:14px}
+details.guide ol{padding-left:20px;margin:8px 0}
+details.guide li{margin-bottom:8px}
+details.guide li b{color:var(--text)}
+
+/* Voice */
+.rec-wrap{display:flex;flex-direction:column;align-items:center;gap:14px;padding:10px 0}
+.rec-btn{width:96px;height:96px;border-radius:50%;border:0;background:var(--acc);color:#fff;display:grid;place-items:center;box-shadow:0 10px 34px rgba(255,122,69,.35);transition:.2s;position:relative}
+.rec-btn svg{width:38px;height:38px}
+.rec-btn.on{background:var(--bad);animation:pulse 1.4s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,93,108,.5)}70%{box-shadow:0 0 0 22px rgba(255,93,108,0)}100%{box-shadow:0 0 0 0 rgba(255,93,108,0)}}
+.timer{font:800 34px/1 var(--head);font-variant-numeric:tabular-nums}
+.meter{width:100%;max-width:340px;height:8px;border-radius:99px;background:var(--panel3);overflow:hidden}
+.meter i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--ok),var(--warn),var(--acc));transition:width .08s}
+.live{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;width:100%}
+@media (max-width:520px){.live{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.live .stat{text-align:center;padding:12px}
+.live .stat .v{font-size:24px}
+.transcript{min-height:110px;max-height:240px;overflow:auto;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:14px;font-size:15px;line-height:1.7}
+.transcript mark{background:var(--bad-soft);color:#ffb3bb;border-radius:5px;padding:0 3px}
+.transcript .interim{color:var(--dim)}
+.prompter{height:260px;overflow:hidden;position:relative;background:var(--bg);border:1px solid var(--line);border-radius:14px;scroll-behavior:auto}
+.prompter::before,.prompter::after{content:"";position:absolute;left:0;right:0;height:46px;z-index:2;pointer-events:none}
+.prompter::before{top:0;background:linear-gradient(var(--bg),transparent)}
+.prompter::after{bottom:0;background:linear-gradient(transparent,var(--bg))}
+.prompter .inner{padding:100px 22px 160px;font:600 clamp(20px,3.4vw,27px)/1.7 var(--head)}
+.pz{display:inline-flex;align-items:center;justify-content:center;margin:0 6px;padding:0 9px;height:26px;border-radius:8px;background:var(--vio-soft);color:#b3a2ff;font:700 13px var(--body);vertical-align:middle}
+.pz.l{background:var(--acc-soft);color:var(--acc)}
+.prompter .guide-line{position:absolute;left:0;right:0;top:96px;height:2px;background:rgba(255,122,69,.35);z-index:1}
+.score-ring{--v:0;--c:var(--ok);width:126px;height:126px;border-radius:50%;background:conic-gradient(var(--c) calc(var(--v)*1%),var(--panel3) 0);display:grid;place-items:center;flex:none}
+.score-ring > div{width:100px;height:100px;border-radius:50%;background:var(--panel);display:grid;place-items:center;text-align:center}
+.score-ring b{font:800 32px/1 var(--head)}
+.score-ring span{font-size:11px;color:var(--muted);display:block;margin-top:2px}
+.metric{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);gap:10px}
+.metric:last-child{border-bottom:0}
+.metric .k{color:var(--muted);font-size:14px}
+.metric .vv{font-weight:700;text-align:right}
+.tips{margin:8px 0 0;padding-left:18px;color:var(--muted);font-size:14px}
+.tips li{margin-bottom:6px}
+.hist{display:grid;gap:8px}
+.hist .it{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;background:var(--panel2);border-radius:11px;font-size:13.5px;flex-wrap:wrap}
+
+/* Simulator */
+.scen{text-align:left;padding:16px;border-radius:14px;background:var(--panel);border:1px solid var(--line);color:var(--text);display:flex;flex-direction:column;gap:8px;transition:.15s}
+.scen:hover{border-color:var(--acc);transform:translateY(-2px)}
+.scen .em{font-size:26px;line-height:1}
+.scen p{font-size:13.5px;color:var(--muted)}
+.chat{display:flex;flex-direction:column;gap:10px;max-height:min(56vh,520px);min-height:220px;overflow:auto;padding:14px;background:var(--bg);border:1px solid var(--line);border-radius:14px}
+.msg{max-width:84%;padding:11px 14px;border-radius:15px;font-size:14.5px;white-space:pre-wrap;word-wrap:break-word}
+.msg.them{background:var(--panel2);border:1px solid var(--line);align-self:flex-start;border-bottom-left-radius:5px}
+.msg.me{background:var(--vio);color:#fff;align-self:flex-end;border-bottom-right-radius:5px}
+.msg .who{display:block;font-size:11.5px;font-weight:700;opacity:.75;margin-bottom:3px}
+.msg.sys{align-self:center;background:none;color:var(--muted);font-size:12.5px;text-align:center;padding:4px}
+.typing span{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--muted);margin:0 2px;animation:bl 1.2s infinite}
+.typing span:nth-child(2){animation-delay:.2s}.typing span:nth-child(3){animation-delay:.4s}
+@keyframes bl{0%,80%,100%{opacity:.25}40%{opacity:1}}
+.composer{display:flex;gap:8px;align-items:flex-end;margin-top:10px}
+.composer textarea{min-height:48px;max-height:140px}
+.composer .icon-btn{width:48px;height:48px;flex:none}
+.composer .icon-btn.on{background:var(--bad);border-color:var(--bad);color:#fff}
+.opts{display:grid;gap:10px;margin-top:12px}
+.opt{text-align:left;padding:13px 15px;border-radius:13px;background:var(--panel2);border:1px solid var(--line);color:var(--text);font-size:14.5px;transition:.15s}
+.opt:hover:not(:disabled){border-color:var(--vio)}
+.opt.best{border-color:var(--ok);background:var(--ok-soft)}
+.opt.pick{border-color:var(--vio);box-shadow:0 0 0 2px var(--vio-soft)}
+.opt:disabled{cursor:default}
+.bars3{display:grid;gap:12px}
+.bar3 .lb{display:flex;justify-content:space-between;font-size:13.5px;font-weight:600;margin-bottom:5px}
+.bar3 .tr{height:10px;border-radius:99px;background:var(--panel3);overflow:hidden}
+.bar3 .tr i{display:block;height:100%;border-radius:99px}
+
+/* Retos */
+.reto-card{background:linear-gradient(135deg,#231a2e,#141b2b);border:1px solid var(--line);border-radius:22px;padding:26px;position:relative;overflow:hidden}
+.reto-card .big{font:700 clamp(20px,3.5vw,26px)/1.35 var(--head);margin:12px 0 18px}
+.streak{display:flex;align-items:center;gap:14px}
+.streak .fire{width:54px;height:54px;border-radius:16px;background:var(--acc-soft);display:grid;place-items:center;font-size:28px}
+.cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.cal .d{aspect-ratio:1;border-radius:9px;background:var(--panel2);display:grid;place-items:center;font-size:12px;color:var(--dim);font-weight:600}
+.cal .d.done{background:var(--ok);color:#06281b}
+.cal .d.act{background:var(--vio-soft);color:#c8bcff}
+.cal .d.today{outline:2px solid var(--acc);outline-offset:1px}
+.cal .h{font-size:11px;color:var(--dim);text-align:center;font-weight:700}
+
+/* Mirror */
+.cam{position:relative;background:#000;border-radius:16px;overflow:hidden;aspect-ratio:4/3;border:1px solid var(--line)}
+.cam video{width:100%;height:100%;object-fit:cover;display:block}
+.cam video.mirror{transform:scaleX(-1)}
+.cam .ov{position:absolute;inset:0;display:grid;place-items:center;font:800 80px var(--head);color:#fff;text-shadow:0 4px 30px rgba(0,0,0,.6);pointer-events:none}
+.cam .badge{position:absolute;top:12px;left:12px;background:rgba(0,0,0,.6);padding:5px 11px;border-radius:99px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:7px}
+.cam .badge i{width:9px;height:9px;border-radius:50%;background:var(--bad);animation:bl 1s infinite}
+.cam .empty{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:20px;color:var(--muted)}
+.prog{height:6px;border-radius:99px;background:var(--panel3);overflow:hidden}
+.prog i{display:block;height:100%;background:var(--acc);width:0}
+.chk{display:grid;gap:10px}
+.chk .ci{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;background:var(--panel2);border-radius:12px;flex-wrap:wrap}
+.chk .ci span{font-weight:600;font-size:14px}
+.tri{display:inline-flex;gap:4px}
+.tri button{border:1px solid var(--line);background:var(--bg);color:var(--muted);padding:6px 10px;border-radius:9px;font-size:12.5px;font-weight:600}
+.tri button.on[data-v="2"]{background:var(--ok);border-color:var(--ok);color:#06281b}
+.tri button.on[data-v="1"]{background:var(--warn);border-color:var(--warn);color:#2e2300}
+.tri button.on[data-v="0"]{background:var(--bad);border-color:var(--bad);color:#fff}
+.flips{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.flip{perspective:900px;height:150px;border:0;background:none;padding:0;color:var(--text)}
+.flip .fi{position:relative;width:100%;height:100%;transition:transform .5s;transform-style:preserve-3d}
+.flip.on .fi{transform:rotateY(180deg)}
+.flip .fa,.flip .fb{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:14px;padding:14px;display:flex;flex-direction:column;justify-content:center;gap:6px;border:1px solid var(--line);text-align:left}
+.flip .fa{background:var(--panel)}
+.flip .fa b{font:700 16px var(--head)}
+.flip .fb{background:var(--panel3);transform:rotateY(180deg);font-size:13px;color:var(--muted);overflow:auto}
+.flip .fb b{color:var(--text)}
+
+/* Progress */
+.chart{width:100%;height:auto;display:block}
+.chart text{fill:var(--dim);font:11px var(--body)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.empty-state{text-align:center;padding:28px 14px;color:var(--muted);font-size:14px}
+
+/* Modal + toast */
+.modal{position:fixed;inset:0;z-index:100;background:rgba(3,6,12,.7);backdrop-filter:blur(4px);display:grid;place-items:center;padding:16px;animation:fade .2s}
+.modal .box{width:min(560px,100%);max-height:90vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:22px}
+.toast{position:fixed;left:50%;bottom:calc(var(--nav-h) + 18px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:200;background:var(--panel3);border:1px solid var(--line);padding:11px 18px;border-radius:12px;font-weight:600;font-size:14px;box-shadow:0 10px 30px rgba(0,0,0,.4);max-width:calc(100% - 32px);text-align:center;animation:fade .2s}
+@media (min-width:861px){.toast{bottom:24px}}
+.toast.ok{border-color:rgba(46,204,143,.5)}
+.toast.bad{border-color:rgba(255,93,108,.5)}
+.keyrow{display:flex;gap:8px}
+.keyrow .inp{flex:1;min-width:0}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side" aria-label="Menú">
+    <div class="brand"><div class="logo">C</div><div><b>Gimnasio de Carisma</b><span>10 minutos al día</span></div></div>
+    <nav id="sideNav"></nav>
+    <div class="spacer"></div>
+    <div class="card" style="padding:14px">
+      <div class="tiny muted">Racha de práctica</div>
+      <div class="row mt8"><span style="font-size:22px">🔥</span><b id="sideStreak" style="font:800 22px var(--head)">0</b><span class="muted small">días</span></div>
+    </div>
+  </aside>
+
+  <header class="topbar">
+    <div class="logo">C</div><b class="grow">Gimnasio de Carisma</b>
+    <span class="chip acc" id="topStreak">🔥 0</span>
+    <button class="icon-btn" data-go="ajustes" aria-label="Ajustes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+  </header>
+
+  <main class="main" id="main"></main>
+</div>
+<nav class="bottom" id="bottomNav" aria-label="Menú"></nav>
+
+<script>
+(function(){
+'use strict';
+
+/* ============ ICONOS ============ */
+const I = {
+  inicio:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/></svg>',
+  voz:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><path d="M12 18v4"/></svg>',
+  sim:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8M8 13h5"/></svg>',
+  retos:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></svg>',
+  espejo:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7 16 12l7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>',
+  progreso:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 6-7"/></svg>',
+  ajustes:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v3M12 20v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M1 12h3M20 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>',
+  check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+  stop:'<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>',
+  info:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>',
+  send:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4z"/><path d="M22 2 11 13"/></svg>',
+  back:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>',
+  play:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4v16l13-8z"/></svg>'
+};
+
+/* ============ CONTENIDO ============ */
+const LECCIONES = [
+ {n:1,t:'Trucos para una buena primera impresión',s:1,m:'espejo',idea:'Las personas se forman una impresión en segundos. La postura, la mirada y tus primeras palabras pesan más que el contenido.',tips:['Llega con postura abierta, hombros atrás y manos visibles.','Mira a los ojos al saludar y di el nombre de la otra persona.','Abre con una frase preparada y positiva, nunca con una disculpa.']},
+ {n:2,t:'Generar confianza con tu voz',s:1,m:'voz',idea:'Una voz pausada, con volumen estable y finales que bajan de tono transmite seguridad.',tips:['Habla entre 130 y 160 palabras por minuto.','Termina las afirmaciones bajando el tono, no subiéndolo como pregunta.','Respira con el abdomen antes de empezar a hablar.']},
+ {n:3,t:'Confiar para ganar',s:3,m:'retos',idea:'La confianza se construye cumpliendo lo pequeño y mostrando interés genuino por los demás.',tips:['Cumple compromisos pequeños a tiempo, siempre.','Reconoce en público el trabajo concreto de otros.','Admite cuando no sabes algo y di cuándo tendrás la respuesta.']},
+ {n:4,t:'Habla ante cualquier sala',s:1,m:'voz',idea:'Una estructura clara reduce los nervios: mensaje clave, tres puntos y un cierre con acción.',tips:['Resume tu mensaje en una sola frase antes de preparar lo demás.','Usa la regla de tres: tres puntos, tres datos o tres pasos.','Cierra diciendo exactamente qué esperas que hagan.']},
+ {n:5,t:'Secretos de la narración',s:2,m:'voz',idea:'Una historia con situación, conflicto y resultado se recuerda mucho más que una lista de datos.',tips:['Estructura: situación, problema, acción y resultado.','Incluye un detalle concreto: una máquina, una hora, un número.','Conecta la historia con la decisión que necesitas.']},
+ {n:6,t:'Lenguaje corporal',s:2,m:'espejo',idea:'Tu cuerpo habla antes que tú. Una postura estable y gestos abiertos refuerzan lo que dices.',tips:['Mantén las manos visibles, a la altura de la cintura.','Apoya el peso en ambos pies, sin balancearte.','Orienta el torso hacia quien te habla.']},
+ {n:7,t:'Leer a las personas de forma profesional',s:2,m:'espejo',idea:'Observa grupos de señales y cambios respecto a lo normal de cada persona, nunca una señal aislada.',tips:['Primero conoce cómo se comporta normalmente la persona.','Busca grupos de tres señales que coincidan.','Valida preguntando: «Noto que…, ¿cómo lo ves?»']},
+ {n:8,t:'Comunicar feedback difícil rápidamente',s:4,m:'sim',idea:'Hecho concreto, impacto y petición clara, en menos de un minuto y en privado.',tips:['Usa el modelo: situación, comportamiento e impacto.','Habla del hecho, no de la persona.','Termina con un acuerdo y una fecha de seguimiento.']},
+ {n:9,t:'Gestión de personas difíciles de forma inteligente',s:4,m:'sim',idea:'Separa a la persona del problema y busca el interés que hay detrás de su postura.',tips:['Escucha completo antes de responder.','Pregunta qué necesita realmente la otra persona.','Pon límites claros sobre las conductas, con calma.']},
+ {n:10,t:'Decir «no» sin ser desagradable',s:3,m:'sim',idea:'Un «no» bien dicho protege tus prioridades y conserva la relación.',tips:['Agradece y reconoce la petición.','Di «no» con una razón breve, sin excusas largas.','Ofrece una alternativa realista: otra fecha, otra persona o una parte.']},
+ {n:11,t:'Interrumpir con suavidad',s:3,m:'sim',idea:'Interrumpir bien es redirigir con respeto cuando la conversación se desvía.',tips:['Usa el nombre de la persona para tomar la palabra.','Reconoce su punto antes de redirigir.','Propón el siguiente paso concreto o el tiempo que queda.']},
+ {n:12,t:'Desactivar cualquier conflicto',s:4,m:'sim',idea:'Primero baja la emoción, después resuelve el problema.',tips:['Baja tu volumen y tu velocidad: el otro tiende a imitarte.','Nombra la emoción: «Veo que esto te tiene molesto».','Pasa del culpable a la solución: «¿Qué necesitamos para resolverlo?»']},
+ {n:13,t:'Escuchar como un líder',s:3,m:'retos',idea:'Escuchar es entender para actuar, no esperar tu turno para hablar.',tips:['Parafrasea antes de opinar.','Haz preguntas abiertas: qué, cómo, qué más.','Deja el celular y toma notas.']},
+ {n:14,t:'La magia de las conversaciones triviales',s:2,m:'retos',idea:'La plática ligera crea la confianza que después necesitas para las conversaciones difíciles.',tips:['Pregunta por algo concreto: el fin de semana, el equipo, la familia.','Recuerda un detalle y retómalo después.','Comparte algo tuyo para que no parezca interrogatorio.']},
+ {n:15,t:'El poder de la pausa perfecta',s:1,m:'voz',idea:'Una pausa de uno a dos segundos da peso a la idea y sustituye a las muletillas.',tips:['Haz una pausa antes y después del dato importante.','Cambia el «este…» por silencio.','Respira durante la pausa: te da calma y control.']}
+];
+const SEMANAS = [
+ {n:1,t:'Voz y presencia',l:[1,2,4,15]},
+ {n:2,t:'Historias y cuerpo',l:[5,6,7,14]},
+ {n:3,t:'Escucha y límites',l:[3,10,11,13]},
+ {n:4,t:'Conversaciones difíciles',l:[8,9,12]}
+];
+const MODNAME = {voz:'Laboratorio de voz',sim:'Simulador',retos:'Retos diarios',espejo:'Espejo'};
+
+const RETOS = [
+ {l:1,t:'Saluda hoy a tres personas mirándolas a los ojos y diciendo su nombre.'},
+ {l:1,t:'En tu primera junta del día, abre con una frase positiva que hayas preparado.'},
+ {l:2,t:'Graba un mensaje de voz de 30 segundos para tu equipo, escúchalo y repítelo más lento.'},
+ {l:2,t:'En una llamada, termina tus afirmaciones bajando el tono, no subiéndolo.'},
+ {l:3,t:'Cumple hoy un compromiso pequeño antes de la hora prometida y avísalo.'},
+ {l:3,t:'Reconoce en público el trabajo concreto de alguien de tu equipo.'},
+ {l:4,t:'Explica un indicador de tu área en una junta usando la regla de tres.'},
+ {l:4,t:'Escribe en una sola frase el mensaje clave de tu próxima presentación.'},
+ {l:5,t:'Cuenta un problema resuelto en planta con situación, problema, acción y resultado.'},
+ {l:5,t:'Incluye un dato concreto (hora, máquina o número) en tu siguiente explicación.'},
+ {l:6,t:'En cada plática de hoy, mantén las manos visibles y el torso de frente.'},
+ {l:6,t:'Camina por la planta con postura erguida y paso tranquilo durante todo el recorrido.'},
+ {l:7,t:'Observa a una persona en una junta y anota tres señales que coincidan.'},
+ {l:7,t:'Cuando notes una señal de duda, valida: «Noto que…, ¿cómo lo ves?»'},
+ {l:8,t:'Da un feedback pendiente usando situación, comportamiento e impacto.'},
+ {l:8,t:'Da un reconocimiento específico: qué hizo, cuándo y qué logró.'},
+ {l:9,t:'Ante una persona difícil, pregunta qué necesita antes de responder.'},
+ {l:9,t:'Escucha una queja completa sin interrumpir ni justificarte.'},
+ {l:10,t:'Di «no» a una petición que no sea prioritaria y ofrece una alternativa.'},
+ {l:10,t:'Revisa tu agenda y rechaza o delega una reunión que no aporte valor.'},
+ {l:11,t:'Redirige con respeto una conversación que se desvíe: nombre, reconocimiento y siguiente paso.'},
+ {l:11,t:'En una junta larga, propón el cierre: «Para aprovechar los minutos que quedan…»'},
+ {l:12,t:'Ante una tensión, baja tu volumen y tu velocidad, y nombra la emoción.'},
+ {l:12,t:'Convierte una discusión de culpables en la pregunta «¿Qué necesitamos para resolverlo?»'},
+ {l:13,t:'Parafrasea a dos personas hoy antes de dar tu opinión.'},
+ {l:13,t:'Haz tres preguntas abiertas durante tu recorrido por la planta.'},
+ {l:14,t:'Inicia una plática ligera con alguien de otra área.'},
+ {l:14,t:'Retoma un detalle personal que alguien te contó la semana pasada.'},
+ {l:15,t:'En tu siguiente explicación, haz una pausa de dos segundos antes del dato clave.'},
+ {l:15,t:'Sustituye cada «este» por un silencio durante una llamada completa.'}
+];
+
+const TEXTOS = [
+ {t:'Arranque de turno',x:'Buenos días, equipo. | Hoy tenemos tres prioridades. || Primera: arrancar la línea a tiempo. | Segunda: cero piezas fuera de especificación. | Tercera: orden y limpieza al cierre del turno. || Si algo falla, | lo reportamos de inmediato. || Cuento con ustedes. | Vamos por un gran turno.'},
+ {t:'Resultados de auditoría',x:'Les comparto el resultado de la auditoría. | Tuvimos dos hallazgos menores | y ningún hallazgo mayor. || Esto es gracias al trabajo de todos. || El primer hallazgo fue en registros de arranque. | El segundo, en identificación de material. || Esta semana cerramos ambos. | El viernes revisamos el avance juntos.'},
+ {t:'Propuesta a gerencia',x:'Les propongo un cambio en la línea de encuadernación. || Hoy perdemos cuarenta minutos por turno en ajustes. | Con este cambio, | bajamos a quince. || La inversión se recupera en ocho meses. || Lo que necesito hoy | es su aprobación para una prueba piloto de dos semanas.'},
+ {t:'Historia de un problema resuelto',x:'Hace un mes, | a las tres de la mañana, | la máquina se detuvo en pleno pedido urgente. || El equipo no buscó culpables. | Buscó la causa. || En dos horas encontramos el sensor dañado | y en cuatro, | la línea estaba produciendo otra vez. || Ese día aprendí | que un buen equipo se nota en las crisis.'},
+ {t:'Reconocimiento al equipo',x:'Quiero detenerme un momento. || Este mes bajamos la merma un quince por ciento. | No fue suerte. || Fue disciplina en cada arranque, | en cada registro | y en cada revisión. || Gracias. | De verdad, | gracias.'}
+];
+const TEMAS = [
+ 'Explica en un minuto el indicador más importante de tu área.',
+ 'Preséntate como si fuera tu primera junta con un cliente nuevo.',
+ 'Cuenta un problema que resolviste: situación, problema, acción y resultado.',
+ 'Convence a tu jefe de aprobar un proyecto de mejora.',
+ 'Da las instrucciones de arranque de turno a tu equipo.',
+ 'Explica a un operador nuevo por qué es importante el registro de calidad.',
+ 'Resume en un minuto lo más importante que pasó esta semana en planta.',
+ 'Reconoce públicamente el logro de una persona de tu equipo.'
+];
+
+const ESCENARIOS = [
+ {id:'feedback',e:'🗣️',t:'Feedback a un operador',l:[8,15],
+  persona:'Luis, operador de encuadernadora con 8 años de experiencia. Es buen técnico, pero esta semana no llenó el registro de arranque en tres turnos. Confía mucho en su experiencia y se pone a la defensiva si siente que lo regañan.',
+  quien:'Luis (operador)',
+  sit:'Luis, operador de encuadernadora con 8 años de experiencia, es buen técnico, pero esta semana no llenó el registro de arranque en tres turnos. Confía mucho en su experiencia y se pone a la defensiva si siente que lo regañan.',
+  obj:'Que Luis se comprometa a llenar el registro de arranque en todos los turnos, sin dañar la relación.',
+  ab:'¿Me buscaba, ingeniero? Ando con la máquina arrancando, ¿es rápido?',
+  pasos:[
+   {o:'¿Me buscaba, ingeniero? Ando con la máquina arrancando, ¿es rápido?',op:[
+    ['Sí, Luis, dos minutos. Esta semana el registro de arranque quedó vacío en tres turnos y eso nos deja sin evidencia para la auditoría. Quiero entender qué pasó.',9,7,8,'Excelente: hecho concreto, impacto claro y una pregunta abierta.'],
+    ['Luis, otra vez no llenaste el registro. Ya sabes que es obligatorio.',6,2,7,'Es claro, pero «otra vez» suena a acusación y lo pone a la defensiva.'],
+    ['No es nada grave, luego platicamos con calma cuando tengas tiempo.',2,6,1,'Evitar el tema hace que el problema continúe.']]},
+   {o:'Es que el registro es pura burocracia, ingeniero. Yo sé arrancar la máquina con los ojos cerrados.',op:[
+    ['Nadie duda de tu experiencia; por eso te lo pido a ti. El registro no es para vigilarte: es la evidencia que piden los clientes. Sin él, la auditoría nos marca una no conformidad.',9,9,8,'Reconoces su experiencia y explicas el porqué. Muy bien.'],
+    ['Burocracia o no, es la regla y se tiene que cumplir.',6,2,8,'Firme, pero sin explicar el porqué genera resistencia.'],
+    ['Bueno, tal vez tienes razón. Veré si lo podemos quitar.',3,5,1,'Cedes ante la primera objeción y pierdes el objetivo.']]},
+   {o:'Mmm, está bien. Pero a veces al arranque no me da tiempo, todo es a las carreras.',op:[
+    ['Te entiendo. ¿Qué te ayudaría? Podemos dejar el formato junto al tablero. ¿Te comprometes a llenarlo en cada arranque? El viernes lo revisamos juntos.',9,9,9,'Cierre perfecto: ayuda concreta, compromiso y seguimiento.'],
+    ['Pues hazte el tiempo, es parte de tu trabajo.',6,2,7,'Ignora su obstáculo real; probablemente vuelva a pasar.'],
+    ['Ok, llénalo cuando puedas.',3,6,2,'Sin compromiso ni seguimiento, nada cambia.']]}
+  ]},
+ {id:'no',e:'✋',t:'Decir «no» a tu jefe',l:[10,2],
+  persona:'El gerente de planta. Es exigente, directo y siempre tiene prisa. Le pide al usuario para mañana a primera hora un análisis de costos de la línea de encolado, pero el usuario ya tiene comprometida para ese mismo día la preparación de una auditoría de cliente.',
+  quien:'Gerente de planta',
+  sit:'Tu jefe, el gerente de planta, es exigente y siempre tiene prisa. Te pide para mañana a primera hora un análisis de costos de la línea de encolado, pero ese mismo día ya tienes comprometida la preparación de una auditoría de cliente.',
+  obj:'Proteger la preparación de la auditoría y proponer una alternativa realista sin dañar la relación con tu jefe.',
+  ab:'Oye, necesito que me prepares para mañana a primera hora el análisis de costos de la línea de encolado. Dirección lo pidió.',
+  pasos:[
+   {o:'Oye, necesito que me prepares para mañana a primera hora el análisis de costos de la línea de encolado. Dirección lo pidió.',op:[
+    ['Entiendo que es para dirección. Mañana tengo la preparación de la auditoría del cliente; si hago ambas, alguna saldrá incompleta. ¿Cuál es la prioridad para usted?',9,7,9,'Muestras el conflicto con datos y le pides a él definir la prioridad.'],
+    ['Claro, sin problema, yo lo saco.',5,6,1,'Decir «sí» a todo arriesga la auditoría y tu credibilidad.'],
+    ['No puedo, tengo demasiado trabajo.',5,2,6,'Un «no» seco y vago suena a falta de compromiso.']]},
+   {o:'Las dos son importantes. Dirección no espera.',op:[
+    ['Le propongo esto: mañana a las 9 le entrego un resumen de una página con los tres costos principales, y el análisis completo el jueves. Así dirección tiene datos y la auditoría no se arriesga.',9,8,9,'Alternativa concreta, con fecha, que cuida ambas prioridades.'],
+    ['Bueno, entonces me desvelo y saco las dos.',4,5,2,'Resuelve hoy, pero enseña que siempre puedes con todo.'],
+    ['Pues no se puede; que alguien más lo haga.',4,2,6,'Suena a desentenderte del problema de tu jefe.']]},
+   {o:'Mmm… ¿y el resumen alcanza para dirección?',op:[
+    ['Sí: incluye los tres datos que más preguntan, que son costo por hora, merma y mano de obra. Si piden más, el jueves llega el detalle. ¿Le parece?',9,7,9,'Das seguridad y cierras con una pregunta de acuerdo.'],
+    ['No sé, tal vez no.',2,4,2,'La duda echa abajo tu propuesta.'],
+    ['Tiene que alcanzar, no hay de otra.',5,2,7,'Firme, pero sin argumentos suena a imposición.']]}
+  ]},
+ {id:'conflicto',e:'🔥',t:'Supervisor molesto',l:[12,13],
+  persona:'Ramiro, supervisor del turno nocturno. Está muy molesto porque el turno de día le dejó la guillotina llena de recorte, sin cartón para portadas y sin la orden de producción en el tablero. Perdió una hora. Llega a reclamarle al usuario alzando la voz.',
+  quien:'Ramiro (supervisor)',
+  sit:'Ramiro, supervisor del turno nocturno, está muy molesto: el turno de día le dejó la guillotina llena de recorte, sin cartón para portadas y sin la orden de producción. Perdió una hora y llega a reclamarte alzando la voz.',
+  obj:'Bajar la tensión y acordar un estándar de entrega de turno.',
+  ab:'¡Ingeniero, ya estuvo bueno! Otra vez me dejaron la máquina hecha un desastre y sin material. ¡Así no se puede trabajar!',
+  pasos:[
+   {o:'¡Ingeniero, ya estuvo bueno! Otra vez me dejaron la máquina hecha un desastre y sin material. ¡Así no se puede trabajar!',op:[
+    ['Ramiro, veo que estás muy molesto, y tienes razón: así no se puede arrancar. Cuéntame qué encontraste exactamente.',8,9,7,'Nombras la emoción, validas y pasas a los hechos.'],
+    ['Cálmate, no me grites; así no vamos a arreglar nada.',6,2,6,'Pedir «cálmate» suele enojar más.'],
+    ['No es mi turno; eso arréglalo con el supervisor de día.',4,1,4,'Desentenderte escala el conflicto.']]},
+   {o:'Pues la guillotina llena de recorte, sin cartón para portadas y la orden ni la dejaron en el tablero. Perdí una hora.',op:[
+    ['Una hora perdida es mucho. Entonces son tres puntos: limpieza, material y orden de producción. ¿Qué debería incluir una entrega de turno para que no vuelva a pasar?',9,8,7,'Resumes, validas y lo invitas a construir la solución.'],
+    ['Ya, ya, no es para tanto. Una hora no es nada.',3,1,3,'Minimizar el problema invalida a la persona.'],
+    ['Voy a regañar al turno de día.',5,5,6,'Buscar culpables calma un rato, pero no corrige el sistema.']]},
+   {o:'Pues que dejen todo listo y que alguien lo revise antes de irse.',op:[
+    ['De acuerdo. Hago una lista de entrega de turno con esos tres puntos, la firman ambos supervisores y empezamos el lunes. Mañana la reviso contigo, ¿te parece?',9,8,9,'Acuerdo concreto, responsables, fecha y seguimiento.'],
+    ['Ok, a ver si se puede.',3,4,2,'Sin compromiso, Ramiro volverá igual de molesto.'],
+    ['Hagan ustedes la lista y me avisan.',5,4,4,'Delegar todo transmite poco interés.']]}
+  ]},
+ {id:'interrumpir',e:'⏱️',t:'Interrumpir una junta larga',l:[11,4],
+  persona:'Javier, jefe de mantenimiento. En la junta semanal lleva 15 minutos contando con todo detalle la historia de una reparación. Quedan cuatro temas pendientes y solo 10 minutos de junta. Es buena persona pero le gusta platicar y se siente orgulloso de su trabajo.',
+  quien:'Javier (mantenimiento)',
+  sit:'Javier, jefe de mantenimiento, lleva 15 minutos de la junta semanal contando con todo detalle una reparación. Quedan cuatro temas pendientes y solo 10 minutos. Es buena persona y está orgulloso de su trabajo.',
+  obj:'Redirigir la junta con respeto y cubrir los temas pendientes.',
+  ab:'…y entonces el rodamiento traía juego, ¿verdad?, y le dije al técnico: «a ver, desármalo otra vez», porque en 2019 nos pasó igual con la otra máquina y…',
+  pasos:[
+   {o:'…y entonces el rodamiento traía juego, ¿verdad?, y le dije al técnico: «a ver, desármalo otra vez», porque en 2019 nos pasó igual con la otra máquina y…',op:[
+    ['Javier, perdón que te interrumpa: lo del rodamiento es clave y quiero verlo bien. Nos quedan 10 minutos y cuatro temas. ¿Lo revisamos tú y yo mañana con calma?',9,8,9,'Usas su nombre, reconoces su tema y propones un espacio.'],
+    ['(Esperas en silencio a que termine.)',2,6,1,'La junta se queda sin tiempo para lo importante.'],
+    ['Javier, ya, eso no importa, sigamos.',6,1,7,'Redirige, pero descalifica su trabajo frente a todos.']]},
+   {o:'Ah, sí, pero es que si no explico lo de 2019 no se entiende por qué tardamos.',op:[
+    ['Te entiendo, y por eso merece su propio espacio. Lo agendamos mañana a las 10. Ahora pasemos al tema de seguridad, que es urgente.',9,8,9,'Firme y amable: fecha concreta y cambio de tema.'],
+    ['Bueno, termina rápido entonces.',4,5,3,'Pierdes el control del tiempo.'],
+    ['Nadie quiere oír lo de 2019.',4,1,6,'Humilla a la persona y daña la relación.']]},
+   {o:'Está bien, mañana a las 10.',op:[
+    ['Gracias, Javier. Equipo, tema de seguridad: tres minutos. Laura, ¿nos das el avance?',9,7,9,'Agradeces y das la palabra con tiempo definido.'],
+    ['Perfecto… bueno, ¿en qué íbamos?',3,5,3,'Pierdes el impulso de la junta.'],
+    ['Gracias. Ahora sí, ya me estaba desesperando.',5,1,5,'El comentario final anula lo bien que lo hiciste.']]}
+  ]},
+ {id:'proveedor',e:'🤝',t:'Negociar con un proveedor',l:[9,10],
+  persona:'Representante de ventas de un proveedor de refacciones. Avisa que la pieza crítica para una máquina parada llegará en tres semanas en lugar de una por un retraso de fábrica. No quiere asumir costos extra, pero valora la relación con el cliente y tiene margen para negociar el flete.',
+  quien:'Proveedor',
+  sit:'El representante de un proveedor de refacciones te avisa que la pieza crítica para una máquina parada llegará en tres semanas en lugar de una, por un retraso de fábrica, y no quiere asumir costos extra.',
+  obj:'Conseguir una entrega más rápida o una alternativa razonable sin romper la relación.',
+  ab:'Ingeniero, le marco para avisarle que la pieza viene retrasada de fábrica. Le llega en tres semanas; no hay nada que hacer.',
+  pasos:[
+   {o:'Ingeniero, le marco para avisarle que la pieza viene retrasada de fábrica. Le llega en tres semanas; no hay nada que hacer.',op:[
+    ['Gracias por avisar a tiempo. Le explico el impacto: la máquina está parada y cada día nos cuesta producción. Necesito encontrar una solución con usted. ¿Qué opciones existen?',9,8,8,'Explicas el impacto y lo invitas a buscar opciones juntos.'],
+    ['¡Tres semanas! Esto es inaceptable; voy a buscar otro proveedor.',5,1,6,'La amenaza cierra la negociación.'],
+    ['Ni modo, pues esperamos.',4,5,1,'Aceptas sin negociar algo que te cuesta producción.']]},
+   {o:'Pues… podría venir por envío aéreo, pero eso cuesta más y ustedes lo tendrían que pagar.',op:[
+    ['Esa opción me interesa. Llevamos años trabajando juntos y el retraso es de fábrica. ¿Qué le parece si dividimos el costo del flete a la mitad?',9,8,9,'Propuesta justa apoyada en la relación.'],
+    ['Ok, lo pago yo, mándela.',5,5,2,'Resuelve, pero pagas un costo que no te corresponde.'],
+    ['Ustedes tienen la culpa, ustedes pagan todo.',5,2,7,'Postura rígida que tensa la relación.']]},
+   {o:'Déjeme ver… a la mitad sí lo puedo autorizar, pero llega en 8 días.',op:[
+    ['Trato hecho: flete a la mitad y entrega en 8 días. ¿Me lo confirma hoy por correo y me manda la guía cuando salga?',9,7,9,'Cierras el acuerdo y lo aseguras por escrito.'],
+    ['Bueno, gracias.',4,5,3,'Sin confirmación por escrito, el acuerdo queda débil.'],
+    ['¿8 días? Debería ser en 3.',4,2,6,'Presionar de más puede romper un buen acuerdo.']]}
+  ]},
+ {id:'dificil',e:'🧊',t:'Colega difícil en junta',l:[9,12,13],
+  persona:'Patricia, ingeniera de calidad con mucha experiencia. Rechaza con sarcasmo y frente a todos la propuesta de cambio de proceso del usuario, porque la última vez que se cambió un proceso llegaron dos reclamos de cliente. Si la escuchan y la toman en cuenta, se vuelve una aliada.',
+  quien:'Patricia (calidad)',
+  sit:'Patricia, ingeniera de calidad con mucha experiencia, rechaza con sarcasmo y frente a todos tu propuesta de cambio de proceso, porque la última vez que se cambió un proceso llegaron dos reclamos de cliente.',
+  obj:'Mantener la calma, entender su objeción y sumarla a tu propuesta.',
+  ab:'Ajá, otra idea genial de ingeniería. Seguro funciona perfecto… en PowerPoint.',
+  pasos:[
+   {o:'Ajá, otra idea genial de ingeniería. Seguro funciona perfecto… en PowerPoint.',op:[
+    ['Patricia, tu experiencia en calidad es justo lo que necesito para esto. ¿Qué riesgo ves en la propuesta?',8,8,8,'No reaccionas al sarcasmo y la conviertes en aliada.'],
+    ['Ese comentario está fuera de lugar.',6,2,7,'Pone límite, pero abre una discusión frente a todos.'],
+    ['(Ignoras el comentario y continúas tu presentación.)',4,3,3,'La objeción queda viva y se repetirá.']]},
+   {o:'Pues que la última vez que cambiaron el proceso nos llegaron dos reclamos de cliente y calidad tuvo que dar la cara.',op:[
+    ['Eso es muy valioso. Entonces el riesgo es que lleguen defectos al cliente. ¿Qué tendría que incluir la prueba piloto para que te sientas tranquila?',9,9,8,'Parafraseas su preocupación y la invitas a diseñar el control.'],
+    ['Eso fue otro proyecto; este es diferente.',5,2,6,'Descartas su experiencia sin escucharla.'],
+    ['Bueno, si calidad no está de acuerdo, mejor lo dejamos.',3,5,1,'Abandonas tu propuesta ante la primera objeción.']]},
+   {o:'Mínimo una corrida piloto con inspección al 100 % y que calidad libere.',op:[
+    ['Hecho. Agrego la corrida piloto con inspección al 100 % y tu liberación como requisito. ¿Me ayudas a definir el criterio de aceptación esta semana?',9,9,9,'Integras su condición y la comprometes con el proyecto.'],
+    ['Inspección al 100 % es demasiado; con muestreo basta.',5,3,6,'Discutir el detalle ahora reabre el conflicto.'],
+    ['Ok, lo que diga calidad.',4,5,2,'Cedes el control del proyecto.']]}
+  ]}
+];
+
+const FICHAS = [
+ ['Brazos cruzados y torso girado','Posible desacuerdo o incomodidad (aunque también puede ser frío).','Haz una pregunta abierta y dale espacio para opinar.'],
+ ['Asiente rápido y repetido','Prisa: quiere que termines.','Resume y ve directo al punto.'],
+ ['Pies apuntando a la salida','Quiere irse de la conversación.','Cierra con un acuerdo concreto.'],
+ ['Se toca la nuca o el cuello','Tensión o estrés.','Baja el ritmo y dale seguridad.'],
+ ['Se inclina hacia ti','Interés y atención.','Profundiza y pide su opinión.'],
+ ['Sonrisa solo con la boca','Cortesía, no acuerdo real.','Valida: «¿Cómo lo ves tú?»'],
+ ['Mira el reloj o el celular','La atención se perdió.','Haz una pregunta o cambia de ritmo.'],
+ ['Manos en la cadera','Postura de autoridad o desafío.','Mantén la calma y un tono bajo.'],
+ ['Copia tu postura','Sintonía (rapport).','Buen momento para proponer.'],
+ ['Labios apretados','Se guarda algo que no dice.','«Me parece que algo no te convence, ¿qué es?»'],
+ ['Evita el contacto visual','Incomodidad, timidez o algo que no dice.','No presiones; pregunta en privado.'],
+ ['Levanta las cejas al verte','Reconocimiento y apertura.','Buen inicio para conversar.']
+];
+const CHECK_ESPEJO = ['Contacto visual con la cámara','Manos visibles y gestos naturales','Postura erguida y estable','Sonrisa al inicio y al cierre','Tono y volumen seguros','Pausas en lugar de muletillas'];
+const TEMAS_ESPEJO = [
+ 'Preséntate en 60 segundos como en tu primera junta con un cliente.',
+ 'Presenta tu proyecto de mejora más importante.',
+ 'Da un reconocimiento a tu equipo por un buen resultado.',
+ 'Explica a tu jefe un problema y la solución que propones.',
+ 'Da la bienvenida a un nuevo integrante del equipo.'
+];
+
+/* ============ ALMACENAMIENTO ============ */
+const KEY = 'gimnasioCarisma.v1', KEY_API = 'gimnasioCarisma.apiKey';
+function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
+function lsSet(k,v){try{localStorage.setItem(k,v);return true}catch(e){return false}}
+function lsDel(k){try{localStorage.removeItem(k)}catch(e){}}
+function defaults(){return {v:1,inicio:hoy(),nombre:'',voz:[],sim:[],espejo:[],retos:{},lecciones:{},modelo:'claude-sonnet-5-5',leer:true}}
+function cargar(){
+  const d = defaults();
+  try{const raw=lsGet(KEY); if(raw){const o=JSON.parse(raw); if(o&&typeof o==='object') return sanear(Object.assign(d,o));}}catch(e){}
+  return d;
+}
+function sanear(o){
+  ['voz','sim','espejo'].forEach(k=>{if(!Array.isArray(o[k]))o[k]=[]});
+  ['retos','lecciones'].forEach(k=>{if(!o[k]||typeof o[k]!=='object'||Array.isArray(o[k]))o[k]={}});
+  if(typeof o.inicio!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(o.inicio))o.inicio=hoy();
+  if(typeof o.nombre!=='string')o.nombre='';
+  if(o.modelo!=='claude-sonnet-5-5'&&o.modelo!=='claude-haiku-5-5')o.modelo='claude-sonnet-5-5';
+  o.leer = o.leer!==false;
+  return o;
+}
+let S = cargar();
+let storageOk = true;
+function guardar(){ storageOk = lsSet(KEY, JSON.stringify(S)); actualizarRacha(); }
+function apiKey(){return (lsGet(KEY_API)||'').trim()}
+
+/* ============ UTILIDADES ============ */
+function pad(n){return String(n).padStart(2,'0')}
+function fechaStr(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function hoy(){return fechaStr(new Date())}
+function diaDe(iso){return fechaStr(new Date(iso))}
+function parseDia(s){const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)}
+function difDias(a,b){return Math.round((parseDia(b)-parseDia(a))/864e5)}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function $(s,r){return (r||document).querySelector(s)}
+function $$(s,r){return Array.from((r||document).querySelectorAll(s))}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+function mmss(sec){sec=Math.max(0,Math.floor(sec));return pad(Math.floor(sec/60))+':'+pad(sec%60)}
+function fechaCorta(iso){const d=new Date(iso);return d.toLocaleDateString('es-MX',{day:'numeric',month:'short'})+' '+pad(d.getHours())+':'+pad(d.getMinutes())}
+function color(score){return score>=80?'var(--ok)':score>=60?'var(--warn)':'var(--bad)'}
+function quitarAcentos(s){return s.normalize('NFD').replace(/[̀-ͯ]/g,'')}
+let toastT;
+function toast(msg,tipo){
+  const old=$('.toast'); if(old) old.remove(); clearTimeout(toastT);
+  const t=document.createElement('div'); t.className='toast '+(tipo||''); t.setAttribute('role','status'); t.textContent=msg;
+  document.body.appendChild(t); toastT=setTimeout(()=>t.remove(),3200);
+}
+function modal(html){
+  cerrarModal();
+  const m=document.createElement('div'); m.className='modal'; m.innerHTML='<div class="box" role="dialog" aria-modal="true">'+html+'</div>';
+  m.addEventListener('click',e=>{if(e.target===m||e.target.closest('[data-close]'))cerrarModal()});
+  document.body.appendChild(m); return m;
+}
+function cerrarModal(){const m=$('.modal'); if(m) m.remove();}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')cerrarModal()});
+
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const tieneMedia = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+const contextoSeguro = window.isSecureContext !== false;
+
+/* ============ ACTIVIDAD Y RACHA ============ */
+function diasActivos(){
+  const s=new Set();
+  S.voz.forEach(x=>x&&x.f&&s.add(diaDe(x.f)));
+  S.sim.forEach(x=>x&&x.f&&s.add(diaDe(x.f)));
+  S.espejo.forEach(x=>x&&x.f&&s.add(diaDe(x.f)));
+  Object.keys(S.retos).forEach(k=>{if(S.retos[k]&&S.retos[k].hecho)s.add(k)});
+  return s;
+}
+function racha(set){
+  set=set||diasActivos(); let d=new Date(); let n=0;
+  if(!set.has(fechaStr(d))) d.setDate(d.getDate()-1);
+  while(set.has(fechaStr(d))){n++; d.setDate(d.getDate()-1);}
+  return n;
+}
+function rachaRetos(){
+  const s=new Set(Object.keys(S.retos).filter(k=>S.retos[k]&&S.retos[k].hecho));
+  return racha(s);
+}
+function actualizarRacha(){
+  const r=racha();
+  const a=$('#sideStreak'), b=$('#topStreak');
+  if(a) a.textContent=r; if(b) b.textContent='🔥 '+r;
+}
+function hechoHoy(tipo){
+  const h=hoy();
+  if(tipo==='retos') return !!(S.retos[h]&&S.retos[h].hecho);
+  return S[tipo].some(x=>x&&x.f&&diaDe(x.f)===h);
+}
+function semanaActual(){
+  const d=Math.max(0,difDias(S.inicio,hoy()));
+  return {n:(Math.floor(d/7)%4)+1, ciclo:Math.floor(d/28)+1};
+}
+
+/* ============ NAVEGACIÓN ============ */
+const VISTAS = [
+ {id:'inicio',t:'Inicio'},{id:'voz',t:'Voz'},{id:'sim',t:'Simulador'},
+ {id:'retos',t:'Retos'},{id:'espejo',t:'Espejo'},{id:'progreso',t:'Progreso'},{id:'ajustes',t:'Ajustes'}
+];
+function pintarNav(actual){
+  $('#sideNav').innerHTML = VISTAS.map(v=>`<button class="nav-btn ${v.id===actual?'on':''}" data-go="${v.id}">${I[v.id]}<span>${v.t}</span></button>`).join('');
+  $('#bottomNav').innerHTML = VISTAS.filter(v=>v.id!=='ajustes').map(v=>`<button class="nav-btn ${v.id===actual?'on':''}" data-go="${v.id}" aria-label="${v.t}">${I[v.id]}<span>${v.t}</span></button>`).join('');
+}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-go]'); if(!b) return;
+  e.preventDefault(); ir(b.dataset.go);
+});
+let limpiar = null;
+function ir(id){ if(location.hash!=='#'+id) location.hash=id; else render(); }
+window.addEventListener('hashchange',render);
+function render(){
+  if(limpiar){try{limpiar()}catch(e){} limpiar=null;}
+  cerrarModal();
+  let id=(location.hash||'#inicio').slice(1);
+  const parts=id.split('/'); id=parts[0];
+  if(!VISTAS.some(v=>v.id===id)) id='inicio';
+  pintarNav(id);
+  const main=$('#main');
+  main.innerHTML='';
+  const sec=document.createElement('section'); sec.className='view'; main.appendChild(sec);
+  ({inicio:vInicio,voz:vVoz,sim:vSim,retos:vRetos,espejo:vEspejo,progreso:vProgreso,ajustes:vAjustes})[id](sec,parts.slice(1));
+  window.scrollTo(0,0);
+  actualizarRacha();
+}
+
+/* ============ INICIO ============ */
+function vInicio(el){
+  const sem=semanaActual(); const r=racha();
+  const dominadas=Object.values(S.lecciones).filter(Boolean).length;
+  const saludo=(()=>{const h=new Date().getHours();return h<12?'Buenos días':h<19?'Buenas tardes':'Buenas noches'})();
+  const rut=[
+   {k:'voz',t:'Laboratorio de voz',m:'Un discurso o un texto del teleprompter',min:'3 min'},
+   {k:'sim',t:'Simulador',m:'Una conversación difícil',min:'4 min'},
+   {k:'retos',t:'Reto del día',m:'Léelo ahora y cúmplelo en la planta',min:'1 min'},
+   {k:'espejo',t:'Espejo',m:'Grábate 60 segundos y evalúate',min:'2 min'}
+  ];
+  const hechos=rut.filter(x=>hechoHoy(x.k)).length;
+  el.innerHTML=`
+  <div class="hero">
+    <div class="kicker">${saludo}${S.nombre?', '+esc(S.nombre):''}</div>
+    <h1>Entrena tu carisma<br>10 minutos al día</h1>
+    <p class="muted mt8" style="max-width:560px">Voz, conversaciones difíciles, lenguaje corporal y liderazgo, con práctica real y medición de tu avance.</p>
+    <div class="row mt16">
+      <span class="chip acc">🔥 ${r} ${r===1?'día':'días'} de racha</span>
+      <span class="chip vio">Semana ${sem.n} de 4${sem.ciclo>1?' · ciclo '+sem.ciclo:''}</span>
+      <span class="chip ok">${dominadas}/15 lecciones dominadas</span>
+    </div>
+  </div>
+
+  <div class="grid g2 mt24">
+    <div class="card pad-lg">
+      <div class="row between"><h3>Rutina de hoy</h3><span class="chip ${hechos===4?'ok':''}">${hechos}/4</span></div>
+      <p class="muted small mt8">Se marca sola cuando completas cada práctica.</p>
+      <div class="routine mt16">
+        ${rut.map(x=>`<button class="rt ${hechoHoy(x.k)?'done':''}" data-go="${x.k}">
+          <span class="ck">${I.check}</span>
+          <span><span class="t">${x.t}</span><br><span class="m">${x.m}</span></span>
+          <span class="min">${x.min}</span></button>`).join('')}
+      </div>
+    </div>
+    <div class="card pad-lg">
+      <h3>Esta semana: ${esc(SEMANAS[sem.n-1].t)}</h3>
+      <p class="muted small mt8">Enfoca tu práctica en estas lecciones.</p>
+      <div class="grid mt16" style="gap:10px">
+        ${SEMANAS[sem.n-1].l.map(n=>{const L=LECCIONES[n-1];return `<button class="rt ${S.lecciones[n]?'done':''}" data-leccion="${n}">
+          <span class="ck">${I.check}</span><span><span class="t">${n}. ${esc(L.t)}</span><br><span class="m">Practica en: ${MODNAME[L.m]}</span></span></button>`}).join('')}
+      </div>
+    </div>
+  </div>
+
+  <h2 class="mt24">Plan de 4 semanas</h2>
+  <div class="weeks mt12">
+    ${SEMANAS.map(w=>`<div class="wk ${w.n===sem.n?'now':''}"><span class="chip ${w.n===sem.n?'acc':''}">Semana ${w.n}${w.n===sem.n?' · ahora':''}</span><h4>${w.t}</h4><ul>${w.l.map(n=>`<li>${esc(LECCIONES[n-1].t)}</li>`).join('')}</ul></div>`).join('')}
+  </div>
+
+  <div class="row between mt24"><h2>Las 15 lecciones</h2><span class="muted small">Toca una para ver la técnica</span></div>
+  <div class="lessons mt12">
+    ${LECCIONES.map(L=>`<button class="lesson ${S.lecciones[L.n]?'master':''}" data-leccion="${L.n}">
+      <span class="n">LECCIÓN ${L.n}${S.lecciones[L.n]?' ✓':''}</span><span class="tt">${esc(L.t)}</span>
+      <span class="ft"><span class="chip">Sem. ${L.s}</span><span class="chip">${MODNAME[L.m]}</span></span></button>`).join('')}
+  </div>
+
+  <details class="guide mt24" ${S.voz.length+S.sim.length+S.espejo.length===0?'open':''}>
+    <summary>Cómo usar la app</summary>
+    <div class="gbody">
+      <ol>
+        <li><b>Usa Google Chrome</b> (computadora o Android). Es el navegador que mejor soporta micrófono, cámara y transcripción de voz. Cuando la app pida permiso de micrófono o cámara, acepta.</li>
+        <li><b>Rutina diaria de 10 minutos:</b> voz (3 min), simulador (4 min), reto del día (1 min) y espejo (2 min). Las casillas de «Rutina de hoy» se marcan solas.</li>
+        <li><b>Laboratorio de voz:</b> elige un tema o un texto del teleprompter, toca el botón naranja y habla. Al terminar verás tu ritmo, tus muletillas, tus pausas y una calificación.</li>
+        <li><b>Simulador:</b> el modo <b>Guiado</b> funciona sin configurar nada. Para conversar libremente con una IA que actúa el papel, pega tu API key de Anthropic en <b>Ajustes</b>.</li>
+        <li><b>Retos:</b> cada día hay un reto para aplicar en la planta. Márcalo como cumplido y anota cómo te fue.</li>
+        <li><b>Espejo:</b> grábate 60 segundos, revisa el video y evalúate con la lista. El video no se guarda ni se sube a ningún lado.</li>
+        <li><b>Tu progreso</b> se guarda en este navegador. En <b>Ajustes</b> puedes descargar un respaldo y subirlo a tu Google Drive, o importarlo en otro dispositivo.</li>
+        <li><b>Para compartirla</b> con tu equipo solo manda el link: cada quien lleva su propio progreso.</li>
+      </ol>
+    </div>
+  </details>`;
+  el.addEventListener('click',e=>{const b=e.target.closest('[data-leccion]'); if(b) abrirLeccion(+b.dataset.leccion);});
+}
+function abrirLeccion(n){
+  const L=LECCIONES[n-1];
+  const m=modal(`
+    <div class="kicker">Lección ${L.n} · Semana ${L.s}</div>
+    <h2>${esc(L.t)}</h2>
+    <p class="mt12">${esc(L.idea)}</p>
+    <h3 class="mt16">La técnica</h3>
+    <ol class="tips">${L.tips.map(t=>`<li>${esc(t)}</li>`).join('')}</ol>
+    <h3 class="mt16">Retos relacionados</h3>
+    <ul class="tips">${RETOS.filter(r=>r.l===n).map(r=>`<li>${esc(r.t)}</li>`).join('')}</ul>
+    <div class="row mt24">
+      <button class="btn pri" data-practicar>${I[L.m]}Practicar en ${MODNAME[L.m]}</button>
+      <button class="btn" data-dominar>${S.lecciones[n]?'Quitar «dominada»':'Marcar como dominada'}</button>
+      <button class="btn ghost" data-close>Cerrar</button>
+    </div>`);
+  $('[data-practicar]',m).onclick=()=>{cerrarModal(); ir(L.m);};
+  $('[data-dominar]',m).onclick=()=>{S.lecciones[n]=!S.lecciones[n]; guardar(); cerrarModal(); toast(S.lecciones[n]?'Lección marcada como dominada':'Lección desmarcada','ok'); render();};
+}
+
+/* ============ GRÁFICAS SVG ============ */
+function lineChart(series,labels,opts){
+  opts=opts||{}; const W=340,H=170,p={l:34,r:10,t:12,b:26};
+  const all=series.flatMap(s=>s.v.filter(v=>v!=null));
+  if(!all.length) return '<div class="empty-state">Aún no hay datos.</div>';
+  let mn=opts.min!=null?opts.min:Math.min(...all), mx=opts.max!=null?opts.max:Math.max(...all);
+  if(opts.band){mn=Math.min(mn,opts.band[0]);mx=Math.max(mx,opts.band[1]);}
+  if(mx===mn){mx+=1;mn=Math.max(0,mn-1);}
+  const rng=mx-mn; if(opts.min==null) mn=Math.max(opts.floor!=null?opts.floor:-Infinity,mn-rng*.08); if(opts.max==null) mx=mx+rng*.08;
+  const n=labels.length, X=i=>p.l+(n<=1?(W-p.l-p.r)/2:i*(W-p.l-p.r)/(n-1)), Y=v=>p.t+(1-(v-mn)/(mx-mn))*(H-p.t-p.b);
+  let g='';
+  for(let k=0;k<=3;k++){const v=mn+(mx-mn)*k/3, y=Y(v); g+=`<line x1="${p.l}" x2="${W-p.r}" y1="${y}" y2="${y}" stroke="var(--line)" stroke-width="1"/><text x="${p.l-6}" y="${y+4}" text-anchor="end">${Math.round(v)}</text>`;}
+  if(opts.band){const y1=Y(opts.band[1]),y2=Y(opts.band[0]); g+=`<rect x="${p.l}" y="${y1}" width="${W-p.l-p.r}" height="${Math.max(0,y2-y1)}" fill="var(--ok)" opacity=".09"/>`;}
+  const step=Math.max(1,Math.ceil(n/6));
+  labels.forEach((lb,i)=>{if(i%step===0||i===n-1) g+=`<text x="${X(i)}" y="${H-7}" text-anchor="middle">${esc(lb)}</text>`});
+  series.forEach(s=>{
+    const pts=s.v.map((v,i)=>v==null?null:[X(i),Y(v)]).filter(Boolean);
+    if(pts.length>1) g+=`<polyline fill="none" stroke="${s.c}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" points="${pts.map(q=>q.join(',')).join(' ')}"/>`;
+    pts.forEach(q=>g+=`<circle cx="${q[0]}" cy="${q[1]}" r="3.5" fill="${s.c}" stroke="var(--panel)" stroke-width="1.5"/>`);
+  });
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img">${g}</svg>`;
+}
+function barChart(vals,labels,c){
+  const W=340,H=170,p={l:26,r:8,t:12,b:26}; const mx=Math.max(1,...vals);
+  const n=vals.length, bw=(W-p.l-p.r)/n;
+  let g='';
+  for(let k=0;k<=2;k++){const v=mx*k/2, y=p.t+(1-v/mx)*(H-p.t-p.b); g+=`<line x1="${p.l}" x2="${W-p.r}" y1="${y}" y2="${y}" stroke="var(--line)"/><text x="${p.l-6}" y="${y+4}" text-anchor="end">${Math.round(v)}</text>`;}
+  vals.forEach((v,i)=>{const h=(v/mx)*(H-p.t-p.b), x=p.l+i*bw+bw*.18, w=bw*.64, y=H-p.b-h;
+    g+=`<rect x="${x}" y="${y}" width="${w}" height="${Math.max(0,h)}" rx="4" fill="${c}"/>`;
+    g+=`<text x="${x+w/2}" y="${H-7}" text-anchor="middle">${esc(labels[i])}</text>`;});
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img">${g}</svg>`;
+}
+
+/* ============ LABORATORIO DE VOZ ============ */
+const MUL1 = new Set(['eh','ehh','ehhh','em','emm','mmm','mm','hmm','este','pues','bueno','tipo','osea','basicamente','literal','literalmente']);
+const SIG_ESTE = new Set(['que','pues','el','la','los','las','eh','este','o','y','bueno','entonces','no','pero','como','mmm','em','ya','si','yo','nosotros','a','en','de','por','para']);
+function analizarMuletillas(texto){
+  const tk=quitarAcentos(texto.toLowerCase()).replace(/[^a-zñ0-9\s]/g,' ').split(/\s+/).filter(Boolean);
+  const cnt={}; const marcas=new Array(tk.length).fill(false);
+  for(let i=0;i<tk.length;i++){
+    const w=tk[i];
+    if(w==='o'&&tk[i+1]==='sea'){cnt['o sea']=(cnt['o sea']||0)+1;marcas[i]=marcas[i+1]=true;i++;continue;}
+    if(!MUL1.has(w)) continue;
+    if(w==='este'){const nx=tk[i+1]; if(nx!==undefined&&!SIG_ESTE.has(nx)) continue;}
+    const k=w==='osea'?'o sea':w.replace(/^(eh+|em+|m+|hmm)$/,'eh / mmm');
+    cnt[k]=(cnt[k]||0)+1; marcas[i]=true;
+  }
+  const total=Object.values(cnt).reduce((a,b)=>a+b,0);
+  return {tk,cnt,total,marcas};
+}
+function resaltar(texto){
+  // Resalta muletillas en el texto original (aproximado, palabra por palabra)
+  const palabras=texto.split(/(\s+)/);
+  const solo=palabras.filter(p=>p.trim());
+  const an=analizarMuletillas(solo.join(' '));
+  let j=0; let out='';
+  for(const p of palabras){
+    if(!p.trim()){out+=p;continue;}
+    const limpio=quitarAcentos(p.toLowerCase()).replace(/[^a-zñ0-9]/g,'');
+    // mapear índice en tokens (pueden diferir si hay signos sueltos)
+    if(!limpio){out+=esc(p);continue;}
+    const n=quitarAcentos(p.toLowerCase()).replace(/[^a-zñ0-9\s]/g,' ').split(/\s+/).filter(Boolean).length;
+    let m=false; for(let q=j;q<j+n;q++) if(an.marcas[q]) m=true;
+    out+= m? `<mark>${esc(p)}</mark>` : esc(p);
+    j+=n;
+  }
+  return out;
+}
+function calificarVoz(r){
+  let s=100; const tips=[];
+  const min=r.dur/60;
+  if(r.palabras>0){
+    if(r.ppm<110){s-=Math.min(20,(110-r.ppm)*.6);tips.push('Tu ritmo fue lento. Apunta a 130–160 palabras por minuto: piensa la idea completa antes de decirla.');}
+    else if(r.ppm>170){s-=Math.min(25,(r.ppm-170)*.6);tips.push('Hablaste rápido. Baja la velocidad y apóyate en pausas para que tu mensaje pese más.');}
+    else tips.push('Excelente ritmo: estás en el rango que transmite seguridad.');
+    const mpm=r.mul/Math.max(min,.25);
+    s-=Math.min(35,mpm*7);
+    if(r.mul===0) tips.push('Cero muletillas detectadas. ¡Muy bien!');
+    else tips.push(`Usaste ${r.mul} muletilla${r.mul>1?'s':''}. Cuando sientas que viene un «este», cállate un segundo: el silencio suena más seguro.`);
+  } else if(SR){ tips.push('No se detectaron palabras. Revisa que el micrófono correcto esté activo y habla un poco más cerca.'); s-=30; }
+  const ppmin=r.pausas/Math.max(min,.25);
+  if(r.dur>=20){
+    if(ppmin<1.5){s-=10;tips.push('Hiciste pocas pausas. Agrega una pausa de un segundo antes y después de cada dato importante.');}
+    else if(ppmin>12){s-=8;tips.push('Hubo muchos cortes. Prepara tus ideas en bloques para que el discurso fluya.');}
+    else tips.push('Buen uso de pausas: le das tiempo al oyente para procesar.');
+  }
+  if(r.largas>0){s-=Math.min(12,r.largas*4);tips.push(`Tuviste ${r.largas} silencio${r.largas>1?'s':''} de más de 3 segundos. Ten a la mano tus tres puntos clave para no perder el hilo.`);}
+  if(r.dur<20) tips.push('Para una medición confiable, habla al menos 30 segundos.');
+  return {score:Math.round(clamp(s,0,100)),tips};
+}
+
+function vVoz(el){
+  let modo='libre', tema=TEMAS[Math.floor(Math.random()*TEMAS.length)], txt=0, vel=28;
+  el.innerHTML=`
+  <div class="head"><div><div class="kicker">Lecciones 2, 4, 5 y 15</div><h1>Laboratorio de voz</h1>
+  <p>Habla y mide tu ritmo, tus muletillas y tus pausas. Meta: 130–160 palabras por minuto, cero muletillas y pausas con intención.</p></div></div>
+  <div id="vozAvisos"></div>
+  <div class="grid" style="grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px" id="vozGrid">
+    <div class="card pad-lg">
+      <div class="seg" id="vozModo"><button data-m="libre" class="on">Tema libre</button><button data-m="tele">Teleprompter</button></div>
+      <div id="vozCfg" class="mt16"></div>
+      <div class="rec-wrap mt16">
+        <button class="rec-btn" id="recBtn" aria-label="Grabar">${I.voz}</button>
+        <div class="timer" id="recTimer">00:00</div>
+        <div class="meter"><i id="recMeter"></i></div>
+        <div class="muted small" id="recHint">Toca el botón para empezar</div>
+      </div>
+      <div class="live mt16">
+        <div class="stat"><div class="l">Palabras</div><div class="v" id="lvPal">0</div></div>
+        <div class="stat"><div class="l">Pal./min</div><div class="v" id="lvPpm">–</div></div>
+        <div class="stat"><div class="l">Muletillas</div><div class="v" id="lvMul">0</div></div>
+        <div class="stat"><div class="l">Pausas</div><div class="v" id="lvPau">0</div></div>
+      </div>
+      <div class="mt16" id="trWrap"><label class="lbl">Transcripción en vivo</label><div class="transcript" id="tr"><span class="dim">Aquí aparecerá lo que digas…</span></div></div>
+    </div>
+    <div>
+      <div class="card pad-lg" id="vozRes"><h3>Resultado</h3><div class="empty-state">Graba al menos 10 segundos para ver tu evaluación.</div></div>
+      <div class="card mt16"><h3>Últimas sesiones</h3><div class="hist mt12" id="vozHist"></div></div>
+    </div>
+  </div>`;
+  const style=document.createElement('style'); style.textContent='@media (max-width:900px){#vozGrid{grid-template-columns:1fr!important}}'; el.appendChild(style);
+
+  const avisos=$('#vozAvisos',el);
+  if(!contextoSeguro||!tieneMedia) avisos.innerHTML=`<div class="note bad" style="margin-bottom:14px">${I.info}<span>Este navegador no permite usar el micrófono aquí. Abre la app en Google Chrome con el link https.</span></div>`;
+  else if(!SR) avisos.innerHTML=`<div class="note warn" style="margin-bottom:14px">${I.info}<span>Tu navegador no transcribe voz, así que solo se medirán tiempo y pausas. Para el análisis completo usa <b>Google Chrome</b>.</span></div>`;
+
+  function pintarCfg(){
+    const c=$('#vozCfg',el);
+    if(modo==='libre'){
+      c.innerHTML=`<label class="lbl">Tu tema</label>
+      <div class="note" style="color:var(--text);font-size:15px;font-weight:600">${esc(tema)}</div>
+      <div class="row mt8"><button class="btn sm" id="otroTema">🎲 Otro tema</button><span class="muted tiny">Estructura sugerida: mensaje clave, tres puntos y cierre con acción.</span></div>`;
+      $('#otroTema',c).onclick=()=>{let t;do{t=TEMAS[Math.floor(Math.random()*TEMAS.length)]}while(t===tema&&TEMAS.length>1);tema=t;pintarCfg();};
+      $('#trWrap',el).hidden=false;
+    } else {
+      c.innerHTML=`<div class="row"><div class="grow" style="min-width:180px"><label class="lbl">Texto</label>
+        <select class="inp" id="txtSel">${TEXTOS.map((t,i)=>`<option value="${i}" ${i===txt?'selected':''}>${esc(t.t)}</option>`).join('')}</select></div>
+        <div style="min-width:160px"><label class="lbl">Velocidad: <span id="velV">${vel}</span></label><input type="range" min="12" max="60" value="${vel}" id="velR" style="width:100%"></div></div>
+        <div class="prompter mt12" id="prompter"><div class="guide-line"></div><div class="inner" id="prIn">${pintarTexto(TEXTOS[txt].x)}</div></div>
+        <div class="row mt8 tiny muted"><span class="pz">⏸</span> pausa corta (1 s) <span class="pz l">⏸⏸</span> pausa larga (2 s)</div>`;
+      $('#txtSel',c).onchange=e=>{txt=+e.target.value;pintarCfg();};
+      $('#velR',c).oninput=e=>{vel=+e.target.value;$('#velV',c).textContent=vel;};
+      $('#trWrap',el).hidden=true;
+    }
+  }
+  function pintarTexto(x){return esc(x).replace(/\s*\|\|\s*/g,' <span class="pz l">⏸⏸</span> ').replace(/\s*\|\s*/g,' <span class="pz">⏸</span> ');}
+  $('#vozModo',el).onclick=e=>{const b=e.target.closest('button'); if(!b||grabando) return; modo=b.dataset.m; $$('#vozModo button',el).forEach(x=>x.classList.toggle('on',x===b)); pintarCfg();};
+  pintarCfg();
+
+  // ---- grabación ----
+  let grabando=false, stream=null, ctx=null, an=null, rec=null, t0=0, raf=0, tick=0;
+  let finalTxt='', interim='', pausas=[], hablando=false, ultimaVoz=0, vozIniciada=false, silIni=0, ruido=0.01, errorSR='';
+  function pintarHist(){
+    const h=$('#vozHist',el); const xs=S.voz.slice(-5).reverse();
+    h.innerHTML= xs.length? xs.map(x=>`<div class="it"><span>${fechaCorta(x.f)} · ${esc(x.modo==='tele'?'Teleprompter':'Tema libre')}</span><span class="row" style="gap:6px"><span class="chip">${x.ppm||'–'} ppm</span><span class="chip">${x.mul} mul.</span><b style="color:${color(x.score)}">${x.score}</b></span></div>`).join('') : '<div class="empty-state">Sin sesiones todavía.</div>';
+  }
+  pintarHist();
+
+  async function iniciar(){
+    if(!contextoSeguro||!tieneMedia){toast('Abre la app en Chrome para usar el micrófono','bad');return;}
+    try{ stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}}); }
+    catch(e){
+      avisos.innerHTML=`<div class="note bad" style="margin-bottom:14px">${I.info}<span>${e&&e.name==='NotAllowedError'?'Bloqueaste el permiso del micrófono. Toca el candado junto a la dirección, permite el micrófono y recarga la página.':e&&e.name==='NotFoundError'?'No se encontró ningún micrófono conectado.':'No se pudo abrir el micrófono. Cierra otras apps que lo estén usando e intenta de nuevo.'}</span></div>`;
+      return;
+    }
+    grabando=true; finalTxt=''; interim=''; pausas=[]; hablando=false; vozIniciada=false; ultimaVoz=0; errorSR=''; ruido=0.01;
+    $('#recBtn',el).classList.add('on'); $('#recBtn',el).innerHTML=I.stop; $('#recHint',el).textContent='Grabando… toca para terminar';
+    $('#tr',el).innerHTML='<span class="dim">Escuchando…</span>';
+    $$('#vozModo button',el).forEach(b=>b.disabled=true);
+    const sel=$('#txtSel',el); if(sel) sel.disabled=true;
+    try{
+      const AC=window.AudioContext||window.webkitAudioContext; ctx=new AC();
+      if(ctx.state==='suspended') await ctx.resume();
+      const src=ctx.createMediaStreamSource(stream); an=ctx.createAnalyser(); an.fftSize=1024; src.connect(an);
+    }catch(e){an=null;}
+    if(SR){
+      try{
+        rec=new SR(); rec.lang='es-MX'; rec.continuous=true; rec.interimResults=true;
+        rec.onresult=ev=>{
+          interim='';
+          for(let i=ev.resultIndex;i<ev.results.length;i++){
+            const r=ev.results[i]; if(r.isFinal) finalTxt+=(finalTxt?' ':'')+r[0].transcript.trim(); else interim+=r[0].transcript;
+          }
+          pintarTr();
+        };
+        rec.onerror=ev=>{ if(ev.error==='not-allowed'||ev.error==='service-not-allowed'){errorSR='permiso';} else if(ev.error==='network'){errorSR='red';} };
+        rec.onend=()=>{ if(grabando&&!errorSR){ try{rec.start()}catch(e){} } };
+        rec.start();
+      }catch(e){rec=null;}
+    }
+    t0=performance.now();
+    const pr=$('#prompter',el); let prPos=0; if(pr) pr.scrollTop=0;
+    let last=t0;
+    const buf=new Float32Array(1024);
+    const loop=(now)=>{
+      if(!grabando) return;
+      const dt=(now-last)/1000; last=now;
+      const el_s=(now-t0)/1000;
+      if(an){
+        an.getFloatTimeDomainData(buf); let sum=0; for(let i=0;i<buf.length;i++) sum+=buf[i]*buf[i];
+        const rms=Math.sqrt(sum/buf.length);
+        if(el_s<0.6) ruido=Math.max(ruido*.9+rms*.1,0.004); else if(!hablando) ruido=ruido*.995+Math.min(rms,ruido*1.5)*.005;
+        const umbral=Math.max(0.012,ruido*2.6);
+        const meter=$('#recMeter',el); if(meter) meter.style.width=clamp(rms*900,0,100)+'%';
+        if(rms>umbral){
+          if(!hablando){ if(vozIniciada&&silIni){const d=el_s-silIni; if(d>=0.6) pausas.push(d);} hablando=true; }
+          vozIniciada=true; ultimaVoz=el_s;
+        } else if(hablando && el_s-ultimaVoz>0.18){ hablando=false; silIni=ultimaVoz; }
+      }
+      if(pr){ prPos=Math.min(prPos+vel*dt, pr.scrollHeight); pr.scrollTop=prPos; }
+      raf=requestAnimationFrame(loop);
+    };
+    raf=requestAnimationFrame(loop);
+    tick=setInterval(()=>{const s=(performance.now()-t0)/1000; $('#recTimer',el).textContent=mmss(s); vivos(s); if(s>=600) detener();},250);
+  }
+  function pintarTr(){
+    const tr=$('#tr',el); if(!tr) return;
+    tr.innerHTML=(finalTxt?resaltar(finalTxt):'')+(interim?' <span class="interim">'+esc(interim)+'</span>':'')||'<span class="dim">Escuchando…</span>';
+    tr.scrollTop=tr.scrollHeight;
+  }
+  function vivos(s){
+    const t=(finalTxt+' '+interim).trim(); const a=analizarMuletillas(t);
+    const pal=a.tk.length;
+    $('#lvPal',el).textContent=pal;
+    $('#lvPpm',el).textContent= s>=8&&pal? Math.round(pal/(s/60)) : '–';
+    $('#lvMul',el).textContent=a.total;
+    $('#lvPau',el).textContent=pausas.length;
+    if(errorSR==='permiso') avisos.innerHTML=`<div class="note warn" style="margin-bottom:14px">${I.info}<span>La transcripción no tiene permiso. Se miden tiempo y pausas; para palabras y muletillas permite el micrófono en Chrome.</span></div>`;
+    if(errorSR==='red') avisos.innerHTML=`<div class="note warn" style="margin-bottom:14px">${I.info}<span>La transcripción de Chrome necesita internet. Revisa tu conexión.</span></div>`;
+  }
+  function apagar(){
+    grabando=false; cancelAnimationFrame(raf); clearInterval(tick);
+    if(rec){try{rec.onend=null;rec.stop()}catch(e){} }
+    if(stream){stream.getTracks().forEach(t=>t.stop()); stream=null;}
+    if(ctx){try{ctx.close()}catch(e){} ctx=null;}
+  }
+  function detener(){
+    if(!grabando) return;
+    const dur=(performance.now()-t0)/1000;
+    // silencio final no cuenta como pausa
+    apagar();
+    $('#recBtn',el).classList.remove('on'); $('#recBtn',el).innerHTML=I.voz; $('#recBtn',el).disabled=true;
+    $('#recHint',el).textContent='Analizando…'; $('#recMeter',el).style.width='0';
+    setTimeout(()=>{
+      const b=$('#recBtn',el); if(!b) return;
+      b.disabled=false; $('#recHint',el).textContent='Toca el botón para empezar';
+      $$('#vozModo button',el).forEach(x=>x.disabled=false);
+      const sel=$('#txtSel',el); if(sel) sel.disabled=false;
+      if(interim){finalTxt+=(finalTxt?' ':'')+interim.trim(); interim='';}
+      pintarTr();
+      if(dur<10){ $('#vozRes',el).innerHTML='<h3>Resultado</h3><div class="empty-state">La grabación fue muy corta. Habla al menos 10 segundos.</div>'; return; }
+      const a=analizarMuletillas(finalTxt);
+      const r={f:new Date().toISOString(),modo,tema:modo==='libre'?tema:TEXTOS[txt].t,dur:Math.round(dur),palabras:a.tk.length,
+        ppm:a.tk.length?Math.round(a.tk.length/(dur/60)):0,mul:a.total,detalle:a.cnt,pausas:pausas.length,
+        pausaProm:pausas.length?+(pausas.reduce((x,y)=>x+y,0)/pausas.length).toFixed(1):0,largas:pausas.filter(p=>p>3).length};
+      const c=calificarVoz(r); r.score=c.score;
+      S.voz.push(r); if(S.voz.length>300) S.voz=S.voz.slice(-300); guardar();
+      pintarRes(r,c.tips); pintarHist();
+      toast('Sesión guardada','ok');
+    },900);
+  }
+  function pintarRes(r,tips){
+    const det=Object.entries(r.detalle||{}).sort((a,b)=>b[1]-a[1]);
+    $('#vozRes',el).innerHTML=`<h3>Resultado</h3>
+      <div class="row mt16" style="gap:18px;align-items:center">
+        <div class="score-ring" style="--v:${r.score};--c:${color(r.score)}"><div><div><b>${r.score}</b><span>de 100</span></div></div></div>
+        <div class="grow" style="min-width:150px">
+          <div class="metric"><span class="k">Duración</span><span class="vv">${mmss(r.dur)}</span></div>
+          <div class="metric"><span class="k">Ritmo</span><span class="vv">${r.palabras?r.ppm+' pal/min':'–'}</span></div>
+          <div class="metric"><span class="k">Muletillas</span><span class="vv">${r.palabras?r.mul:'–'}</span></div>
+          <div class="metric"><span class="k">Pausas</span><span class="vv">${r.pausas}${r.pausas?' · prom. '+r.pausaProm+' s':''}</span></div>
+        </div>
+      </div>
+      ${det.length?`<div class="row mt16" style="gap:6px">${det.map(([k,v])=>`<span class="chip bad">«${esc(k)}» × ${v}</span>`).join('')}</div>`:''}
+      <h3 class="mt16">Qué mejorar</h3><ul class="tips">${tips.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>
+      <p class="tiny dim mt12">La transcripción automática a veces omite sonidos como «eh» o «mmm»; las pausas se miden por el audio.</p>`;
+  }
+  $('#recBtn',el).onclick=()=>grabando?detener():iniciar();
+  limpiar=()=>{ if(grabando) apagar(); };
+}
+
+/* ============ SIMULADOR ============ */
+async function llamarIA(system,messages,maxTokens){
+  const key=apiKey(); if(!key) throw new Error('SIN_KEY');
+  let res;
+  try{
+    res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{
+      'content-type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:S.modelo,max_tokens:maxTokens||400,system,messages})});
+  }catch(e){ throw new Error('RED'); }
+  let data=null; try{data=await res.json()}catch(e){}
+  if(!res.ok){
+    const tipo=data&&data.error&&data.error.type;
+    if(res.status===401) throw new Error('KEY');
+    if(res.status===429) throw new Error('LIMITE');
+    if(res.status===400&&/credit|balance/i.test(JSON.stringify(data||''))) throw new Error('SALDO');
+    if(res.status===404||tipo==='not_found_error') throw new Error('MODELO');
+    if(res.status===529||res.status>=500) throw new Error('SATURADO');
+    throw new Error('OTRO:'+(data&&data.error&&data.error.message||res.status));
+  }
+  const txt=(data&&data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('').trim();
+  if(!txt) throw new Error('VACIO');
+  return txt;
+}
+function msgError(e){
+  const m=e&&e.message||'';
+  if(m==='SIN_KEY') return 'Falta tu API key. Agrégala en Ajustes o usa el modo Guiado.';
+  if(m==='KEY') return 'La API key no es válida. Revísala en Ajustes.';
+  if(m==='LIMITE') return 'Se alcanzó el límite de uso por minuto. Espera un momento e intenta de nuevo.';
+  if(m==='SALDO') return 'Tu cuenta de Anthropic no tiene saldo. Recárgala en console.anthropic.com.';
+  if(m==='MODELO') return 'El modelo seleccionado no está disponible para tu cuenta. Cambia el modelo en Ajustes.';
+  if(m==='SATURADO') return 'El servicio está saturado. Intenta de nuevo en unos segundos.';
+  if(m==='RED') return 'Sin conexión con el servicio de IA. Revisa tu internet.';
+  if(m==='VACIO') return 'La IA no respondió. Intenta de nuevo.';
+  return 'Ocurrió un error: '+m.replace(/^OTRO:/,'');
+}
+function hablar(texto){
+  if(!S.leer||!('speechSynthesis' in window)) return;
+  try{
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(texto.replace(/[«»*]/g,'')); u.lang='es-MX'; u.rate=1.02;
+    const vs=speechSynthesis.getVoices(); const v=vs.find(x=>/es[-_]MX/i.test(x.lang))||vs.find(x=>/^es/i.test(x.lang)); if(v) u.voice=v;
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+function callar(){try{if('speechSynthesis' in window) speechSynthesis.cancel()}catch(e){}}
+
+function vSim(el){
+  let modo = apiKey()?'ia':'guiado';
+  function lista(){
+    callar();
+    el.innerHTML=`
+    <div class="head"><div><div class="kicker">Lecciones 8 a 12</div><h1>Simulador de conversaciones difíciles</h1>
+    <p>Elige un escenario real de planta y practica qué decir. Al final recibes una evaluación de claridad, empatía y firmeza.</p></div>
+    <div class="seg" id="simModo"><button data-m="guiado" class="${modo==='guiado'?'on':''}">Guiado</button><button data-m="ia" class="${modo==='ia'?'on':''}">Con IA</button></div></div>
+    <div id="simNota"></div>
+    <div class="grid g3 mt16">${ESCENARIOS.map(s=>`<button class="scen" data-esc="${s.id}"><span class="em">${s.e}</span><h3>${esc(s.t)}</h3><p>${esc(s.obj)}</p><span class="row" style="gap:6px;margin-top:auto">${s.l.map(n=>`<span class="chip">Lección ${n}</span>`).join('')}</span></button>`).join('')}</div>
+    <div class="card mt24"><h3>Historial</h3><div class="hist mt12">${S.sim.length?S.sim.slice(-6).reverse().map(x=>`<div class="it"><span>${fechaCorta(x.f)} · ${esc(x.t)} <span class="chip">${x.modo==='ia'?'IA':'Guiado'}</span></span><b style="color:${color(x.total)}">${x.total}</b></div>`).join(''):'<div class="empty-state">Aún no practicas ningún escenario.</div>'}</div></div>`;
+    const nota=$('#simNota',el);
+    nota.innerHTML = modo==='ia'
+      ? (apiKey()? `<div class="note ok">${I.info}<span>Modo IA: la IA actuará el papel de la otra persona. Escribe o dicta tus respuestas.</span></div>`
+                 : `<div class="note warn">${I.info}<span>Para el modo IA necesitas tu API key de Anthropic. <a href="#ajustes" data-go="ajustes">Agrégala en Ajustes</a> o usa el modo Guiado.</span></div>`)
+      : `<div class="note">${I.info}<span>Modo guiado: en cada paso eliges la mejor respuesta entre tres opciones y ves por qué funciona o no.</span></div>`;
+    $('#simModo',el).onclick=e=>{const b=e.target.closest('button'); if(!b) return; modo=b.dataset.m; lista();};
+    $$('[data-esc]',el).forEach(b=>b.onclick=()=>{const s=ESCENARIOS.find(x=>x.id===b.dataset.esc); if(modo==='ia'&&!apiKey()){toast('Agrega tu API key en Ajustes o usa el modo Guiado','bad');return;} modo==='ia'?ia(s):guiado(s);});
+  }
+  function encabezado(s){
+    return `<div class="row between" style="margin-bottom:14px"><button class="btn sm ghost" data-volver>${I.back} Escenarios</button><span class="chip ${modo==='ia'?'vio':''}">${modo==='ia'?'Con IA':'Guiado'}</span></div>
+    <div class="head" style="margin-bottom:14px"><div><div class="kicker">${s.e} Escenario</div><h1>${esc(s.t)}</h1></div></div>
+    <div class="grid g2" style="margin-bottom:16px">
+      <div class="note">${I.info}<span><b style="color:var(--text)">Situación:</b> ${esc(s.sit||s.persona)}</span></div>
+      <div class="note ok">${I.check}<span><b>Tu objetivo:</b> ${esc(s.obj)}</span></div>
+    </div>`;
+  }
+  function resultado(s,ev,extra){
+    const total=Math.round((ev.claridad+ev.empatia+ev.firmeza)/3*10);
+    S.sim.push({f:new Date().toISOString(),id:s.id,t:s.t,modo,claridad:ev.claridad,empatia:ev.empatia,firmeza:ev.firmeza,total});
+    if(S.sim.length>300) S.sim=S.sim.slice(-300); guardar();
+    const barra=(n,v,c)=>`<div class="bar3"><div class="lb"><span>${n}</span><span>${v}/10</span></div><div class="tr"><i style="width:${v*10}%;background:${c}"></i></div></div>`;
+    return `<div class="card pad-lg mt16" id="simRes">
+      <div class="row" style="gap:20px;align-items:center">
+        <div class="score-ring" style="--v:${total};--c:${color(total)}"><div><div><b>${total}</b><span>de 100</span></div></div></div>
+        <div class="grow bars3" style="min-width:200px">${barra('Claridad',ev.claridad,'var(--cyan)')}${barra('Empatía',ev.empatia,'var(--vio)')}${barra('Firmeza',ev.firmeza,'var(--acc)')}</div>
+      </div>${extra||''}
+      <div class="row mt16"><button class="btn pri" data-otra>Repetir escenario</button><button class="btn" data-volver>Otro escenario</button></div></div>`;
+  }
+  function guiado(s){
+    let paso=0; const pts=[];
+    const pintar=()=>{
+      el.innerHTML=encabezado(s)+`<div class="card pad-lg"><div class="row between"><h3>Paso ${Math.min(paso+1,s.pasos.length)} de ${s.pasos.length}</h3><div class="prog" style="width:140px"><i style="width:${paso/s.pasos.length*100}%"></i></div></div>
+        <div class="chat mt12" id="gChat" style="max-height:none"></div><div id="gOpts"></div></div>`;
+      const chat=$('#gChat',el);
+      for(let i=0;i<=paso&&i<s.pasos.length;i++){
+        chat.insertAdjacentHTML('beforeend',`<div class="msg them"><span class="who">${esc(s.quien)}</span>${esc(s.pasos[i].o)}</div>`);
+        if(pts[i]) chat.insertAdjacentHTML('beforeend',`<div class="msg me"><span class="who">Tú</span>${esc(s.pasos[i].op[pts[i].k][0])}</div>`);
+      }
+      if(paso<s.pasos.length){
+        const p=s.pasos[paso];
+        const orden=[0,1,2].sort(()=>Math.random()-.5);
+        $('#gOpts',el).innerHTML=`<p class="muted small mt16">¿Qué respondes?</p><div class="opts">${orden.map(k=>`<button class="opt" data-k="${k}">${esc(p.op[k][0])}</button>`).join('')}</div>`;
+        if(paso===0) hablar(p.o);
+        $$('.opt',el).forEach(b=>b.onclick=()=>{
+          const k=+b.dataset.k; const o=p.op[k]; pts[paso]={k,c:o[1],e:o[2],f:o[3]};
+          const mejor=p.op.reduce((bi,x,i)=>x[1]+x[2]+x[3]>p.op[bi][1]+p.op[bi][2]+p.op[bi][3]?i:bi,0);
+          $$('.opt',el).forEach(x=>{x.disabled=true; if(+x.dataset.k===mejor) x.classList.add('best'); if(x===b&&k!==mejor) x.classList.add('pick');});
+          const bien=k===mejor;
+          $('#gOpts',el).insertAdjacentHTML('beforeend',`<div class="note ${bien?'ok':'warn'} mt12">${bien?I.check:I.info}<span><b>${bien?'¡Bien!':'Se puede mejorar.'}</b> ${esc(o[4])}${bien?'':' La opción en verde es la más efectiva.'}</span></div>
+            <button class="btn pri mt12" id="gSig">${paso+1<s.pasos.length?'Continuar':'Ver resultado'}</button>`);
+          $('#gSig',el).onclick=()=>{paso++; pintar(); if(paso<s.pasos.length) hablar(s.pasos[paso].o);};
+          $('#gSig',el).scrollIntoView({behavior:'smooth',block:'nearest'});
+        });
+      } else {
+        const avg=k=>Math.round(pts.reduce((a,x)=>a+x[k],0)/pts.length);
+        const ev={claridad:avg('c'),empatia:avg('e'),firmeza:avg('f')};
+        const aciertos=pts.filter((x,i)=>{const p=s.pasos[i];const m=p.op.reduce((bi,y,j)=>y[1]+y[2]+y[3]>p.op[bi][1]+p.op[bi][2]+p.op[bi][3]?j:bi,0);return x.k===m}).length;
+        $('#gOpts',el).innerHTML=resultado(s,ev,`<p class="mt16">Elegiste la mejor respuesta en <b>${aciertos} de ${s.pasos.length}</b> pasos.</p>
+          <h3 class="mt16">Técnicas clave de este escenario</h3><ul class="tips">${s.l.map(n=>`<li><b>${esc(LECCIONES[n-1].t)}:</b> ${esc(LECCIONES[n-1].idea)}</li>`).join('')}</ul>
+          ${apiKey()?'':'<p class="tiny dim mt12">Para practicar con tus propias palabras, activa el modo IA agregando tu API key en Ajustes.</p>'}`);
+        enlazar(s);
+      }
+      enlazar(s);
+    };
+    pintar();
+  }
+  function enlazar(s){
+    $$('[data-volver]',el).forEach(b=>b.onclick=lista);
+    $$('[data-otra]',el).forEach(b=>b.onclick=()=>modo==='ia'?ia(s):guiado(s));
+  }
+  function ia(s){
+    const hist=[{role:'assistant',content:s.ab}];
+    let ocupado=false, dict=null, dictando=false, terminado=false;
+    el.innerHTML=encabezado(s)+`<div class="card pad-lg">
+      <div class="chat" id="chat"></div>
+      <div class="composer"><textarea class="inp" id="inTxt" rows="2" placeholder="Escribe lo que dirías…" aria-label="Tu respuesta"></textarea>
+      ${SR?`<button class="icon-btn" id="mic" aria-label="Dictar" title="Dictar">${I.voz}</button>`:''}
+      <button class="icon-btn" id="snd" aria-label="Enviar" style="background:var(--vio);border-color:var(--vio);color:#fff">${I.send}</button></div>
+      <div class="row between mt12"><span class="muted tiny">Enter para enviar · Shift+Enter para salto de línea</span><button class="btn sm vio" id="fin" disabled>Terminar y evaluar</button></div>
+    </div><div id="evalBox"></div>`;
+    enlazar(s);
+    const chat=$('#chat',el), inp=$('#inTxt',el);
+    const add=(rol,t)=>{chat.insertAdjacentHTML('beforeend',rol==='sys'?`<div class="msg sys">${esc(t)}</div>`:`<div class="msg ${rol==='me'?'me':'them'}"><span class="who">${rol==='me'?'Tú':esc(s.quien)}</span>${esc(t)}</div>`);chat.scrollTop=chat.scrollHeight;};
+    add('sys','La IA actúa como '+s.quien+'. Responde como lo harías en la vida real.');
+    add('them',s.ab); hablar(s.ab);
+    const sistema=`Estás en un juego de rol para practicar habilidades de comunicación en una planta de impresión y encuadernación en México.
+Tu personaje: ${s.persona}
+Reglas:
+- Responde SOLO como tu personaje, en español de México, natural y coloquial, en 1 a 3 frases.
+- Nunca salgas del personaje, nunca des consejos, nunca evalúes al usuario y no uses acotaciones entre paréntesis ni asteriscos.
+- Ofrece resistencia realista: no cedas fácil. Si el usuario es claro, empático y firme, ve cediendo poco a poco y llega a un acuerdo razonable. Si es agresivo o evasivo, tu personaje reacciona en consecuencia.
+- Si se llega a un acuerdo claro, cierra la conversación de forma natural.`;
+    const usuarios=()=>hist.filter(m=>m.role==='user').length;
+    async function enviar(){
+      const t=inp.value.trim(); if(!t||ocupado||terminado) return;
+      if(dictando) pararDict();
+      inp.value=''; add('me',t); hist.push({role:'user',content:t}); ocupado=true; $('#snd',el).disabled=true;
+      chat.insertAdjacentHTML('beforeend','<div class="msg them typing" id="typ"><span></span><span></span><span></span></div>'); chat.scrollTop=chat.scrollHeight;
+      try{
+        const msgs=[{role:'user',content:'(Empieza la conversación con tu primera línea.)'}].concat(hist);
+        const r=await llamarIA(sistema,msgs,300);
+        $('#typ',el)&&$('#typ',el).remove(); hist.push({role:'assistant',content:r}); add('them',r); hablar(r);
+      }catch(e){
+        $('#typ',el)&&$('#typ',el).remove(); hist.pop(); add('sys',msgError(e)+' Tu mensaje no se envió; puedes reintentarlo.'); inp.value=t;
+      }
+      ocupado=false; const sb=$('#snd',el); if(sb) sb.disabled=false;
+      const fb=$('#fin',el); if(fb) fb.disabled=usuarios()<2;
+      if(usuarios()===6) add('sys','Buen avance. Cuando sientas que llegaste a un acuerdo, toca «Terminar y evaluar».');
+    }
+    $('#snd',el).onclick=enviar;
+    inp.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();enviar();}});
+    function pararDict(){dictando=false; try{dict&&dict.stop()}catch(e){} const m=$('#mic',el); if(m) m.classList.remove('on');}
+    if(SR){
+      $('#mic',el).onclick=()=>{
+        if(dictando){pararDict();return;}
+        callar();
+        try{
+          dict=new SR(); dict.lang='es-MX'; dict.continuous=true; dict.interimResults=true;
+          const base=inp.value?inp.value.trim()+' ':'';
+          let fin='';
+          dict.onresult=ev=>{let it='';for(let i=ev.resultIndex;i<ev.results.length;i++){const r=ev.results[i]; if(r.isFinal) fin+=r[0].transcript.trim()+' '; else it+=r[0].transcript;} inp.value=(base+fin+it).trim();};
+          dict.onerror=ev=>{ if(ev.error==='not-allowed') toast('Permite el micrófono para dictar','bad'); pararDict(); };
+          dict.onend=()=>{ if(dictando) pararDict(); };
+          dict.start(); dictando=true; $('#mic',el).classList.add('on');
+        }catch(e){toast('No se pudo iniciar el dictado','bad');}
+      };
+    }
+    $('#fin',el).onclick=async()=>{
+      if(ocupado||usuarios()<2) return; terminado=true; callar(); if(dictando) pararDict();
+      ocupado=true; $('#fin',el).disabled=true; $('#snd',el).disabled=true; inp.disabled=true;
+      $('#evalBox',el).innerHTML='<div class="card mt16"><div class="row"><div class="typing"><span></span><span></span><span></span></div><span class="muted">Evaluando tu conversación…</span></div></div>';
+      const trans=hist.map(m=>(m.role==='user'?'USUARIO: ':s.quien.toUpperCase()+': ')+m.content).join('\n');
+      const pedido=`Escenario: ${s.t}
+Situación: ${s.persona}
+Objetivo del usuario: ${s.obj}
+Técnicas que debía aplicar: ${s.l.map(n=>LECCIONES[n-1].t+' ('+LECCIONES[n-1].tips.join(' ')+')').join('; ')}
+
+Transcripción:
+${trans}
+
+Evalúa SOLO las intervenciones del USUARIO. Responde únicamente con este JSON, sin texto adicional, en español de México:
+{"claridad":<entero 1-10>,"empatia":<entero 1-10>,"firmeza":<entero 1-10>,"objetivo_logrado":<true|false>,"resumen":"<2 frases>","fortalezas":["<máx 3>"],"mejoras":["<máx 3>"],"frases_sugeridas":["<2 a 3 frases exactas que el usuario pudo decir>"]}`;
+      try{
+        const r=await llamarIA('Eres un coach experto en comunicación y liderazgo para mandos medios de plantas industriales en México. Evalúas con criterio exigente pero justo y respondes solo con JSON válido.',[{role:'user',content:pedido}],900);
+        const m=r.match(/\{[\s\S]*\}/); if(!m) throw new Error('VACIO');
+        const ev=JSON.parse(m[0]);
+        const n=k=>clamp(Math.round(+ev[k]||0),1,10);
+        const lst=a=>Array.isArray(a)?a.filter(x=>typeof x==='string').slice(0,3):[];
+        const e2={claridad:n('claridad'),empatia:n('empatia'),firmeza:n('firmeza')};
+        $('#evalBox',el).innerHTML=resultado(s,e2,`
+          <div class="note ${ev.objetivo_logrado?'ok':'warn'} mt16">${ev.objetivo_logrado?I.check:I.info}<span><b>${ev.objetivo_logrado?'Objetivo logrado.':'Objetivo aún no logrado.'}</b> ${esc(ev.resumen||'')}</span></div>
+          <div class="grid g2 mt16"><div><h3>Fortalezas</h3><ul class="tips">${lst(ev.fortalezas).map(x=>`<li>${esc(x)}</li>`).join('')||'<li>—</li>'}</ul></div>
+          <div><h3>Para mejorar</h3><ul class="tips">${lst(ev.mejoras).map(x=>`<li>${esc(x)}</li>`).join('')||'<li>—</li>'}</ul></div></div>
+          ${lst(ev.frases_sugeridas).length?`<h3 class="mt16">Frases que pudiste usar</h3><div class="grid mt8" style="gap:8px">${lst(ev.frases_sugeridas).map(x=>`<div class="note" style="color:var(--text)">«${esc(x)}»</div>`).join('')}</div>`:''}`);
+        enlazar(s);
+        $('#simRes',el).scrollIntoView({behavior:'smooth',block:'start'});
+      }catch(e){
+        terminado=false; ocupado=false; $('#fin',el).disabled=false; $('#snd',el).disabled=false; inp.disabled=false;
+        $('#evalBox',el).innerHTML=`<div class="note bad mt16">${I.info}<span>${esc(e instanceof SyntaxError?'La evaluación llegó incompleta. Toca «Terminar y evaluar» de nuevo.':msgError(e))}</span></div>`;
+      }
+      ocupado=false;
+    };
+    limpiar=()=>{callar(); if(dictando) pararDict();};
+  }
+  lista();
+  limpiar=callar;
+}
+
+/* ============ RETOS ============ */
+function vRetos(el){
+  const h=hoy();
+  const idx=((difDias('2026-01-01',h)%RETOS.length)+RETOS.length)%RETOS.length;
+  if(!S.retos[h]) S.retos[h]={id:idx,hecho:false,nota:''};
+  let R=S.retos[h]; if(typeof R.id!=='number'||!RETOS[R.id]) R.id=idx;
+  const pintar=()=>{
+    R=S.retos[h]; const reto=RETOS[R.id]; const L=LECCIONES[reto.l-1];
+    const rr=rachaRetos(); const total=Object.values(S.retos).filter(x=>x&&x.hecho).length;
+    // calendario de 4 semanas
+    const dias=[]; const base=new Date(); const dow=(base.getDay()+6)%7; base.setDate(base.getDate()-dow-21);
+    const act=diasActivos();
+    for(let i=0;i<28;i++){const d=new Date(base); d.setDate(base.getDate()+i); dias.push(d);}
+    el.innerHTML=`
+    <div class="head"><div><div class="kicker">Lecciones 1, 3, 13 y 14</div><h1>Reto del día</h1>
+    <p>Un micro reto para aplicar hoy en la planta. Lo importante no es leerlo: es hacerlo.</p></div></div>
+    <div class="grid" style="grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:16px" id="rtGrid">
+      <div class="reto-card">
+        <div class="row between"><span class="chip acc">Lección ${L.n}: ${esc(L.t)}</span><span class="muted small">${new Date().toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'})}</span></div>
+        <div class="big">${esc(reto.t)}</div>
+        <div class="note" style="margin-bottom:16px">${I.info}<span><b style="color:var(--text)">Técnica:</b> ${esc(L.tips[0])}</span></div>
+        <label class="lbl" for="rtNota">¿Cómo te fue? (opcional)</label>
+        <textarea class="inp" id="rtNota" placeholder="Qué hiciste, cómo reaccionó la otra persona, qué harías diferente…">${esc(R.nota||'')}</textarea>
+        <div class="row mt16">
+          <button class="btn ${R.hecho?'':'pri'}" id="rtHecho">${R.hecho?'✓ Cumplido · Desmarcar':'Marcar como cumplido'}</button>
+          ${R.hecho?'':'<button class="btn ghost" id="rtOtro">🎲 Cambiar reto</button>'}
+        </div>
+      </div>
+      <div>
+        <div class="card pad-lg">
+          <div class="streak"><div class="fire">🔥</div><div><div style="font:800 30px/1 var(--head)">${rr}</div><div class="muted small">días seguidos cumpliendo retos</div></div></div>
+          <div class="muted small mt12">Total de retos cumplidos: <b style="color:var(--text)">${total}</b></div>
+          <div class="divider"></div>
+          <div class="cal">${['L','M','M','J','V','S','D'].map(x=>`<div class="h">${x}</div>`).join('')}
+            ${dias.map(d=>{const k=fechaStr(d);const hecho=S.retos[k]&&S.retos[k].hecho;const fut=k>h;return `<div class="d ${hecho?'done':act.has(k)?'act':''} ${k===h?'today':''}" title="${k}" style="${fut?'opacity:.35':''}">${d.getDate()}</div>`}).join('')}
+          </div>
+          <div class="legend mt12"><span><i style="background:var(--ok)"></i>Reto cumplido</span><span><i style="background:var(--vio-soft)"></i>Otra práctica</span></div>
+        </div>
+        <div class="card mt16"><h3>Notas recientes</h3><div class="hist mt12">${
+          Object.entries(S.retos).filter(([k,v])=>v&&v.hecho&&k!==h).sort((a,b)=>a[0]<b[0]?1:-1).slice(0,4).map(([k,v])=>`<div class="it" style="display:block"><b class="small">${parseDia(k).toLocaleDateString('es-MX',{day:'numeric',month:'short'})}</b> · <span class="small">${esc((RETOS[v.id]||{}).t||'')}</span>${v.nota?`<div class="muted small mt8">${esc(v.nota)}</div>`:''}</div>`).join('')||'<div class="empty-state">Tus notas aparecerán aquí.</div>'}</div></div>
+      </div>
+    </div>`;
+    const st=document.createElement('style'); st.textContent='@media (max-width:900px){#rtGrid{grid-template-columns:1fr!important}}'; el.appendChild(st);
+    const nota=$('#rtNota',el); let nt;
+    nota.oninput=()=>{clearTimeout(nt); nt=setTimeout(()=>{S.retos[h].nota=nota.value.slice(0,1000); guardar();},400);};
+    $('#rtHecho',el).onclick=()=>{S.retos[h].nota=nota.value.slice(0,1000); S.retos[h].hecho=!S.retos[h].hecho; S.retos[h].ts=new Date().toISOString(); guardar(); if(S.retos[h].hecho) toast('¡Reto cumplido! 🔥','ok'); pintar();};
+    const otro=$('#rtOtro',el); if(otro) otro.onclick=()=>{let n;do{n=Math.floor(Math.random()*RETOS.length)}while(n===S.retos[h].id); S.retos[h].id=n; S.retos[h].nota=nota.value; guardar(); pintar();};
+  };
+  guardar(); pintar();
+}
+
+/* ============ ESPEJO ============ */
+function vEspejo(el){
+  let stream=null, recorder=null, chunks=[], url=null, tmr=0, cd=0, tema=TEMAS_ESPEJO[0], evals=new Array(CHECK_ESPEJO.length).fill(null), grabado=false;
+  el.innerHTML=`
+  <div class="head"><div><div class="kicker">Lecciones 1, 6 y 7</div><h1>Espejo de lenguaje corporal</h1>
+  <p>Grábate 60 segundos, mira el video y evalúate con honestidad. El video se queda solo en tu dispositivo y se borra al salir.</p></div></div>
+  <div class="seg" id="esTab"><button data-t="grabar" class="on">Grabarme</button><button data-t="fichas">Leer señales</button></div>
+  <div id="esBody" class="mt16"></div>`;
+  const body=$('#esBody',el);
+  $('#esTab',el).onclick=e=>{const b=e.target.closest('button'); if(!b) return; $$('#esTab button',el).forEach(x=>x.classList.toggle('on',x===b)); b.dataset.t==='grabar'?grabar():fichas();};
+  function hist(){
+    return S.espejo.length? S.espejo.slice(-5).reverse().map(x=>`<div class="it"><span>${fechaCorta(x.f)}</span><b style="color:${color(x.score)}">${x.score}</b></div>`).join('') : '<div class="empty-state">Sin evaluaciones todavía.</div>';
+  }
+  function grabar(){
+    body.innerHTML=`<div class="grid" style="grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:16px" id="esGrid">
+      <div class="card pad-lg">
+        <label class="lbl" for="esTema">Tema</label>
+        <select class="inp" id="esTema">${TEMAS_ESPEJO.map(t=>`<option ${t===tema?'selected':''}>${esc(t)}</option>`).join('')}</select>
+        <div class="cam mt12"><video id="esVid" playsinline muted class="mirror"></video><div class="empty" id="esEmpty"><div><div style="font-size:40px">🎥</div><p class="mt8">Activa la cámara para empezar</p></div></div><div class="ov" id="esOv"></div><div class="badge" id="esBadge" hidden><i></i><span id="esT">0:60</span></div></div>
+        <div class="prog mt12"><i id="esProg"></i></div>
+        <div class="row mt12"><button class="btn pri" id="esCam">Activar cámara</button><button class="btn" id="esRec" disabled>Grabar 60 s</button><button class="btn ghost" id="esStop" hidden>Detener</button></div>
+        <div id="esAviso" class="mt12"></div>
+      </div>
+      <div>
+        <div class="card pad-lg"><h3>Autoevaluación</h3><p class="muted small mt8">Mira tu video y califica cada punto.</p>
+          <div class="chk mt12">${CHECK_ESPEJO.map((c,i)=>`<div class="ci"><span>${esc(c)}</span><span class="tri" data-i="${i}"><button data-v="0" class="${evals[i]===0?'on':''}">Mejorar</button><button data-v="1" class="${evals[i]===1?'on':''}">Regular</button><button data-v="2" class="${evals[i]===2?'on':''}">Bien</button></span></div>`).join('')}</div>
+          <button class="btn vio block mt16" id="esSave" disabled>Guardar evaluación</button>
+          <p class="tiny dim mt8" id="esHint">Graba tu video y califica los 6 puntos para guardar.</p>
+        </div>
+        <div class="card mt16"><h3>Historial</h3><div class="hist mt12" id="esHist">${hist()}</div></div>
+      </div></div>`;
+    const st=document.createElement('style'); st.textContent='@media (max-width:900px){#esGrid{grid-template-columns:1fr!important}}'; body.appendChild(st);
+    const vid=$('#esVid',body);
+    if(url){vid.src=url; vid.muted=false; vid.controls=true; vid.classList.remove('mirror'); $('#esEmpty',body).hidden=true; $('#esCam',body).textContent='Grabar de nuevo';}
+    $('#esTema',body).onchange=e=>tema=e.target.value;
+    const listo=()=>{const ok=grabado&&evals.every(v=>v!==null); $('#esSave',body).disabled=!ok; $('#esHint',body).hidden=ok;};
+    listo();
+    $$('.tri',body).forEach(t=>t.onclick=e=>{const b=e.target.closest('button'); if(!b) return; const i=+t.dataset.i; evals[i]=+b.dataset.v; $$('button',t).forEach(x=>x.classList.toggle('on',x===b)); listo();});
+    $('#esCam',body).onclick=async()=>{
+      if(!contextoSeguro||!tieneMedia){$('#esAviso',body).innerHTML=`<div class="note bad">${I.info}<span>Este navegador no permite usar la cámara. Abre la app en Google Chrome.</span></div>`;return;}
+      try{
+        if(stream) stream.getTracks().forEach(t=>t.stop());
+        stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:1280},height:{ideal:720}},audio:true});
+      }catch(e){
+        $('#esAviso',body).innerHTML=`<div class="note bad">${I.info}<span>${e&&e.name==='NotAllowedError'?'Bloqueaste el permiso de cámara o micrófono. Toca el candado junto a la dirección, permítelos y recarga.':e&&e.name==='NotFoundError'?'No se encontró una cámara.':'No se pudo abrir la cámara. Cierra otras apps que la usen e intenta de nuevo.'}</span></div>`; return;
+      }
+      if(url){URL.revokeObjectURL(url); url=null;} grabado=false; listo();
+      vid.controls=false; vid.removeAttribute('src'); vid.srcObject=stream; vid.muted=true; vid.classList.add('mirror');
+      try{await vid.play()}catch(e){}
+      $('#esEmpty',body).hidden=true; $('#esAviso',body).innerHTML='';
+      $('#esRec',body).disabled=!window.MediaRecorder; $('#esCam',body).textContent='Reiniciar cámara';
+      if(!window.MediaRecorder) $('#esAviso',body).innerHTML=`<div class="note warn">${I.info}<span>Tu navegador no puede grabar video. Puedes practicar frente a la cámara en vivo y evaluarte igual.</span></div>`, grabado=true, listo();
+    };
+    $('#esRec',body).onclick=()=>{
+      $('#esRec',body).disabled=true; $('#esCam',body).disabled=true; let n=3; const ov=$('#esOv',body); ov.textContent=n;
+      cd=setInterval(()=>{n--; if(n>0){ov.textContent=n;} else {clearInterval(cd); ov.textContent=''; iniciarRec();}},1000);
+    };
+    function iniciarRec(){
+      chunks=[];
+      const tipos=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm','video/mp4'];
+      const tipo=tipos.find(t=>{try{return MediaRecorder.isTypeSupported(t)}catch(e){return false}});
+      try{ recorder=tipo?new MediaRecorder(stream,{mimeType:tipo}):new MediaRecorder(stream); }
+      catch(e){ $('#esAviso',body).innerHTML=`<div class="note bad">${I.info}<span>No se pudo iniciar la grabación en este navegador.</span></div>`; $('#esCam',body).disabled=false; return; }
+      recorder.ondataavailable=e=>{if(e.data&&e.data.size) chunks.push(e.data)};
+      recorder.onstop=()=>{
+        const blob=new Blob(chunks,{type:recorder.mimeType||'video/webm'});
+        if(stream){stream.getTracks().forEach(t=>t.stop()); stream=null;}
+        if(url) URL.revokeObjectURL(url);
+        url=URL.createObjectURL(blob);
+        const v=$('#esVid',body); if(!v) return;
+        v.srcObject=null; v.src=url; v.muted=false; v.controls=true; v.classList.remove('mirror');
+        $('#esBadge',body).hidden=true; $('#esStop',body).hidden=true; $('#esCam',body).disabled=false; $('#esCam',body).textContent='Grabar de nuevo'; $('#esRec',body).disabled=true;
+        grabado=true; listo(); toast('Video listo. Míralo y evalúate.','ok');
+      };
+      recorder.start(1000);
+      const t0=Date.now(); $('#esBadge',body).hidden=false; $('#esStop',body).hidden=false;
+      tmr=setInterval(()=>{const s=(Date.now()-t0)/1000; const r=Math.max(0,60-s); const tt=$('#esT',body); if(tt) tt.textContent='0:'+pad(Math.ceil(r)); const p=$('#esProg',body); if(p) p.style.width=Math.min(100,s/60*100)+'%'; if(s>=60) pararRec();},200);
+    }
+    function pararRec(){clearInterval(tmr); if(recorder&&recorder.state!=='inactive'){try{recorder.stop()}catch(e){}}}
+    $('#esStop',body).onclick=pararRec;
+    $('#esSave',body).onclick=()=>{
+      const score=Math.round(evals.reduce((a,b)=>a+b,0)/(CHECK_ESPEJO.length*2)*100);
+      S.espejo.push({f:new Date().toISOString(),tema,ev:evals.slice(),score}); if(S.espejo.length>300) S.espejo=S.espejo.slice(-300); guardar();
+      const flojos=CHECK_ESPEJO.filter((c,i)=>evals[i]===0);
+      $('#esHist',body).innerHTML=hist();
+      modal(`<div class="row" style="gap:18px"><div class="score-ring" style="--v:${score};--c:${color(score)}"><div><div><b>${score}</b><span>de 100</span></div></div></div>
+        <div class="grow"><h2>Evaluación guardada</h2><p class="muted mt8">${flojos.length?'Enfócate mañana en: <b style="color:var(--text)">'+flojos.map(esc).join(', ')+'</b>.':'¡Muy bien! Mantén estos hábitos en tus juntas reales.'}</p></div></div>
+        <div class="row mt24"><button class="btn pri" data-close>Listo</button></div>`);
+      evals=new Array(CHECK_ESPEJO.length).fill(null); $$('.tri button',body).forEach(b=>b.classList.remove('on')); listo();
+    };
+  }
+  function fichas(){
+    apagar();
+    body.innerHTML=`<p class="muted">Toca cada tarjeta para ver qué puede significar la señal y cómo responder. Recuerda: busca grupos de señales, nunca una sola.</p>
+    <div class="flips mt16">${FICHAS.map(f=>`<button class="flip"><div class="fi"><div class="fa"><span class="tiny muted">SEÑAL</span><b>${esc(f[0])}</b><span class="tiny dim">Toca para voltear</span></div><div class="fb"><span><b>Puede significar:</b> ${esc(f[1])}</span><span><b>Cómo responder:</b> ${esc(f[2])}</span></div></div></button>`).join('')}</div>`;
+    $$('.flip',body).forEach(f=>f.onclick=()=>f.classList.toggle('on'));
+  }
+  function apagar(){
+    clearInterval(tmr); clearInterval(cd);
+    if(recorder&&recorder.state!=='inactive'){recorder.onstop=null; try{recorder.stop()}catch(e){}}
+    if(stream){stream.getTracks().forEach(t=>t.stop()); stream=null;}
+  }
+  grabar();
+  limpiar=()=>{apagar(); if(url){URL.revokeObjectURL(url); url=null;}};
+}
+
+/* ============ PROGRESO ============ */
+function vProgreso(el){
+  const v=S.voz.slice(-15), s=S.sim.slice(-15);
+  const prom=(a,k)=>a.length?Math.round(a.reduce((x,y)=>x+(+y[k]||0),0)/a.length):null;
+  const vConPal=S.voz.filter(x=>x.palabras>0);
+  const mulMin=x=>x.dur?+(x.mul/(x.dur/60)).toFixed(1):0;
+  // semanas (lunes)
+  const sem=[]; const b=new Date(); b.setHours(0,0,0,0); b.setDate(b.getDate()-((b.getDay()+6)%7));
+  for(let i=7;i>=0;i--){const d=new Date(b); d.setDate(b.getDate()-i*7); sem.push(d);}
+  const enSem=(f,i)=>{const d=parseDia(diaDe(f)); const e=new Date(sem[i]); e.setDate(e.getDate()+7); return d>=sem[i]&&d<e;};
+  const enSemDia=(k,i)=>{const d=parseDia(k); const e=new Date(sem[i]); e.setDate(e.getDate()+7); return d>=sem[i]&&d<e;};
+  const actSem=sem.map((d,i)=>S.voz.filter(x=>enSem(x.f,i)).length+S.sim.filter(x=>enSem(x.f,i)).length+S.espejo.filter(x=>enSem(x.f,i)).length+Object.keys(S.retos).filter(k=>S.retos[k]&&S.retos[k].hecho&&enSemDia(k,i)).length);
+  const lbSem=sem.map(d=>d.getDate()+'/'+(d.getMonth()+1));
+  const primeras=vConPal.slice(0,3), ultimas=vConPal.slice(-3);
+  const avgM=a=>a.reduce((x,y)=>x+mulMin(y),0)/a.length;
+  const mejoraMul= vConPal.length>=6 ? +(avgM(primeras)-avgM(ultimas)).toFixed(1) : null;
+  const total=S.voz.length+S.sim.length+S.espejo.length+Object.values(S.retos).filter(x=>x&&x.hecho).length;
+  el.innerHTML=`
+  <div class="head"><div><div class="kicker">Tu evolución</div><h1>Tablero de progreso</h1><p>Lo que se mide, mejora. Revisa aquí tu avance cada semana.</p></div></div>
+  <div class="grid g4">
+    <div class="stat"><div class="l">Racha actual</div><div class="v">🔥 ${racha()}</div></div>
+    <div class="stat"><div class="l">Prácticas totales</div><div class="v">${total}</div></div>
+    <div class="stat"><div class="l">Ritmo promedio</div><div class="v">${prom(vConPal.slice(-5),'ppm')??'–'}<span class="small muted"> ppm</span></div></div>
+    <div class="stat"><div class="l">Simulador promedio</div><div class="v">${prom(S.sim.slice(-5),'total')??'–'}<span class="small muted"> /100</span></div></div>
+  </div>
+  ${total===0?`<div class="card mt24"><div class="empty-state"><div style="font-size:40px">📈</div><p class="mt8">Aún no hay prácticas. Empieza con el <a href="#voz" data-go="voz">Laboratorio de voz</a>: en 3 minutos tendrás tu primer dato.</p></div></div>`:''}
+  <div class="grid g2 mt16">
+    <div class="card"><div class="row between"><h3>Ritmo de voz</h3><span class="chip ok">Meta 130–160</span></div>
+      <div class="mt12">${vConPal.length?lineChart([{v:vConPal.slice(-15).map(x=>x.ppm),c:'var(--cyan)'}],vConPal.slice(-15).map((x,i)=>String(i+1)),{band:[130,160],floor:0}):'<div class="empty-state">Graba en el Laboratorio de voz.</div>'}</div>
+      <p class="tiny dim">Palabras por minuto en tus últimas sesiones.</p></div>
+    <div class="card"><div class="row between"><h3>Muletillas por minuto</h3>${mejoraMul!=null?`<span class="chip ${mejoraMul>0?'ok':'warn'}">${mejoraMul>0?'↓ bajaron '+mejoraMul:'Sigue practicando'}</span>`:''}</div>
+      <div class="mt12">${vConPal.length?lineChart([{v:vConPal.slice(-15).map(mulMin),c:'var(--bad)'}],vConPal.slice(-15).map((x,i)=>String(i+1)),{floor:0,min:0}):'<div class="empty-state">Graba en el Laboratorio de voz.</div>'}</div>
+      <p class="tiny dim">Meta: menos de 1 por minuto.</p></div>
+    <div class="card"><h3>Calificación de voz y espejo</h3>
+      <div class="mt12">${v.length||S.espejo.length?lineChart([{v:v.map(x=>x.score),c:'var(--acc)'},{v:S.espejo.slice(-15).map(x=>x.score),c:'var(--vio)'}],Array.from({length:Math.max(v.length,Math.min(15,S.espejo.length))},(_,i)=>String(i+1)),{min:0,max:100,floor:0}):'<div class="empty-state">Sin datos todavía.</div>'}</div>
+      <div class="legend"><span><i style="background:var(--acc)"></i>Voz</span><span><i style="background:var(--vio)"></i>Espejo</span></div></div>
+    <div class="card"><h3>Simulador: claridad, empatía y firmeza</h3>
+      <div class="mt12">${s.length?lineChart([{v:s.map(x=>x.claridad),c:'var(--cyan)'},{v:s.map(x=>x.empatia),c:'var(--vio)'},{v:s.map(x=>x.firmeza),c:'var(--acc)'}],s.map((x,i)=>String(i+1)),{min:0,max:10,floor:0}):'<div class="empty-state">Practica en el Simulador.</div>'}</div>
+      <div class="legend"><span><i style="background:var(--cyan)"></i>Claridad</span><span><i style="background:var(--vio)"></i>Empatía</span><span><i style="background:var(--acc)"></i>Firmeza</span></div></div>
+    <div class="card"><h3>Prácticas por semana</h3><div class="mt12">${barChart(actSem,lbSem,'var(--ok)')}</div><p class="tiny dim">Semanas que inician en lunes. Incluye voz, simulador, espejo y retos.</p></div>
+    <div class="card"><h3>Escenarios practicados</h3><div class="hist mt12">${ESCENARIOS.map(e=>{const xs=S.sim.filter(x=>x.id===e.id); const mj=xs.length?Math.max(...xs.map(x=>x.total)):null; return `<div class="it"><span>${e.e} ${esc(e.t)}</span><span class="row" style="gap:6px"><span class="chip">${xs.length}×</span>${mj!=null?`<b style="color:${color(mj)}">${mj}</b>`:'<span class="dim small">–</span>'}</span></div>`}).join('')}</div><p class="tiny dim mt8">Muestra tu mejor calificación en cada uno.</p></div>
+  </div>`;
+}
+
+/* ============ AJUSTES ============ */
+function vAjustes(el){
+  const k=apiKey();
+  el.innerHTML=`
+  <div class="head"><div><div class="kicker">Configuración</div><h1>Ajustes</h1></div></div>
+  <div class="grid g2">
+    <div class="card pad-lg">
+      <h3>Tu perfil</h3>
+      <label class="lbl mt12" for="ajNom">Nombre (para el saludo)</label>
+      <input class="inp" id="ajNom" maxlength="40" value="${esc(S.nombre)}" placeholder="Tu nombre">
+      <div class="divider"></div>
+      <h3>Voz de la IA</h3>
+      <label class="row mt12" style="cursor:pointer"><input type="checkbox" id="ajLeer" ${S.leer?'checked':''} style="width:18px;height:18px"> <span>Leer en voz alta lo que dice la otra persona en el simulador</span></label>
+      <div class="divider"></div>
+      <h3>Plan de 4 semanas</h3>
+      <p class="muted small mt8">Iniciaste el ${parseDia(S.inicio).toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'})}. Vas en la semana ${semanaActual().n}.</p>
+      <button class="btn sm mt12" id="ajPlan">Reiniciar plan desde hoy</button>
+    </div>
+    <div class="card pad-lg">
+      <h3>IA del simulador</h3>
+      <p class="muted small mt8">Opcional. Con tu API key de Anthropic, la IA actúa el papel de la otra persona y evalúa tu conversación. Se guarda solo en este navegador: no se incluye en los respaldos ni se envía a ningún lugar distinto de Anthropic.</p>
+      <label class="lbl mt12" for="ajKey">API key</label>
+      <div class="keyrow"><input class="inp" id="ajKey" type="password" autocomplete="off" spellcheck="false" placeholder="sk-ant-..." value="${esc(k)}"><button class="btn sm" id="ajVer" type="button">Ver</button></div>
+      <label class="lbl mt12" for="ajMod">Modelo</label>
+      <select class="inp" id="ajMod"><option value="claude-sonnet-5-5" ${S.modelo==='claude-sonnet-5-5'?'selected':''}>Claude Sonnet (recomendado)</option><option value="claude-haiku-5-5" ${S.modelo==='claude-haiku-5-5'?'selected':''}>Claude Haiku (más rápido y económico)</option></select>
+      <div class="row mt12"><button class="btn pri" id="ajGuardar">Guardar</button><button class="btn" id="ajProbar">Probar conexión</button>${k?'<button class="btn danger" id="ajBorrarKey">Quitar key</button>':''}</div>
+      <div id="ajEstado" class="mt12"></div>
+      <details class="mt12"><summary class="small" style="cursor:pointer;color:var(--cyan)">¿Cómo consigo mi API key?</summary>
+        <ol class="tips mt8"><li>Entra a <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a> y crea tu cuenta.</li><li>En <b>Billing</b>, agrega saldo (con 5 USD alcanzan cientos de prácticas).</li><li>En <b>API Keys</b>, toca <b>Create Key</b>, copia la clave y pégala aquí.</li><li>No la compartas: cada persona de tu equipo debe usar la suya.</li></ol></details>
+    </div>
+    <div class="card pad-lg">
+      <h3>Respaldo de tu progreso</h3>
+      <p class="muted small mt8">Tu progreso vive en este navegador. Descarga un respaldo y súbelo a tu Google Drive; para pasarlo a otro dispositivo, abre la app allá e impórtalo.</p>
+      <div class="row mt12"><button class="btn pri" id="ajExp">Descargar respaldo</button><label class="btn" for="ajImpF" style="cursor:pointer">Importar respaldo</label><input type="file" id="ajImpF" accept="application/json,.json" hidden></div>
+      <div id="ajImpEst" class="mt12"></div>
+    </div>
+    <div class="card pad-lg">
+      <h3>Borrar datos</h3>
+      <p class="muted small mt8">Elimina todo tu progreso de este navegador. Descarga un respaldo antes si lo quieres conservar.</p>
+      <button class="btn danger mt12" id="ajReset">Borrar todo mi progreso</button>
+      ${storageOk?'':`<div class="note warn mt12">${I.info}<span>Este navegador no está guardando datos (quizá estás en modo incógnito). Tu progreso se perderá al cerrar.</span></div>`}
+    </div>
+  </div>`;
+  const nom=$('#ajNom',el); nom.onchange=()=>{S.nombre=nom.value.trim().slice(0,40); guardar(); toast('Nombre guardado','ok');};
+  $('#ajLeer',el).onchange=e=>{S.leer=e.target.checked; guardar(); if(!S.leer) callar();};
+  $('#ajPlan',el).onclick=()=>{S.inicio=hoy(); guardar(); toast('Plan reiniciado: semana 1','ok'); render();};
+  $('#ajVer',el).onclick=()=>{const i=$('#ajKey',el); i.type=i.type==='password'?'text':'password'; $('#ajVer',el).textContent=i.type==='password'?'Ver':'Ocultar';};
+  $('#ajMod',el).onchange=e=>{S.modelo=e.target.value; guardar();};
+  const est=$('#ajEstado',el);
+  $('#ajGuardar',el).onclick=()=>{
+    const v=$('#ajKey',el).value.trim();
+    if(v&&!/^sk-ant-/.test(v)){est.innerHTML=`<div class="note warn">${I.info}<span>La key de Anthropic empieza con «sk-ant-». Revisa que la copiaste completa.</span></div>`;return;}
+    if(v) lsSet(KEY_API,v); else lsDel(KEY_API);
+    S.modelo=$('#ajMod',el).value; guardar(); toast(v?'API key guardada':'API key eliminada','ok'); vAjustes(el);
+  };
+  $('#ajProbar',el).onclick=async()=>{
+    const v=$('#ajKey',el).value.trim(); if(!v){est.innerHTML=`<div class="note warn">${I.info}<span>Primero pega tu API key.</span></div>`;return;}
+    if(v!==apiKey()) lsSet(KEY_API,v);
+    S.modelo=$('#ajMod',el).value; guardar();
+    est.innerHTML=`<div class="note">${I.info}<span>Probando…</span></div>`;
+    try{await llamarIA('Responde solo: OK',[{role:'user',content:'Prueba'}],10); est.innerHTML=`<div class="note ok">${I.check}<span>Conexión correcta. El modo IA del simulador ya está activo.</span></div>`;}
+    catch(e){est.innerHTML=`<div class="note bad">${I.info}<span>${esc(msgError(e))}</span></div>`;}
+  };
+  const bk=$('#ajBorrarKey',el); if(bk) bk.onclick=()=>{lsDel(KEY_API); toast('API key eliminada','ok'); vAjustes(el);};
+  $('#ajExp',el).onclick=()=>{
+    try{
+      const blob=new Blob([JSON.stringify({app:'gimnasio-carisma',version:1,exportado:new Date().toISOString(),datos:S},null,2)],{type:'application/json'});
+      const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='gimnasio-carisma-respaldo-'+hoy()+'.json';
+      document.body.appendChild(a); a.click(); setTimeout(()=>{URL.revokeObjectURL(a.href); a.remove();},500);
+      toast('Respaldo descargado. Súbelo a tu Google Drive.','ok');
+    }catch(e){toast('No se pudo descargar el respaldo','bad');}
+  };
+  $('#ajImpF',el).onchange=e=>{
+    const f=e.target.files&&e.target.files[0]; if(!f) return;
+    const r=new FileReader();
+    r.onload=()=>{
+      try{
+        const o=JSON.parse(r.result); const d=o&&o.app==='gimnasio-carisma'&&o.datos?o.datos:null;
+        if(!d||typeof d!=='object') throw 0;
+        const m=modal(`<h2>¿Importar respaldo?</h2><p class="muted mt8">Contiene ${(d.voz||[]).length} sesiones de voz, ${(d.sim||[]).length} del simulador, ${(d.espejo||[]).length} de espejo y ${Object.values(d.retos||{}).filter(x=>x&&x.hecho).length} retos cumplidos.</p>
+          <div class="row mt24"><button class="btn pri" data-r="rep">Reemplazar mi progreso</button><button class="btn" data-r="mez">Combinar con mi progreso</button><button class="btn ghost" data-close>Cancelar</button></div>`);
+        $$('[data-r]',m).forEach(b=>b.onclick=()=>{
+          if(b.dataset.r==='rep') S=sanear(Object.assign(defaults(),d));
+          else{
+            const dd=sanear(Object.assign(defaults(),d));
+            ['voz','sim','espejo'].forEach(k=>{const vistos=new Set(S[k].map(x=>x.f)); dd[k].forEach(x=>{if(x&&x.f&&!vistos.has(x.f))S[k].push(x)}); S[k].sort((a,b)=>a.f<b.f?-1:1);});
+            Object.keys(dd.retos).forEach(k=>{const a=S.retos[k],x=dd.retos[k]; if(!a||(x&&x.hecho&&!a.hecho)) S.retos[k]=x;});
+            Object.keys(dd.lecciones).forEach(k=>{if(dd.lecciones[k]) S.lecciones[k]=true;});
+            if(dd.inicio<S.inicio) S.inicio=dd.inicio; if(!S.nombre) S.nombre=dd.nombre;
+          }
+          guardar(); cerrarModal(); toast('Respaldo importado','ok'); render();
+        });
+      }catch(err){$('#ajImpEst',el).innerHTML=`<div class="note bad">${I.info}<span>El archivo no es un respaldo válido de Gimnasio de Carisma.</span></div>`;}
+      e.target.value='';
+    };
+    r.onerror=()=>{$('#ajImpEst',el).innerHTML=`<div class="note bad">${I.info}<span>No se pudo leer el archivo.</span></div>`;};
+    r.readAsText(f);
+  };
+  $('#ajReset',el).onclick=()=>{
+    const m=modal(`<h2>¿Borrar todo tu progreso?</h2><p class="muted mt8">Se eliminarán tus sesiones, retos, evaluaciones y lecciones dominadas de este navegador. Tu API key se conserva. No se puede deshacer.</p>
+      <div class="row mt24"><button class="btn danger" id="okReset">Sí, borrar todo</button><button class="btn" data-close>Cancelar</button></div>`);
+    $('#okReset',m).onclick=()=>{S=defaults(); guardar(); cerrarModal(); toast('Progreso borrado','ok'); ir('inicio');};
+  };
+}
+
+/* ============ ARRANQUE ============ */
+if(!lsGet(KEY)) guardar();
+if('speechSynthesis' in window){try{speechSynthesis.getVoices(); speechSynthesis.onvoiceschanged=()=>speechSynthesis.getVoices();}catch(e){}}
+window.addEventListener('pagehide',()=>{ if(limpiar){try{limpiar()}catch(e){}} });
+render();
+})();
+</script>
+</body>
+</html>
