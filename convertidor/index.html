@@ -104,11 +104,10 @@ pre{white-space:pre-wrap;font-size:11px;color:#7f8ba0;max-height:180px;overflow:
 </div>
 
 <script src="ffmpeg/ffmpeg.js"></script>
-<script src="lib/mux.min.js"></script>
 <script>
 const $ = s => document.querySelector(s);
 const FMT = {
-  '4k': { w: 3840, h: 2160, vb: '100M', max: '120M', buf: '200M', preset: 'ultrafast', tag: '4K' },
+  '4k': { w: 3840, h: 2160, vb: '100M', max: '120M', buf: '200M', preset: 'superfast', tag: '4K' },
   'hd': { w: 1920, h: 1080, vb: '40M', max: '50M', buf: '80M', preset: 'veryfast', tag: 'HD' },
 };
 let fmt = '4k', files = [], busy = false, dirHandle = null, ffmpeg, ready = false, logBuf = [];
@@ -188,14 +187,68 @@ async function probe(path) {
   return { dur, fps, interlaced, w: +res[1] || 0, h: +res[2] || 0, hasAudio };
 }
 
-async function writer(name) {
+let MB = null;
+// Salida MP4 estándar (como la del DJI): audio y video intercalados, índice completo al final
+async function makeOutput(name, fx, hasAudio) {
+  MB = MB || await import('./lib/mediabunny.min.js');
+  let writable, finish;
   if (dirHandle) {
     const fh = await dirHandle.getFileHandle(name, { create: true });
-    const ws = await fh.createWritable();
-    return { write: b => ws.write(b), close: async () => { await ws.close(); return null; } };
+    writable = await fh.createWritable();
+    finish = async () => null;
+  } else {
+    const segs = [];
+    writable = new WritableStream({ write(c) { segs.push({ p: c.position, d: c.data.slice() }); } });
+    finish = async () => {
+      // aplica parches (encabezados que se reescriben al final) y arma el archivo en orden
+      const keep = [];
+      for (const w of segs) {
+        const host = keep.find(k => w.p >= k.p && w.p + w.d.length <= k.p + k.d.length);
+        if (host) host.d.set(w.d, w.p - host.p); else keep.push(w);
+      }
+      keep.sort((a, b) => a.p - b.p);
+      return URL.createObjectURL(new Blob(keep.map(k => k.d), { type: 'video/mp4' }));
+    };
   }
-  const parts = [];
-  return { write: async b => parts.push(b), close: async () => URL.createObjectURL(new Blob(parts, { type: 'video/mp4' })) };
+  const output = new MB.Output({ format: new MB.Mp4OutputFormat({ fastStart: false }), target: new MB.StreamTarget(writable, { chunked: true }) });
+  const vsrc = new MB.EncodedVideoPacketSource('avc');
+  output.addVideoTrack(vsrc, { frameRate: fx });
+  const asrc = hasAudio ? new MB.EncodedAudioPacketSource('aac') : null;
+  if (asrc) output.addAudioTrack(asrc);
+  await output.start();
+  let vMeta = null, aMeta = null;
+  return {
+    async addTs(bytes) {
+      const input = new MB.Input({ formats: [MB.MPEG_TS], source: new MB.BufferSource(bytes) });
+      const vt = await input.getPrimaryVideoTrack(), at = asrc ? await input.getPrimaryAudioTrack() : null;
+      if (!vMeta) vMeta = { decoderConfig: await vt.getDecoderConfig() };
+      if (at && !aMeta) aMeta = { decoderConfig: await at.getDecoderConfig() };
+      const vp = []; for await (const k of new MB.EncodedPacketSink(vt).packets()) vp.push(k);
+      const ap = []; if (at) for await (const k of new MB.EncodedPacketSink(at).packets()) ap.push(k);
+      let i = 0, j = 0;
+      while (i < vp.length || j < ap.length) {
+        if (j >= ap.length || (i < vp.length && vp[i].timestamp <= ap[j].timestamp)) {
+          await vsrc.add(vp[i++], vMeta.first ? undefined : (vMeta.first = 1, vMeta));
+        } else {
+          await asrc.add(ap[j++], aMeta.first ? undefined : (aMeta.first = 1, aMeta));
+        }
+      }
+      input.dispose?.();
+      return { v: vp.length, a: ap.length, v0: vp[0]?.timestamp, a0: ap[0]?.timestamp };
+    },
+    async close() { await output.finalize(); return finish(); },
+  };
+}
+
+async function isInterlaced(src, dur) {
+  const lines = []; onLog = m => lines.push(m);
+  await ffmpeg.exec(['-ss', String(Math.min(5, dur / 3)), '-i', src, '-an', '-frames:v', '240', '-vf', 'idet', '-f', 'null', '-']);
+  onLog = null;
+  const ml = lines.filter(l => /Multi frame detection/.test(l)).pop() || '';
+  const g = k => +((new RegExp(k + ':\\s*(\\d+)').exec(ml) || [])[1] || 0);
+  const tff = g('TFF'), bff = g('BFF'), prog = g('Progressive');
+  log(`idet: TFF ${tff} BFF ${bff} progresivo ${prog}`);
+  return tff + bff > prog;
 }
 
 async function convert(item) {
@@ -209,12 +262,15 @@ async function convert(item) {
     const p = await probe(src);
     if (!p.dur) throw new Error('No se pudo leer la duración del video');
     // Entrelazado (típico de .MTS 1080i): se convierte a progresivo al doble de cuadros, como el DJI a 59.94
+    // análisis real de cuadros: muchas cámaras graban 30p "envuelto" en 60i (PsF); sólo se desentrelaza si de verdad lo es
+    item.state = 'Analizando cuadros'; render();
+    p.interlaced = await isInterlaced(src, p.dur);
     let outFps = p.fps, deint = '';
     if (p.interlaced) { deint = 'bwdif=mode=send_field:parity=auto:deint=all,'; outFps = p.fps * 2; }
     if (outFps > 61) outFps = p.fps;
     item.info = `${p.w}×${p.h} ${p.interlaced ? 'entrelazado' : 'progresivo'} ${p.fps.toFixed(2)} fps · ${fmtT(p.dur)} → ${F.w}×${F.h} ${outFps.toFixed(2)} fps`;
     render();
-    const vf = `${deint}scale=${F.w}:${F.h}:flags=lanczos:force_original_aspect_ratio=decrease,pad=${F.w}:${F.h}:(ow-iw)/2:(oh-ih)/2,setsar=1${fmt === '4k' ? ',unsharp=3:3:0.35' : ''},format=yuv420p`;
+    const vf = `${deint}scale=${F.w}:${F.h}:flags=lanczos:force_original_aspect_ratio=decrease,pad=${F.w}:${F.h}:(ow-iw)/2:(oh-ih)/2,setsar=1${fmt === '4k' ? ',unsharp=5:5:0.8:3:3:0.4' : ',unsharp=3:3:0.3'},format=yuv420p`;
     const gop = String(Math.round(outFps));
 
     // 1) audio de todo el video en una sola pasada (sin cortes ni chasquidos)
@@ -228,13 +284,7 @@ async function convert(item) {
     const fx = (r => r.includes('/') ? r.split('/')[0] / r.split('/')[1] : +r)(rate(outFps)); // cuadros por segundo exactos
     const cf = alignedFrames(fx, chunk);             // cuadros por bloque, alineados con los paquetes de audio
     const n = Math.ceil(p.dur * fx / cf - 1e-6);
-    const out = await writer(outName(f));
-    const tx = new muxjs.mp4.Transmuxer({ keepOriginalTimestamps: true, remux: true });
-    let initDone = false, pending = [];
-    tx.on('data', seg => {
-      if (!initDone) { pending.push(seg.initSegment); initDone = true; }
-      pending.push(seg.data);
-    });
+    const out = await makeOutput(outName(f), fx, p.hasAudio);
     const t0 = performance.now();
     for (let i = 0; i < n; i++) {
       const s = i * cf / fx, last = i === n - 1, d = last ? p.dur - s : cf / fx;
@@ -256,9 +306,8 @@ async function convert(item) {
       if (rc !== 0) throw new Error('Error al convertir el bloque ' + (i + 1));
       const data = await ffmpeg.readFile('/c.ts');
       await ffmpeg.deleteFile('/c.ts');
-      tx.push(data); tx.flush();
-      for (const b of pending) await out.write(b);
-      pending = [];
+      const r = await out.addTs(data);
+      log(`bloque ${i + 1}: video ${r.v} cuadros desde ${r.v0}s, audio ${r.a} paquetes desde ${r.a0}s`);
     }
     if (p.hasAudio) await ffmpeg.deleteFile('/a.m4a');
     item.url = await out.close();
