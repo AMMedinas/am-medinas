@@ -49,6 +49,8 @@ h1{font-size:24px;margin:0;line-height:1.15}
 .status{font-size:13px;color:var(--mut);margin-top:10px;min-height:18px}
 .dest{font-size:13px;color:var(--mut)}
 .dest b{color:var(--ok)}
+.acc{display:flex;gap:8px;align-items:center;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:9px 12px;cursor:pointer;font-size:14px}
+.acc input{width:18px;height:18px;accent-color:var(--or)}.acc small{display:block;color:var(--mut);font-size:12px}
 details{margin-top:6px}summary{cursor:pointer;color:var(--mut);font-size:13px}
 pre{white-space:pre-wrap;font-size:11px;color:#7f8ba0;max-height:180px;overflow:auto;background:#0b0f15;padding:10px;border-radius:10px}
 @media(max-width:600px){.fmt{grid-template-columns:1fr}h1{font-size:20px}}
@@ -90,6 +92,7 @@ pre{white-space:pre-wrap;font-size:11px;color:#7f8ba0;max-height:180px;overflow:
     <div class="step">3 · Convierte</div>
     <div class="row">
       <button class="btn" id="go" disabled>Convertir</button>
+      <label class="acc" id="accBox"><input type="checkbox" id="acc" checked> <span><b>Acelerador GPU</b> <small id="accInfo">comprobando…</small></span></label>
       <button class="btn sec" id="folder" hidden>Elegir carpeta de destino</button>
       <span class="dest" id="dest"></span>
     </div>
@@ -163,6 +166,7 @@ if (window.showDirectoryPicker) {
     if (mt) cfg.workerURL = base + dir + 'ffmpeg-core.worker.js';
     status('Descargando motor de video (~32 MB, solo la primera vez)…');
     await ffmpeg.load(cfg);
+    await gpuCheck();
     ready = true; window.__engine = mt ? 'mt' : 'st';
     status(`Listo. Motor ${mt ? 'multinúcleo' : 'de un núcleo'}${mt ? ' (' + navigator.hardwareConcurrency + ' núcleos)' : ''}. Elige tus videos y presiona Convertir.`);
     render();
@@ -248,6 +252,7 @@ async function isInterlaced(src, dur) {
   const g = k => +((new RegExp(k + ':\\s*(\\d+)').exec(ml) || [])[1] || 0);
   const tff = g('TFF'), bff = g('BFF'), prog = g('Progressive');
   log(`idet: TFF ${tff} BFF ${bff} progresivo ${prog}`);
+  isInterlaced.bff = bff > tff;
   return tff + bff > prog;
 }
 
@@ -318,6 +323,267 @@ async function convert(item) {
     try { await ffmpeg.unmount(mnt); await ffmpeg.deleteDir(mnt); } catch (e) { }
   }
 }
+
+// ===================== ACELERADOR GPU =====================
+// Decodifica con la GPU (WebCodecs), desentrelaza y escala a 4K con shaders WebGL y codifica H.264 por hardware.
+let gpuState = { ok: false, hw: false };
+async function gpuCheck() {
+  try {
+    if (!('VideoEncoder' in window) || !('VideoDecoder' in window)) return;
+    const base = { codec: 'avc1.640034', width: 3840, height: 2160, bitrate: 100e6, framerate: 60 };
+    const hw = await VideoEncoder.isConfigSupported({ ...base, hardwareAcceleration: 'prefer-hardware' });
+    const any = hw.supported ? hw : await VideoEncoder.isConfigSupported(base);
+    const dec = await VideoDecoder.isConfigSupported({ codec: 'avc1.640028' });
+    const gl = document.createElement('canvas').getContext('webgl2');
+    let gpuName = '';
+    try { const ext = gl && gl.getExtension('WEBGL_debug_renderer_info'); gpuName = ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : ''; } catch (e) { }
+    const softGL = /swiftshader|llvmpipe|software|basic render/i.test(gpuName);
+    gpuState = { ok: !!(any.supported && dec.supported && gl), hw: !!hw.supported && !softGL, name: gpuName };
+    log(`GPU: ${gpuName || 'desconocida'} · codificador por hardware: ${hw.supported ? 'sí' : 'no'}`);
+  } catch (e) { log('gpuCheck: ' + e.message); }
+  const info = $('#accInfo');
+  if (!gpuState.ok) { $('#acc').checked = false; $('#acc').disabled = true; info.textContent = 'no disponible en este navegador'; }
+  else if (gpuState.hw) { $('#acc').checked = true; info.textContent = 'tarjeta de video detectada · mucho más rápido'; }
+  else { $('#acc').checked = false; info.textContent = 'sin tarjeta de video compatible · se usa el modo normal'; }
+}
+
+const VS = `#version 300 es
+in vec2 p; void main(){ gl_Position = vec4(p, 0., 1.); }`;
+// Paso 1: planos YUV -> RGB respetando los campos (el color de un video entrelazado pertenece a su campo)
+// mode 0: cuadro progresivo completo · mode 1/2: sólo el campo superior/inferior (imagen de media altura)
+const FS_YUV = `#version 300 es
+precision highp float;
+uniform sampler2D tY, tU, tV; uniform int nv12, mode, full, m709; out vec4 o;
+float cs(sampler2D t, int ch, vec2 uv){ vec4 v = texture(t, uv); return ch == 0 ? v.r : v.g; }
+void main(){
+  ivec2 ys = textureSize(tY, 0); vec2 cz = vec2(textureSize(tU, 0));
+  ivec2 q = ivec2(gl_FragCoord.xy);
+  float Y, U, V;
+  if (mode == 0) {
+    Y = texelFetch(tY, q, 0).r;
+    vec2 uv = (vec2(q) + .5) / vec2(ys);
+    U = nv12 == 1 ? cs(tU, 0, uv) : texture(tU, uv).r; V = nv12 == 1 ? cs(tU, 1, uv) : texture(tV, uv).r;
+  } else {
+    int f = mode - 1;
+    Y = texelFetch(tY, ivec2(q.x, min(2 * q.y + f, ys.y - 1)), 0).r;
+    // filas de color del campo f: 2i+f; fila de color continua del campo
+    float ic = (float(q.y) + .5) * .5 - .5; float i0 = floor(ic), w = ic - i0;
+    float r0 = clamp(2. * i0 + float(f), float(f), cz.y - 2. + float(f)), r1 = clamp(r0 + 2., float(f), cz.y - 2. + float(f));
+    float u = (float(q.x) + .5) / float(ys.x);
+    vec2 a = vec2(u, (r0 + .5) / cz.y), b = vec2(u, (r1 + .5) / cz.y);
+    if (nv12 == 1) { U = mix(cs(tU, 0, a), cs(tU, 0, b), w); V = mix(cs(tU, 1, a), cs(tU, 1, b), w); }
+    else { U = mix(texture(tU, a).r, texture(tU, b).r, w); V = mix(texture(tV, a).r, texture(tV, b).r, w); }
+  }
+  float y = full == 1 ? Y : (Y - 16. / 255.) * (255. / 219.);
+  float cb = full == 1 ? U - .5 : (U - 128. / 255.) * (255. / 224.);
+  float cr = full == 1 ? V - .5 : (V - 128. / 255.) * (255. / 224.);
+  vec3 c = m709 == 1 ? vec3(y + 1.5748 * cr, y - .1873 * cb - .4681 * cr, y + 1.8556 * cb)
+                     : vec3(y + 1.402 * cr, y - .344136 * cb - .714136 * cr, y + 1.772 * cb);
+  o = vec4(clamp(c, 0., 1.), 1.);
+}`;
+// Respaldo para cuadros que ya vienen en RGB: copia o reconstrucción ELA del campo
+const FS_RGB = `#version 300 es
+precision highp float; uniform sampler2D tY; uniform int mode; out vec4 o;
+vec3 px(ivec2 q, ivec2 sz){ q = clamp(q, ivec2(0), sz - 1); return texelFetch(tY, q, 0).rgb; }
+void main(){
+  ivec2 sz = textureSize(tY, 0); ivec2 q = ivec2(gl_FragCoord.xy);
+  if (mode == 0) { o = vec4(px(q, sz), 1.); return; }
+  o = vec4(px(ivec2(q.x, 2 * q.y + mode - 1), sz), 1.);
+}`;
+// Paso 2: escalado bicúbico Catmull-Rom (9 lecturas) + nitidez; vOff ubica las líneas del campo en su altura real
+const FS_SCALE = `#version 300 es
+precision highp float; uniform sampler2D src; uniform vec2 outSz; uniform vec4 box; uniform float sharp, vOff, fullH; out vec4 o;
+vec3 cr(vec2 uv){
+  vec2 ts = vec2(textureSize(src, 0)); vec2 sp = uv * ts; vec2 tp1 = floor(sp - .5) + .5; vec2 f = sp - tp1;
+  vec2 w0 = f*(-.5 + f*(1. - .5*f)), w1 = 1. + f*f*(-2.5 + 1.5*f), w2 = f*(.5 + f*(2. - 1.5*f)), w3 = f*f*(-.5 + .5*f);
+  vec2 w12 = w1 + w2, off = w2 / w12; vec2 t0 = (tp1 - 1.) / ts, t3 = (tp1 + 2.) / ts, t12 = (tp1 + off) / ts;
+  vec3 r = vec3(0.);
+  r += texture(src, vec2(t0.x, t0.y)).rgb * w0.x * w0.y; r += texture(src, vec2(t12.x, t0.y)).rgb * w12.x * w0.y; r += texture(src, vec2(t3.x, t0.y)).rgb * w3.x * w0.y;
+  r += texture(src, vec2(t0.x, t12.y)).rgb * w0.x * w12.y; r += texture(src, vec2(t12.x, t12.y)).rgb * w12.x * w12.y; r += texture(src, vec2(t3.x, t12.y)).rgb * w3.x * w12.y;
+  r += texture(src, vec2(t0.x, t3.y)).rgb * w0.x * w3.y; r += texture(src, vec2(t12.x, t3.y)).rgb * w12.x * w3.y; r += texture(src, vec2(t3.x, t3.y)).rgb * w3.x * w3.y;
+  return r;
+}
+void main(){
+  vec2 fc = vec2(gl_FragCoord.x, outSz.y - gl_FragCoord.y);
+  vec2 uv = (fc - box.xy) / box.zw;
+  if (any(lessThan(uv, vec2(0.))) || any(greaterThan(uv, vec2(1.)))) { o = vec4(0., 0., 0., 1.); return; }
+  uv.y += vOff / fullH;
+  vec3 c = cr(uv);
+  if (sharp > 0.) {
+    vec2 t = 1. / vec2(textureSize(src, 0));
+    vec3 b = (texture(src, uv + vec2(t.x, 0.)).rgb + texture(src, uv - vec2(t.x, 0.)).rgb + texture(src, uv + vec2(0., t.y)).rgb + texture(src, uv - vec2(0., t.y)).rgb) * .25;
+    c += sharp * (c - b);
+  }
+  o = vec4(clamp(c, 0., 1.), 1.);
+}`;
+
+function makeRenderer(W, H, sharp, interlaced) {
+  const cv = new OffscreenCanvas(W, H);
+  const gl = cv.getContext('webgl2', { alpha: false, antialias: false, preserveDrawingBuffer: true, desynchronized: true });
+  const prog = (fs) => {
+    const P = gl.createProgram();
+    for (const [t, src] of [[gl.VERTEX_SHADER, VS], [gl.FRAGMENT_SHADER, fs]]) {
+      const x = gl.createShader(t); gl.shaderSource(x, src); gl.compileShader(x);
+      if (!gl.getShaderParameter(x, gl.COMPILE_STATUS)) throw new Error('Shader: ' + gl.getShaderInfoLog(x));
+      gl.attachShader(P, x);
+    }
+    gl.linkProgram(P); if (!gl.getProgramParameter(P, gl.LINK_STATUS)) throw new Error('Link: ' + gl.getProgramInfoLog(P));
+    return P;
+  };
+  const pYuv = prog(FS_YUV), pRgb = prog(FS_RGB), pScale = prog(FS_SCALE);
+  const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+  const quad = P => { const l = gl.getAttribLocation(P, 'p'); gl.enableVertexAttribArray(l); gl.vertexAttribPointer(l, 2, gl.FLOAT, false, 0, 0); };
+  const U = (P, n) => gl.getUniformLocation(P, n);
+  const mk = () => { const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); return t; };
+  const tY = mk(), tU = mk(), tV = mk(), tMid = mk(); const fb = gl.createFramebuffer();
+  let sw = 0, sh = 0, box = null, kind = '', bufMem = null, nv12 = 0, full = 0, m709 = 1;
+  function init(fr) {
+    sw = fr.visibleRect.width; sh = fr.visibleRect.height;
+    gl.bindTexture(gl.TEXTURE_2D, tMid);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, sw, interlaced ? sh >> 1 : sh, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tMid, 0);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    const dw = fr.displayWidth, dh = fr.displayHeight; // proporción real (corrige pixeles anamórficos 1440×1080)
+    const k = Math.min(W / dw, H / dh), bw = Math.round(dw * k), bh = Math.round(dh * k);
+    box = [Math.round((W - bw) / 2), Math.round((H - bh) / 2), bw, bh];
+    kind = fr.format === 'I420' ? 'yuv' : fr.format === 'NV12' ? 'yuv' : 'rgb'; nv12 = fr.format === 'NV12' ? 1 : 0;
+    const csp = fr.colorSpace || {}; full = csp.fullRange ? 1 : 0; m709 = csp.matrix === 'smpte170m' || csp.matrix === 'bt470bg' ? 0 : 1;
+    log(`GPU: cuadro ${fr.format} ${sw}×${sh} → ${W}×${H}, matriz ${m709 ? 'bt709' : 'bt601'} ${full ? 'completo' : 'limitado'}${interlaced ? ', por campos' : ''}`);
+  }
+  const plane = (t, fmt, w, h, data, layout) => {
+    gl.bindTexture(gl.TEXTURE_2D, t); gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    gl.pixelStorei(gl.UNPACK_ROW_LENGTH, layout.stride / (fmt === gl.RG ? 2 : 1));
+    gl.texImage2D(gl.TEXTURE_2D, 0, fmt === gl.RG ? gl.RG8 : gl.R8, w, h, 0, fmt, gl.UNSIGNED_BYTE, new Uint8Array(data.buffer, layout.offset));
+    gl.pixelStorei(gl.UNPACK_ROW_LENGTH, 0);
+  };
+  return {
+    canvas: cv,
+    async upload(fr) {
+      if (!box) init(fr);
+      if (kind === 'yuv') {
+        const size = fr.allocationSize(); if (!bufMem || bufMem.length < size) bufMem = new Uint8Array(size);
+        const L = await fr.copyTo(bufMem);
+        const cw = (sw + 1) >> 1, ch = (sh + 1) >> 1;
+        plane(tY, gl.RED, sw, sh, bufMem, L[0]);
+        if (nv12) plane(tU, gl.RG, cw, ch, bufMem, L[1]);
+        else { plane(tU, gl.RED, cw, ch, bufMem, L[1]); plane(tV, gl.RED, cw, ch, bufMem, L[2]); }
+      } else {
+        gl.bindTexture(gl.TEXTURE_2D, tY); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, fr);
+      }
+    },
+    draw(mode) {
+      const P = kind === 'yuv' ? pYuv : pRgb;
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fb); gl.viewport(0, 0, sw, interlaced ? sh >> 1 : sh); gl.useProgram(P); quad(P);
+      gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, tY); gl.uniform1i(U(P, 'tY'), 0);
+      if (kind === 'yuv') {
+        gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, tU); gl.uniform1i(U(P, 'tU'), 1);
+        gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, tV); gl.uniform1i(U(P, 'tV'), 2);
+        gl.uniform1i(U(P, 'nv12'), nv12); gl.uniform1i(U(P, 'full'), full); gl.uniform1i(U(P, 'm709'), m709);
+      }
+      gl.uniform1i(U(P, 'mode'), mode);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, W, H); gl.useProgram(pScale); quad(pScale);
+      gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, tMid); gl.uniform1i(U(pScale, 'src'), 0);
+      gl.uniform2f(U(pScale, 'outSz'), W, H); gl.uniform4f(U(pScale, 'box'), ...box); gl.uniform1f(U(pScale, 'sharp'), sharp);
+      gl.uniform1f(U(pScale, 'vOff'), mode === 0 ? 0 : .5 - (mode - 1)); gl.uniform1f(U(pScale, 'fullH'), sh);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    },
+  };
+}
+
+async function convertGPU(item) {
+  const F = FMT[fmt], f = item.f;
+  MB = MB || await import('./lib/mediabunny.min.js');
+  const mnt = '/in' + Date.now();
+  await ffmpeg.createDir(mnt); await ffmpeg.mount('WORKERFS', { files: [f] }, mnt);
+  const src = `${mnt}/${f.name}`;
+  let output = null, writable = null;
+  try {
+    item.state = 'Analizando'; item.cls = 'run'; render();
+    const p = await probe(src);
+    item.state = 'Analizando cuadros'; render();
+    p.interlaced = await isInterlaced(src, p.dur || 30); p.bff = isInterlaced.bff;
+    // audio con ffmpeg (las videocámaras graban AC-3, que el navegador no decodifica)
+    if (p.hasAudio) {
+      item.state = 'Audio'; render();
+      onProg = t => { item.pct = Math.min(4, t / (p.dur || 1) * 4); paint(item); };
+      await ffmpeg.exec(['-i', src, '-vn', '-map', '0:a:0', '-c:a', 'aac', '-b:a', '320k', '-ar', '48000', '-ac', '2', '/a.m4a']);
+      onProg = null;
+    }
+    const input = new MB.Input({ formats: MB.ALL_FORMATS, source: new MB.BlobSource(f) });
+    const vt = await input.getPrimaryVideoTrack();
+    if (!vt || !(await vt.canDecode())) throw new Error('La GPU no puede decodificar este video');
+    const t0in = await input.getFirstTimestamp();
+    const dur = (await input.computeDuration()) - t0in || p.dur;
+    const sw = await vt.getSquarePixelWidth(), sh = await vt.getSquarePixelHeight();
+    const fieldOrder = p.interlaced ? (p.bff ? 2 : 1) : 0;
+    const fpsIn = p.fps, outFps = p.interlaced && fpsIn * 2 <= 61 ? fpsIn * 2 : fpsIn;
+    const fx = (r => r.includes('/') ? r.split('/')[0] / r.split('/')[1] : +r)(rate(outFps));
+    item.info = `${sw}×${sh} ${p.interlaced ? 'entrelazado' : 'progresivo'} ${fpsIn.toFixed(2)} fps · ${fmtT(dur)} → ${F.w}×${F.h} ${fx.toFixed(2)} fps · GPU`;
+    render();
+
+    const R = makeRenderer(F.w, F.h, fmt === '4k' ? 0.45 : 0.25, !!fieldOrder);
+    // salida MP4 estándar
+    const name = outName(f); let finish;
+    if (dirHandle) { const fh = await dirHandle.getFileHandle(name, { create: true }); writable = await fh.createWritable(); finish = async () => null; }
+    else {
+      const segs = []; writable = new WritableStream({ write(c) { segs.push({ p: c.position, d: c.data.slice() }); } });
+      finish = async () => { const keep = []; for (const w of segs) { const h = keep.find(k => w.p >= k.p && w.p + w.d.length <= k.p + k.d.length); if (h) h.d.set(w.d, w.p - h.p); else keep.push(w); } keep.sort((a, b) => a.p - b.p); return URL.createObjectURL(new Blob(keep.map(k => k.d), { type: 'video/mp4' })); };
+    }
+    output = new MB.Output({ format: new MB.Mp4OutputFormat({ fastStart: false }), target: new MB.StreamTarget(writable, { chunked: true }) });
+    const vsrc = new MB.CanvasSource(R.canvas, {
+      codec: 'avc', bitrate: fmt === '4k' ? 100e6 : 40e6, keyFrameInterval: 1,
+      hardwareAcceleration: gpuState.hw ? 'prefer-hardware' : 'no-preference', latencyMode: 'quality',
+    });
+    output.addVideoTrack(vsrc, { frameRate: fx });
+    let asrc = null, ainput = null;
+    if (p.hasAudio) { asrc = new MB.EncodedAudioPacketSource('aac'); output.addAudioTrack(asrc); }
+    await output.start();
+
+    // audio: se agrega intercalado con el video conforme avanza
+    let apk = [], ai = 0, aMeta = null;
+    if (asrc) {
+      const abytes = await ffmpeg.readFile('/a.m4a'); await ffmpeg.deleteFile('/a.m4a');
+      ainput = new MB.Input({ formats: MB.ALL_FORMATS, source: new MB.BufferSource(abytes) });
+      const at = await ainput.getPrimaryAudioTrack();
+      aMeta = { decoderConfig: await at.getDecoderConfig() };
+      for await (const k of new MB.EncodedPacketSink(at).packets()) apk.push(k);
+    }
+    const pushAudioUntil = async t => { while (ai < apk.length && apk[ai].timestamp <= t) { await asrc.add(apk[ai], ai === 0 ? aMeta : undefined); ai++; } };
+
+    const t0 = performance.now(); let n = 0;
+    const half = 0.5 / fpsIn;
+    for await (const sample of new MB.VideoSampleSink(vt).samples()) {
+      const ts = sample.timestamp - t0in;
+      const frame = sample.toVideoFrame(); await R.upload(frame); frame.close();
+      const fields = fieldOrder ? [fieldOrder, 3 - fieldOrder] : [0];
+      for (let k = 0; k < fields.length; k++) {
+        const tOut = Math.round((ts + k * half) * fx) / fx;
+        if (asrc) await pushAudioUntil(tOut);
+        R.draw(fields[k]);
+        await vsrc.add(tOut, 1 / fx);
+        n++;
+      }
+      sample.close();
+      if (n % 10 < fields.length) { const done = Math.min(1, ts / dur); item.pct = 4 + done * 96; eta(item, t0, done); paint(item); }
+    }
+    if (asrc) await pushAudioUntil(Infinity);
+    await output.finalize(); output = null;
+    item.url = await finish();
+    item.pct = 100; item.state = dirHandle ? 'Listo · guardado en tu carpeta' : 'Listo'; item.cls = 'ok';
+    const secs = (performance.now() - t0) / 1000;
+    item.info += ` · tardó ${fmtT(secs)} (${(n / secs).toFixed(1)} cuadros/s)`;
+    window.__lastSpeed = n / secs;
+  } finally {
+    onProg = null;
+    if (output) { try { await output.cancel(); } catch (e) { } }
+    try { await ffmpeg.unmount(mnt); await ffmpeg.deleteDir(mnt); } catch (e) { }
+  }
+}
+
 const rate = f => Math.abs(f - 59.94) < 0.05 ? '60000/1001' : Math.abs(f - 29.97) < 0.05 ? '30000/1001' : Math.abs(f - 23.976) < 0.05 ? '24000/1001' : String(Math.round(f * 1000) / 1000);
 // Bloques cuya duración coincide a la vez con cuadros de video y paquetes AAC (1024 muestras a 48 kHz): uniones sin huecos
 function alignedFrames(fx, target) {
@@ -336,7 +602,13 @@ $('#go').onclick = async () => {
   window.onbeforeunload = () => 'Hay una conversión en curso';
   for (const item of files) {
     if (item.cls === 'ok') continue;
-    try { item.pct = 0; await convert(item); }
+    try {
+      item.pct = 0;
+      if ($('#acc').checked && gpuState.ok) {
+        try { await convertGPU(item); }
+        catch (e) { log('GPU: ' + (e.stack || e)); item.info = ''; item.state = 'Modo compatible'; render(); await convert(item); }
+      } else await convert(item);
+    }
     catch (e) { item.state = 'Error'; item.cls = 'err'; item.info = (item.info ? item.info + ' · ' : '') + e.message; log(String(e.stack || e)); }
     render();
   }
