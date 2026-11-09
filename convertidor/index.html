@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Convertidor MTS · AM Medinas</title>
+<script src="coi-serviceworker.min.js"></script>
+<style>
+:root{--bg:#0d1117;--card:#161b24;--card2:#1d2430;--line:#2a3342;--tx:#e9edf3;--mut:#93a0b4;--or:#e8913a;--or2:#ffb066;--ok:#3fbf8f;--err:#ef6b5a;--bl:#4c8dff}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(1200px 600px at 80% -10%,#2a1d10 0,transparent 60%),var(--bg);color:var(--tx);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;min-height:100vh}
+.wrap{max-width:920px;margin:0 auto;padding:28px 16px 60px}
+header{display:flex;align-items:center;gap:14px;margin-bottom:22px}
+.logo{width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,var(--or),#b85c17);display:grid;place-items:center;font-weight:900;font-size:18px;color:#fff;flex:none}
+h1{font-size:24px;margin:0;line-height:1.15}
+.sub{color:var(--mut);font-size:14px;margin-top:3px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;margin-bottom:16px}
+.step{font-size:12px;font-weight:800;letter-spacing:.12em;color:var(--or2);text-transform:uppercase;margin-bottom:12px}
+.fmt{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.opt{position:relative;border:2px solid var(--line);background:var(--card2);border-radius:16px;padding:16px;cursor:pointer;text-align:left;color:var(--tx);font:inherit;transition:.15s}
+.opt:hover{border-color:#44516a}
+.opt.on{border-color:var(--or);box-shadow:0 0 0 4px rgba(232,145,58,.15)}
+.opt .big{font-size:30px;font-weight:900;letter-spacing:-.02em}
+.opt .nm{font-weight:700;margin-top:2px}
+.opt .sp{color:var(--mut);font-size:13px;margin-top:8px;line-height:1.45}
+.opt .badge{position:absolute;top:12px;right:12px;background:var(--or);color:#fff;font-size:11px;font-weight:800;padding:4px 8px;border-radius:20px}
+.drop{border:2px dashed #3a4558;border-radius:16px;padding:28px 16px;text-align:center;cursor:pointer;transition:.15s;background:rgba(255,255,255,.015)}
+.drop.hv{border-color:var(--or);background:rgba(232,145,58,.06)}
+.drop b{font-size:17px}
+.drop .mut{color:var(--mut);font-size:13px;margin-top:6px}
+.btn{appearance:none;border:0;border-radius:14px;padding:14px 22px;font:inherit;font-weight:800;font-size:16px;cursor:pointer;background:var(--or);color:#fff;transition:.15s}
+.btn:hover{filter:brightness(1.08)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.sec{background:var(--card2);border:1px solid var(--line);color:var(--tx);font-size:14px;padding:11px 16px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.list{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+.it{background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.it .top{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.it .name{font-weight:700;word-break:break-all;font-size:14px}
+.it .meta{color:var(--mut);font-size:12px;margin-top:3px}
+.st{font-size:12px;font-weight:800;padding:4px 9px;border-radius:20px;background:#283142;color:var(--mut);white-space:nowrap}
+.st.run{background:rgba(76,141,255,.15);color:#8db5ff}.st.ok{background:rgba(63,191,143,.15);color:var(--ok)}.st.err{background:rgba(239,107,90,.15);color:var(--err)}
+.bar{height:8px;background:#0f141c;border-radius:6px;overflow:hidden;margin-top:10px}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--or),var(--or2));transition:width .3s}
+.dl{display:inline-block;margin-top:10px;color:#fff;background:var(--ok);text-decoration:none;font-weight:800;font-size:14px;padding:9px 14px;border-radius:10px}
+.x{background:none;border:0;color:var(--mut);cursor:pointer;font-size:18px;padding:0 4px}
+.note{color:var(--mut);font-size:13px;line-height:1.55}
+.note b{color:var(--tx)}
+.status{font-size:13px;color:var(--mut);margin-top:10px;min-height:18px}
+.dest{font-size:13px;color:var(--mut)}
+.dest b{color:var(--ok)}
+details{margin-top:6px}summary{cursor:pointer;color:var(--mut);font-size:13px}
+pre{white-space:pre-wrap;font-size:11px;color:#7f8ba0;max-height:180px;overflow:auto;background:#0b0f15;padding:10px;border-radius:10px}
+@media(max-width:600px){.fmt{grid-template-columns:1fr}h1{font-size:20px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">AM</div>
+    <div><h1>Convertidor de video MTS</h1><div class="sub">AM Medinas · Fotografía y video · Convierte .MTS de videocámara a MP4</div></div>
+  </header>
+
+  <div class="card">
+    <div class="step">1 · Elige el formato</div>
+    <div class="fmt">
+      <button class="opt on" data-fmt="4k" type="button">
+        <span class="badge">Calidad DJI Air 3S</span>
+        <div class="big">4K</div><div class="nm">Ultra HD 3840 × 2160</div>
+        <div class="sp">Mismos parámetros que tu dron: 3840×2160, hasta 59.94 cuadros por segundo, color bt709, ~100 Mbps (H.264, MP4)</div>
+      </button>
+      <button class="opt" data-fmt="hd" type="button">
+        <div class="big">HD</div><div class="nm">Full HD 1920 × 1080</div>
+        <div class="sp">1920×1080, hasta 59.94 cuadros por segundo, ~40 Mbps (H.264, MP4). Más rápido y archivos más ligeros</div>
+      </button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="step">2 · Selecciona tus videos</div>
+    <div class="drop" id="drop">
+      <b>Toca o arrastra aquí tus archivos .MTS</b>
+      <div class="mut">También acepta .M2TS, .MP4, .MOV · puedes elegir varios</div>
+    </div>
+    <input id="file" type="file" multiple accept=".mts,.m2ts,.MTS,.M2TS,.mp4,.mov,video/*" hidden>
+    <div class="list" id="list"></div>
+  </div>
+
+  <div class="card">
+    <div class="step">3 · Convierte</div>
+    <div class="row">
+      <button class="btn" id="go" disabled>Convertir</button>
+      <button class="btn sec" id="folder" hidden>Elegir carpeta de destino</button>
+      <span class="dest" id="dest"></span>
+    </div>
+    <div class="status" id="status">Cargando motor de video…</div>
+    <details><summary>Detalles técnicos</summary><pre id="log"></pre></details>
+  </div>
+
+  <div class="note">
+    <b>Todo ocurre en tu computadora:</b> tus videos no se suben a ningún servidor. Usa <b>Chrome o Edge en computadora</b>; el 4K exige mucho y en celular puede no terminar. No cierres ni minimices la pestaña mientras convierte.<br>
+    <b>Sobre la calidad:</b> la app iguala la resolución, los cuadros por segundo, el color y el bitrate de tu DJI. El detalle real depende de la cámara con la que se grabó: el 4K hace que tu video de videocámara se vea mejor en pantallas 4K y empate con las tomas del dron en tu edición, pero no inventa detalle que la cámara no captó.
+  </div>
+</div>
+
+<script src="ffmpeg/ffmpeg.js"></script>
+<script src="lib/mux.min.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+const FMT = {
+  '4k': { w: 3840, h: 2160, vb: '100M', max: '120M', buf: '200M', preset: 'ultrafast', tag: '4K' },
+  'hd': { w: 1920, h: 1080, vb: '40M', max: '50M', buf: '80M', preset: 'veryfast', tag: 'HD' },
+};
+let fmt = '4k', files = [], busy = false, dirHandle = null, ffmpeg, ready = false, logBuf = [];
+
+document.querySelectorAll('.opt').forEach(b => b.onclick = () => {
+  if (busy) return;
+  document.querySelectorAll('.opt').forEach(x => x.classList.remove('on'));
+  b.classList.add('on'); fmt = b.dataset.fmt; render();
+});
+
+// --- selección de archivos
+const drop = $('#drop'), inp = $('#file');
+drop.onclick = () => inp.click();
+inp.onchange = () => { add([...inp.files]); inp.value = ''; };
+['dragenter', 'dragover'].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.add('hv'); }));
+['dragleave', 'drop'].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.remove('hv'); }));
+drop.addEventListener('drop', ev => add([...ev.dataTransfer.files]));
+function add(fs) { if (busy) return; fs.forEach(f => files.push({ f, state: 'Pendiente', cls: '', pct: 0, url: null, info: '' })); render(); }
+const mb = n => n > 1e9 ? (n / 1e9).toFixed(2) + ' GB' : (n / 1e6).toFixed(1) + ' MB';
+const outName = f => f.name.replace(/\.[^.]+$/, '') + `_${FMT[fmt].tag}.mp4`;
+function render() {
+  $('#list').innerHTML = files.map((x, i) => `<div class="it">
+    <div class="top"><div><div class="name">${x.f.name}</div><div class="meta">${mb(x.f.size)}${x.info ? ' · ' + x.info : ''}</div></div>
+    <div class="row"><span class="st ${x.cls}">${x.state}</span>${busy ? '' : `<button class="x" data-i="${i}" title="Quitar">×</button>`}</div></div>
+    ${x.cls === 'run' || x.pct ? `<div class="bar"><i style="width:${x.pct}%"></i></div>` : ''}
+    ${x.url ? `<a class="dl" href="${x.url}" download="${outName(x.f)}">Descargar ${outName(x.f)}</a>` : ''}
+  </div>`).join('');
+  $('#list').querySelectorAll('.x').forEach(b => b.onclick = () => { files.splice(+b.dataset.i, 1); render(); });
+  $('#go').disabled = !ready || busy || !files.some(x => x.cls !== 'ok');
+}
+function log(m) { logBuf.push(m); if (logBuf.length > 400) logBuf.shift(); $('#log').textContent = logBuf.join('\n'); }
+const status = t => $('#status').textContent = t;
+
+// --- carpeta de destino (Chrome/Edge): escribe directo al disco, ideal para archivos grandes
+if (window.showDirectoryPicker) {
+  $('#folder').hidden = false;
+  $('#folder').onclick = async () => {
+    try { dirHandle = await showDirectoryPicker({ mode: 'readwrite' }); $('#dest').innerHTML = `Se guardará en: <b>${dirHandle.name}</b>`; } catch (e) { }
+  };
+}
+
+// --- motor
+(async () => {
+  try {
+    const qp = new URLSearchParams(location.search);
+    const mt = qp.get('engine') === 'st' ? false : (window.crossOriginIsolated && navigator.hardwareConcurrency > 1);
+    const base = new URL('.', location.href).href;
+    ffmpeg = new FFmpegWASM.FFmpeg();
+    ffmpeg.on('log', ({ message }) => { log(message); onLog && onLog(message); });
+    ffmpeg.on('progress', ({ time }) => onProg && onProg(time / 1e6));
+    const dir = mt ? 'core-mt/' : 'core/';
+    const cfg = { coreURL: base + dir + 'ffmpeg-core.js', wasmURL: base + dir + 'ffmpeg-core.wasm' };
+    if (mt) cfg.workerURL = base + dir + 'ffmpeg-core.worker.js';
+    status('Descargando motor de video (~32 MB, solo la primera vez)…');
+    await ffmpeg.load(cfg);
+    ready = true; window.__engine = mt ? 'mt' : 'st';
+    status(`Listo. Motor ${mt ? 'multinúcleo' : 'de un núcleo'}${mt ? ' (' + navigator.hardwareConcurrency + ' núcleos)' : ''}. Elige tus videos y presiona Convertir.`);
+    render();
+  } catch (e) { status('No se pudo cargar el motor de video: ' + e.message + '. Usa Chrome o Edge actualizado.'); log(String(e.stack || e)); }
+})();
+let onLog = null, onProg = null;
+// En el motor multinúcleo el codificador debe ir en un hilo (los hilos de x264 fallan en WebAssembly)
+const X264T = ['-threads', '1'];
+
+// --- análisis del video de entrada
+async function probe(path) {
+  const lines = []; onLog = m => lines.push(m);
+  await ffmpeg.exec(['-hide_banner', '-i', path]); onLog = null;
+  const all = lines.join('\n');
+  const d = /Duration: (\d+):(\d+):([\d.]+)/.exec(all);
+  const dur = d ? (+d[1]) * 3600 + (+d[2]) * 60 + parseFloat(d[3]) : 0;
+  const vl = lines.find(l => /Stream #.*Video:/.test(l)) || '';
+  const fps = parseFloat((/([\d.]+) fps/.exec(vl) || [])[1] || (/([\d.]+) tbr/.exec(vl) || [])[1] || 30);
+  const interlaced = /top first|bottom first|top coded first|bottom coded first|\btff\b|\bbff\b/i.test(vl);
+  const res = (/ (\d{3,5})x(\d{3,5})/.exec(vl) || []);
+  const hasAudio = lines.some(l => /Stream #.*Audio:/.test(l));
+  return { dur, fps, interlaced, w: +res[1] || 0, h: +res[2] || 0, hasAudio };
+}
+
+async function writer(name) {
+  if (dirHandle) {
+    const fh = await dirHandle.getFileHandle(name, { create: true });
+    const ws = await fh.createWritable();
+    return { write: b => ws.write(b), close: async () => { await ws.close(); return null; } };
+  }
+  const parts = [];
+  return { write: async b => parts.push(b), close: async () => URL.createObjectURL(new Blob(parts, { type: 'video/mp4' })) };
+}
+
+async function convert(item) {
+  const F = FMT[fmt], f = item.f;
+  const mnt = '/in' + Date.now();
+  await ffmpeg.createDir(mnt);
+  await ffmpeg.mount('WORKERFS', { files: [f] }, mnt);
+  const src = `${mnt}/${f.name}`;
+  try {
+    item.state = 'Analizando'; item.cls = 'run'; render();
+    const p = await probe(src);
+    if (!p.dur) throw new Error('No se pudo leer la duración del video');
+    // Entrelazado (típico de .MTS 1080i): se convierte a progresivo al doble de cuadros, como el DJI a 59.94
+    let outFps = p.fps, deint = '';
+    if (p.interlaced) { deint = 'bwdif=mode=send_field:parity=auto:deint=all,'; outFps = p.fps * 2; }
+    if (outFps > 61) outFps = p.fps;
+    item.info = `${p.w}×${p.h} ${p.interlaced ? 'entrelazado' : 'progresivo'} ${p.fps.toFixed(2)} fps · ${fmtT(p.dur)} → ${F.w}×${F.h} ${outFps.toFixed(2)} fps`;
+    render();
+    const vf = `${deint}scale=${F.w}:${F.h}:flags=lanczos:force_original_aspect_ratio=decrease,pad=${F.w}:${F.h}:(ow-iw)/2:(oh-ih)/2,setsar=1${fmt === '4k' ? ',unsharp=3:3:0.35' : ''},format=yuv420p`;
+    const gop = String(Math.round(outFps));
+
+    // 1) audio de todo el video en una sola pasada (sin cortes ni chasquidos)
+    if (p.hasAudio) {
+      item.state = 'Audio'; render();
+      onProg = t => { item.pct = Math.min(3, t / p.dur * 3); paint(item); };
+      await ffmpeg.exec(['-i', src, '-vn', '-map', '0:a:0', '-c:a', 'aac', '-b:a', '320k', '-ar', '48000', '-ac', '2', '/a.m4a']);
+    }
+    // 2) video por bloques para no agotar la memoria del navegador
+    const chunk = +(new URLSearchParams(location.search).get('chunk')) || (fmt === '4k' ? 21 : 42);
+    const fx = (r => r.includes('/') ? r.split('/')[0] / r.split('/')[1] : +r)(rate(outFps)); // cuadros por segundo exactos
+    const cf = alignedFrames(fx, chunk);             // cuadros por bloque, alineados con los paquetes de audio
+    const n = Math.ceil(p.dur * fx / cf - 1e-6);
+    const out = await writer(outName(f));
+    const tx = new muxjs.mp4.Transmuxer({ keepOriginalTimestamps: true, remux: true });
+    let initDone = false, pending = [];
+    tx.on('data', seg => {
+      if (!initDone) { pending.push(seg.initSegment); initDone = true; }
+      pending.push(seg.data);
+    });
+    const t0 = performance.now();
+    for (let i = 0; i < n; i++) {
+      const s = i * cf / fx, last = i === n - 1, d = last ? p.dur - s : cf / fx;
+      item.state = `Bloque ${i + 1} de ${n}`; render();
+      onProg = t => { const done = (s + Math.max(0, Math.min(t, d))) / p.dur; item.pct = 3 + done * 97; eta(item, t0, done); paint(item); };
+      // salto aproximado (rápido) + ajuste fino exacto al cuadro
+      const coarse = Math.max(0, s - 10), fine = s - coarse;
+      const args = ['-ss', coarse.toFixed(6), '-i', src];
+      if (p.hasAudio) args.push('-ss', coarse.toFixed(6), '-i', '/a.m4a');
+      const seekPt = coarse + Math.max(0, fine - 1e-5);
+      args.push('-ss', (seekPt - coarse).toFixed(6), '-t', (last ? d + 1 : (cf - 0.5) / fx).toFixed(6), '-map', '0:v:0');
+      if (p.hasAudio) args.push('-map', '1:a:0', '-c:a', 'copy');
+      args.push('-vf', vf, '-r', rate(outFps),
+        '-c:v', 'libx264', ...X264T, '-preset', F.preset, '-profile:v', 'high', '-level:v', fmt === '4k' ? '5.2' : '4.2',
+        '-b:v', F.vb, '-maxrate', F.max, '-bufsize', F.buf, '-bf', '0', '-g', gop, '-keyint_min', gop, '-sc_threshold', '0',
+        '-color_primaries', 'bt709', '-color_trc', 'bt709', '-colorspace', 'bt709', '-color_range', 'tv',
+        '-output_ts_offset', seekPt.toFixed(6), '-muxdelay', '0', '-muxpreload', '0', '-f', 'mpegts', '/c.ts');
+      const rc = await ffmpeg.exec(args);
+      if (rc !== 0) throw new Error('Error al convertir el bloque ' + (i + 1));
+      const data = await ffmpeg.readFile('/c.ts');
+      await ffmpeg.deleteFile('/c.ts');
+      tx.push(data); tx.flush();
+      for (const b of pending) await out.write(b);
+      pending = [];
+    }
+    if (p.hasAudio) await ffmpeg.deleteFile('/a.m4a');
+    item.url = await out.close();
+    item.pct = 100; item.state = dirHandle ? 'Listo · guardado en tu carpeta' : 'Listo'; item.cls = 'ok';
+    item.info += ` · tardó ${fmtT((performance.now() - t0) / 1000)}`;
+  } finally {
+    onProg = null;
+    try { await ffmpeg.unmount(mnt); await ffmpeg.deleteDir(mnt); } catch (e) { }
+  }
+}
+const rate = f => Math.abs(f - 59.94) < 0.05 ? '60000/1001' : Math.abs(f - 29.97) < 0.05 ? '30000/1001' : Math.abs(f - 23.976) < 0.05 ? '24000/1001' : String(Math.round(f * 1000) / 1000);
+// Bloques cuya duración coincide a la vez con cuadros de video y paquetes AAC (1024 muestras a 48 kHz): uniones sin huecos
+function alignedFrames(fx, target) {
+  let unit = 0;
+  for (let a = 1; a <= 4000; a++) { const b = a / fx * 48000 / 1024; if (Math.abs(b - Math.round(b)) < 1e-6) { unit = a; break; } }
+  if (!unit) return Math.round(target * fx);
+  return Math.max(unit, Math.round(target * fx / unit) * unit);
+}
+const fmtT = s => { s = Math.round(s); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return (h ? h + ' h ' : '') + (h || m ? m + ' min ' : '') + x + ' s'; };
+function eta(item, t0, done) { if (done > 0.01) { const el = (performance.now() - t0) / 1000; status(`Convirtiendo ${item.f.name} · ${Math.floor(item.pct)}% · faltan aprox. ${fmtT(el / done - el)}`); } }
+function paint(item) { const i = files.indexOf(item); const el = $('#list').children[i]; if (el) { const b = el.querySelector('.bar i'); if (b) b.style.width = item.pct + '%'; } }
+
+$('#go').onclick = async () => {
+  busy = true; render();
+  let lock = null; try { lock = await navigator.wakeLock?.request('screen'); } catch (e) { }
+  window.onbeforeunload = () => 'Hay una conversión en curso';
+  for (const item of files) {
+    if (item.cls === 'ok') continue;
+    try { item.pct = 0; await convert(item); }
+    catch (e) { item.state = 'Error'; item.cls = 'err'; item.info = (item.info ? item.info + ' · ' : '') + e.message; log(String(e.stack || e)); }
+    render();
+  }
+  busy = false; window.onbeforeunload = null; try { lock && lock.release(); } catch (e) { }
+  const ok = files.filter(x => x.cls === 'ok').length;
+  status(`Terminado: ${ok} de ${files.length} video(s) convertidos.${dirHandle ? '' : ' Presiona Descargar en cada uno.'}`);
+  render();
+};
+</script>
+</body>
+</html>
