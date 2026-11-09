@@ -164,6 +164,11 @@
   #appRoot{display:none;}
   .lg-panel{display:none;}
   .lg-panel.active{display:block;}
+  .lg-admin{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;margin:4px 0 14px;padding:11px 14px;border-radius:10px;border:2px solid #7a2a6e;background:#fbf2f9;color:#7a2a6e;font-weight:700;font-size:14px;cursor:pointer;}
+  .lg-admin:hover{background:#7a2a6e;color:#fff;}
+  .lg-admin.on{background:#7a2a6e;color:#fff;}
+  .lg-sep{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px;margin:0 0 10px;}
+  .lg-sep::before,.lg-sep::after{content:'';flex:1;border-top:1px solid #d9dbe6;}
   .lg-links{display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; margin-top:12px; font-size:12.5px;}
   .lg-link{background:none; border:none; padding:0; color:var(--teal); text-decoration:underline; cursor:pointer; font-size:12.5px;}
   :root:not([data-theme="light"]) .lg-link{color:#8fb8e0;}
@@ -231,6 +236,8 @@
       <div class="lg-panel active" id="pnlLogin">
         <h2>Iniciar sesión</h2>
         <p class="sub">Accede para capturar y consultar el programa</p>
+        <button type="button" class="lg-admin" id="btnAdmin">🔐 Entrar como administrador</button>
+        <div class="lg-sep">o con tu usuario</div>
         <form id="loginForm">
           <div class="lg-field"><label>Usuario</label><input type="text" id="lg_user" autocomplete="username" required></div>
           <div class="lg-field"><label>Contraseña</label><input type="password" id="lg_pass" autocomplete="current-password" required></div>
@@ -257,7 +264,7 @@
 
       <div class="lg-panel" id="pnlOlvido">
         <h2>Restablecer contraseña</h2>
-        <p class="lg-info">Escribe tu usuario y tu nueva contraseña. Solo funciona desde la misma cuenta de Claude con la que te diste de alta; si no, pide al administrador que restablezca tu cuenta.</p>
+        <p class="lg-info">Escribe tu usuario y tu nueva contraseña. Solo funciona desde el mismo dispositivo con el que te diste de alta; si no, pide al administrador que restablezca tu cuenta.</p>
         <form id="olvidoForm">
           <div class="lg-field"><label>Usuario</label><input type="text" id="ol_user" autocomplete="username" required></div>
           <div class="lg-field"><label>Nueva contraseña</label><input type="password" id="ol_pass" autocomplete="new-password" required></div>
@@ -611,7 +618,7 @@
 
 </main>
 
-<footer>Datos compartidos entre todas las personas con acceso a esta página · Metrocolor de México</footer>
+<footer>Los datos se guardan en este dispositivo · Para compartirlos usa ⬇ Respaldo y ⬆ Cargar respaldo · Metrocolor de México</footer>
 
 <div class="modal-bg" id="modalBg">
   <div class="modal">
@@ -642,6 +649,7 @@ const ROL_LABEL = {administrador:'Administrador', supervisor:'Supervisor', audit
 let session = null; // {user, role, label}
 let cuentas = {};   // usuario -> {usuario, nombre, rol, estado, salt, hash, uid}
 let cuentasCargadas = false;
+let entrarComoAdmin = false;
 let myUid = null, amOwner = false;
 let resolveReady; const ready = new Promise(r=>resolveReady=r);
 
@@ -672,7 +680,20 @@ function cuentaASesion(c){ return {user:c.usuario, role:c.rol, label:c.nombre ||
 
 function setupLogin(){
   document.querySelectorAll('.lg-link[data-go]').forEach(el=>el.addEventListener('click', ()=>showPanel(el.dataset.go)));
+  document.getElementById('lg_user').addEventListener('input', ()=>{ entrarComoAdmin = false; document.getElementById('btnAdmin').classList.remove('on'); });
   showPanel('pnlEspera');
+
+  document.getElementById('btnAdmin').addEventListener('click', async ()=>{
+    await ready;
+    const admins = Object.values(cuentas).filter(c=>c.rol==='administrador' && c.estado==='activo');
+    if(!admins.length){ lgMsg('No hay una cuenta de administrador activa en este dispositivo. Abre la app con el link completo (con la clave).'); return; }
+    const preferida = admins.find(c=>c.uid && c.uid===myUid) || admins[0];
+    document.getElementById('lg_user').value = preferida.usuario;
+    entrarComoAdmin = true;
+    document.getElementById('btnAdmin').classList.add('on');
+    lgMsg('', 'Administrador: '+(preferida.nombre || preferida.usuario)+'. Escribe tu contraseña y presiona Iniciar sesión.');
+    const pw = document.getElementById('lg_pass'); pw.value=''; pw.focus();
+  });
 
   document.getElementById('loginForm').addEventListener('submit', async (e)=>{
     e.preventDefault();
@@ -686,7 +707,12 @@ function setupLogin(){
     lgMsg('');
     const remember = document.getElementById('lg_remember').checked;
     try{ (remember ? localStorage : sessionStorage).setItem(SES_KEY, JSON.stringify({user:c.usuario})); }catch(err){}
+    // liga la cuenta a este dispositivo para que "¿Olvidaste tu contraseña?" funcione aquí
+    if(myUid && c.uid!==myUid){ try{ await db.doc('cuentas/'+c.usuario).set({...c, uid: myUid}); }catch(err){ console.error(err); } }
+    const irAUsuarios = entrarComoAdmin && c.rol==='administrador';
+    entrarComoAdmin = false; document.getElementById('btnAdmin').classList.remove('on');
     enterApp(cuentaASesion(c));
+    if(irAUsuarios){ const t = document.querySelector('#tabs button[data-tab="usuarios"]'); if(t) t.click(); }
   });
 
   document.getElementById('altaForm').addEventListener('submit', async (e)=>{
@@ -719,7 +745,7 @@ function setupLogin(){
     if(!db){ lgMsg('Sin conexión con la base de datos. Recarga la página.'); return; }
     if(!c){ lgMsg('Ese usuario no está registrado.'); return; }
     if(c.estado==='pendiente'){ lgMsg('Tu cuenta aún no tiene contraseña. Usa "Darme de alta (crear mi contraseña)".'); return; }
-    if(!myUid || c.uid!==myUid){ lgMsg('No pudimos confirmar que esta cuenta es tuya desde este acceso de Claude. Pide al administrador que la restablezca en la pestaña Usuarios y después usa "Darme de alta".'); return; }
+    if(!myUid || c.uid!==myUid){ lgMsg('No pudimos confirmar que esta cuenta es tuya desde este dispositivo. Pide al administrador que la restablezca en la pestaña Usuarios y después usa "Darme de alta".'); return; }
     const v = validarPass(p1,p2); if(v){ lgMsg(v); return; }
     try{
       const salt = newSalt();
@@ -966,6 +992,13 @@ async function init(){
     const userCap = window.claude?.use ? await window.claude.use('user') : null;
     if(userCap){ myUid = await userCap.id(); amOwner = await userCap.isOwner(); }
   }catch(e){ myUid = null; }
+  // Fuera de Claude (GitHub Pages) no hay cuenta de Claude: se usa un id fijo de este dispositivo
+  // y quien abre con la clave del link puede hacer la configuración inicial de administrador.
+  if(!myUid){
+    try{ myUid = localStorage.getItem('papel_dispositivo'); if(!myUid){ myUid = 'disp-'+Date.now().toString(36)+Math.random().toString(36).slice(2,10); localStorage.setItem('papel_dispositivo', myUid); } }
+    catch(e){ myUid = 'disp-sesion'; }
+    amOwner = true;
+  }
   if(db){
     statusEl.textContent = '● Guardado en este dispositivo';
     subscribeCuentas();
