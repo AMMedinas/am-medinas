@@ -69,7 +69,7 @@ pre{white-space:pre-wrap;font-size:11px;color:#7f8ba0;max-height:180px;overflow:
       <button class="opt on" data-fmt="4k" type="button">
         <span class="badge">Calidad DJI Air 3S</span>
         <div class="big">4K</div><div class="nm">Ultra HD 3840 × 2160</div>
-        <div class="sp">Mismos parámetros que tu dron: 3840×2160, hasta 59.94 cuadros por segundo, color bt709, ~100 Mbps (H.264, MP4)</div>
+        <div class="sp">Como tu dron: 3840×2160 en H.265 a 59.94 cuadros por segundo y 80 Mbps con el acelerador de tarjeta de video. Sin H.265 en tu tarjeta: H.264 4K a 30 cuadros por segundo para que se reproduzca fluido.</div>
       </button>
       <button class="opt" data-fmt="hd" type="button">
         <div class="big">HD</div><div class="nm">Full HD 1920 × 1080</div>
@@ -110,7 +110,7 @@ pre{white-space:pre-wrap;font-size:11px;color:#7f8ba0;max-height:180px;overflow:
 <script>
 const $ = s => document.querySelector(s);
 const FMT = {
-  '4k': { w: 3840, h: 2160, vb: '100M', max: '120M', buf: '200M', preset: 'superfast', tag: '4K' },
+  '4k': { w: 3840, h: 2160, vb: '80M', max: '100M', buf: '160M', preset: 'superfast', tag: '4K' },
   'hd': { w: 1920, h: 1080, vb: '40M', max: '50M', buf: '80M', preset: 'veryfast', tag: 'HD' },
 };
 let fmt = '4k', files = [], busy = false, dirHandle = null, ffmpeg, ready = false, logBuf = [];
@@ -270,9 +270,13 @@ async function convert(item) {
     // análisis real de cuadros: muchas cámaras graban 30p "envuelto" en 60i (PsF); sólo se desentrelaza si de verdad lo es
     item.state = 'Analizando cuadros'; render();
     p.interlaced = await isInterlaced(src, p.dur);
+    const cap = fmt === '4k' ? 31 : 61;   // H.264 4K a más de 30 cps se traba al reproducir en muchos equipos
     let outFps = p.fps, deint = '';
-    if (p.interlaced) { deint = 'bwdif=mode=send_field:parity=auto:deint=all,'; outFps = p.fps * 2; }
-    if (outFps > 61) outFps = p.fps;
+    if (p.interlaced) {
+      if (p.fps * 2 <= cap) { deint = 'bwdif=mode=send_field:parity=auto:deint=all,'; outFps = p.fps * 2; }
+      else deint = 'bwdif=mode=send_frame:parity=auto:deint=all,';
+    }
+    if (outFps > cap) outFps = outFps / 2;
     item.info = `${p.w}×${p.h} ${p.interlaced ? 'entrelazado' : 'progresivo'} ${p.fps.toFixed(2)} fps · ${fmtT(p.dur)} → ${F.w}×${F.h} ${outFps.toFixed(2)} fps`;
     render();
     const vf = `${deint}scale=${F.w}:${F.h}:flags=lanczos:force_original_aspect_ratio=decrease,pad=${F.w}:${F.h}:(ow-iw)/2:(oh-ih)/2,setsar=1${fmt === '4k' ? ',unsharp=5:5:0.8:3:3:0.4' : ',unsharp=3:3:0.3'},format=yuv420p`;
@@ -303,7 +307,7 @@ async function convert(item) {
       args.push('-ss', (seekPt - coarse).toFixed(6), '-t', (last ? d + 1 : (cf - 0.5) / fx).toFixed(6), '-map', '0:v:0');
       if (p.hasAudio) args.push('-map', '1:a:0', '-c:a', 'copy');
       args.push('-vf', vf, '-r', rate(outFps),
-        '-c:v', 'libx264', ...X264T, '-preset', F.preset, '-profile:v', 'high', '-level:v', fmt === '4k' ? '5.2' : '4.2',
+        '-c:v', 'libx264', ...X264T, '-preset', F.preset, '-profile:v', 'high', '-level:v', fmt === '4k' ? '5.1' : '4.2',
         '-b:v', F.vb, '-maxrate', F.max, '-bufsize', F.buf, '-bf', '0', '-g', gop, '-keyint_min', gop, '-sc_threshold', '0',
         '-color_primaries', 'bt709', '-color_trc', 'bt709', '-colorspace', 'bt709', '-color_range', 'tv',
         '-output_ts_offset', seekPt.toFixed(6), '-muxdelay', '0', '-muxpreload', '0', '-f', 'mpegts', '/c.ts');
@@ -338,12 +342,16 @@ async function gpuCheck() {
     let gpuName = '';
     try { const ext = gl && gl.getExtension('WEBGL_debug_renderer_info'); gpuName = ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : ''; } catch (e) { }
     const softGL = /swiftshader|llvmpipe|software|basic render/i.test(gpuName);
-    gpuState = { ok: !!(any.supported && dec.supported && gl), hw: !!hw.supported && !softGL, name: gpuName };
-    log(`GPU: ${gpuName || 'desconocida'} · codificador por hardware: ${hw.supported ? 'sí' : 'no'}`);
+    let hevc = false;
+    for (const c of ['hvc1.1.6.L153.B0', 'hev1.1.6.L153.B0']) {
+      try { const r = await VideoEncoder.isConfigSupported({ codec: c, width: 3840, height: 2160, bitrate: 80e6, framerate: 60, hardwareAcceleration: 'prefer-hardware' }); if (r.supported) { hevc = true; break; } } catch (e) { }
+    }
+    gpuState = { ok: !!(any.supported && dec.supported && gl), hw: !!hw.supported && !softGL, hevc: hevc && !softGL, name: gpuName };
+    log(`GPU: ${gpuName || 'desconocida'} · H.264 por hardware: ${hw.supported ? 'sí' : 'no'} · H.265 por hardware: ${hevc ? 'sí' : 'no'}`);
   } catch (e) { log('gpuCheck: ' + e.message); }
   const info = $('#accInfo');
   if (!gpuState.ok) { $('#acc').checked = false; $('#acc').disabled = true; info.textContent = 'no disponible en este navegador'; }
-  else if (gpuState.hw) { $('#acc').checked = true; info.textContent = 'tarjeta de video detectada · mucho más rápido'; }
+  else if (gpuState.hw) { $('#acc').checked = true; info.textContent = gpuState.hevc ? 'tarjeta de video detectada · 4K en H.265 como tu DJI' : 'tarjeta de video detectada · mucho más rápido'; }
   else { $('#acc').checked = false; info.textContent = 'sin tarjeta de video compatible · se usa el modo normal'; }
 }
 
@@ -417,7 +425,8 @@ void main(){
   o = vec4(clamp(c, 0., 1.), 1.);
 }`;
 
-function makeRenderer(W, H, sharp, interlaced) {
+function makeRenderer(W, H, sharp) {
+  let interlaced = false;
   const cv = new OffscreenCanvas(W, H);
   const gl = cv.getContext('webgl2', { alpha: false, antialias: false, preserveDrawingBuffer: true, desynchronized: true });
   const prog = (fs) => {
@@ -449,7 +458,8 @@ function makeRenderer(W, H, sharp, interlaced) {
     const dw = fr.displayWidth, dh = fr.displayHeight; // proporción real (corrige pixeles anamórficos 1440×1080)
     const k = Math.min(W / dw, H / dh), bw = Math.round(dw * k), bh = Math.round(dh * k);
     box = [Math.round((W - bw) / 2), Math.round((H - bh) / 2), bw, bh];
-    kind = fr.format === 'I420' ? 'yuv' : fr.format === 'NV12' ? 'yuv' : 'rgb'; nv12 = fr.format === 'NV12' ? 1 : 0;
+    // progresivo: el cuadro va directo de la GPU a la textura (sin copiar a memoria); entrelazado: planos YUV por campo
+    kind = interlaced && (fr.format === 'I420' || fr.format === 'NV12') ? 'yuv' : 'rgb'; nv12 = fr.format === 'NV12' ? 1 : 0;
     const csp = fr.colorSpace || {}; full = csp.fullRange ? 1 : 0; m709 = csp.matrix === 'smpte170m' || csp.matrix === 'bt470bg' ? 0 : 1;
     log(`GPU: cuadro ${fr.format} ${sw}×${sh} → ${W}×${H}, matriz ${m709 ? 'bt709' : 'bt601'} ${full ? 'completo' : 'limitado'}${interlaced ? ', por campos' : ''}`);
   }
@@ -461,6 +471,7 @@ function makeRenderer(W, H, sharp, interlaced) {
   };
   return {
     canvas: cv,
+    setInterlaced(v) { interlaced = v; },
     async upload(fr) {
       if (!box) init(fr);
       if (kind === 'yuv') {
@@ -471,7 +482,8 @@ function makeRenderer(W, H, sharp, interlaced) {
         if (nv12) plane(tU, gl.RG, cw, ch, bufMem, L[1]);
         else { plane(tU, gl.RED, cw, ch, bufMem, L[1]); plane(tV, gl.RED, cw, ch, bufMem, L[2]); }
       } else {
-        gl.bindTexture(gl.TEXTURE_2D, tY); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, gl.RGBA, gl.UNSIGNED_BYTE, fr);
+        gl.bindTexture(gl.TEXTURE_2D, tY); gl.pixelStorei(gl.UNPACK_ALIGNMENT, 4);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, fr.displayWidth, fr.displayHeight, 0, gl.RGBA, gl.UNSIGNED_BYTE, fr);
       }
     },
     draw(mode) {
@@ -519,13 +531,20 @@ async function convertGPU(item) {
     const t0in = await input.getFirstTimestamp();
     const dur = (await input.computeDuration()) - t0in || p.dur;
     const sw = await vt.getSquarePixelWidth(), sh = await vt.getSquarePixelHeight();
-    const fieldOrder = p.interlaced ? (p.bff ? 2 : 1) : 0;
-    const fpsIn = p.fps, outFps = p.interlaced && fpsIn * 2 <= 61 ? fpsIn * 2 : fpsIn;
+    // 4K en H.265 (como el DJI) si la tarjeta lo permite; si no, H.264 4K limitado a 30 cps para que se reproduzca fluido en cualquier equipo
+    const hevc = fmt === '4k' && gpuState.hevc;
+    const cap = fmt === '4k' && !hevc ? 31 : 61;
+    let fieldOrder = p.interlaced ? (p.bff ? 2 : 1) : 0;
+    const fpsIn = p.fps;
+    let bothFields = fieldOrder && fpsIn * 2 <= cap;
+    let outFps = fieldOrder ? (bothFields ? fpsIn * 2 : fpsIn) : fpsIn;
+    if (outFps > cap) outFps = outFps / 2;
     const fx = (r => r.includes('/') ? r.split('/')[0] / r.split('/')[1] : +r)(rate(outFps));
-    item.info = `${sw}×${sh} ${p.interlaced ? 'entrelazado' : 'progresivo'} ${fpsIn.toFixed(2)} fps · ${fmtT(dur)} → ${F.w}×${F.h} ${fx.toFixed(2)} fps · GPU`;
+    const codecName = hevc ? 'H.265' : 'H.264';
+    item.info = `${sw}×${sh} ${p.interlaced ? 'entrelazado' : 'progresivo'} ${fpsIn.toFixed(2)} fps · ${fmtT(dur)} → ${F.w}×${F.h} ${fx.toFixed(2)} fps ${codecName} · GPU`;
     render();
 
-    const R = makeRenderer(F.w, F.h, fmt === '4k' ? 0.45 : 0.25, !!fieldOrder);
+    const R = makeRenderer(F.w, F.h, fmt === '4k' ? 0.45 : 0.25);
     // salida MP4 estándar
     const name = outName(f); let finish;
     if (dirHandle) { const fh = await dirHandle.getFileHandle(name, { create: true }); writable = await fh.createWritable(); finish = async () => null; }
@@ -535,7 +554,7 @@ async function convertGPU(item) {
     }
     output = new MB.Output({ format: new MB.Mp4OutputFormat({ fastStart: false }), target: new MB.StreamTarget(writable, { chunked: true }) });
     const vsrc = new MB.CanvasSource(R.canvas, {
-      codec: 'avc', bitrate: fmt === '4k' ? 100e6 : 40e6, keyFrameInterval: 1,
+      codec: hevc ? 'hevc' : 'avc', bitrate: fmt === '4k' ? 80e6 : 40e6, keyFrameInterval: 1,
       hardwareAcceleration: gpuState.hw ? 'prefer-hardware' : 'no-preference', latencyMode: 'quality',
     });
     output.addVideoTrack(vsrc, { frameRate: fx });
@@ -554,21 +573,30 @@ async function convertGPU(item) {
     }
     const pushAudioUntil = async t => { while (ai < apk.length && apk[ai].timestamp <= t) { await asrc.add(apk[ai], ai === 0 ? aMeta : undefined); ai++; } };
 
-    const t0 = performance.now(); let n = 0;
+    const t0 = performance.now(); let n = 0, lastT = -1, first = true;
     const half = 0.5 / fpsIn;
     for await (const sample of new MB.VideoSampleSink(vt).samples()) {
       const ts = sample.timestamp - t0in;
-      const frame = sample.toVideoFrame(); await R.upload(frame); frame.close();
-      const fields = fieldOrder ? [fieldOrder, 3 - fieldOrder] : [0];
+      const frame = sample.toVideoFrame();
+      if (first) {
+        first = false;
+        // algunas cámaras entregan cada campo como imagen de media altura: entonces cada muestra ya es un instante distinto
+        if (fieldOrder && p.h && frame.displayHeight < p.h * 0.75) { fieldOrder = 0; log('GPU: el decodificador entrega campos sueltos'); }
+        R.setInterlaced(!!fieldOrder);
+      }
+      await R.upload(frame); frame.close();
+      const fields = fieldOrder ? (bothFields ? [fieldOrder, 3 - fieldOrder] : [fieldOrder]) : [0];
       for (let k = 0; k < fields.length; k++) {
         const tOut = Math.round((ts + k * half) * fx) / fx;
+        if (tOut <= lastT + 1e-6) continue;   // nunca repetir ni encimar cuadros
+        lastT = tOut;
         if (asrc) await pushAudioUntil(tOut);
         R.draw(fields[k]);
         await vsrc.add(tOut, 1 / fx);
         n++;
       }
       sample.close();
-      if (n % 10 < fields.length) { const done = Math.min(1, ts / dur); item.pct = 4 + done * 96; eta(item, t0, done); paint(item); }
+      if (n % 10 === 0) { const done = Math.min(1, ts / dur); item.pct = 4 + done * 96; eta(item, t0, done); paint(item); }
     }
     if (asrc) await pushAudioUntil(Infinity);
     await output.finalize(); output = null;
