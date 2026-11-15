@@ -5,6 +5,7 @@
 // Uso: node construir.js <carpetaSitio>
 const fs = require('fs');
 const path = require('path');
+const vm = require('vm');
 const JO = require('javascript-obfuscator');
 
 const OMITIR_DIRS = ['convertidor'];   // se sirven tal cual
@@ -37,12 +38,18 @@ function ofuscarHtml(html, rel) {
     if (!tipoEsJS(attrs)) return full;
     if (!code.trim()) return full;
     try {
-      const ofus = JO.obfuscate(code, OPCIONES).getObfuscatedCode();
+      let ofus = JO.obfuscate(code, OPCIONES).getObfuscatedCode();
+      // 1) Evita que una secuencia </script dentro del código cierre la etiqueta
+      //    antes de tiempo (equivalente en JS, pero ya no rompe el HTML).
+      ofus = ofus.replace(/<\/(script)/gi, '<\\/$1');
+      // 2) Valida la sintaxis; si no es válido, se deja el original de ese bloque.
+      const esModulo = /type\s*=\s*["']?module/i.test(attrs);
+      if (!esModulo) new vm.Script(ofus);   // lanza si hay error de sintaxis
       n++;
       return `<script${attrs}>${ofus}</script>`;
     } catch (e) {
       saltados++;
-      console.error(`  ⚠ ${rel}: bloque sin ofuscar (${e.message.split('\n')[0]})`);
+      console.error(`  ⚠ ${rel}: bloque sin ofuscar, se dejó el original (${e.message.split('\n')[0]})`);
       return full;   // ante la duda, se deja el original
     }
   });
