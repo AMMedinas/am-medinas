@@ -3,3 +3,9 @@ android/app/*.jks
 android/app/*.keystore
 *.jks
 *.keystore
+
+# Carpetas de construcción del sitio ofuscado (se generan en CI)
+_src/
+_site/
+node_modules/
+package-lock.json
