@@ -1,0 +1,5 @@
+# Llaves de firma: NUNCA subir al repo
+android/app/*.jks
+android/app/*.keystore
+*.jks
+*.keystore

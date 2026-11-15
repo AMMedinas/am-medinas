@@ -21,9 +21,24 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
+      - name: Preparar la llave de firma (si está configurada)
+        env:
+          KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$GITHUB_WORKSPACE/android/app/firma.jks"
+            echo "KEYSTORE_FILE=$GITHUB_WORKSPACE/android/app/firma.jks" >> "$GITHUB_ENV"
+            echo "Firma real: lista."
+          else
+            echo "Sin secret KEYSTORE_B64: se usará la firma de depuración."
+          fi
       - name: Compilar la app
         id: build
         continue-on-error: true
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: gradle -p android assembleRelease --no-daemon --stacktrace 2>&1 | tee /tmp/compilacion.log
       - name: Guardar el resultado en el repositorio
         run: |

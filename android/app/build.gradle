@@ -10,12 +10,31 @@ android {
         versionCode 6
         versionName '1.5'
     }
+
+    // --- Firma real (opcional): se usa solo si existe el keystore y sus claves.
+    // Mientras no estén configuradas (secrets de GitHub), el build sigue usando
+    // la firma de depuración y NO se rompe.
+    def rutaKeystore = System.getenv('KEYSTORE_FILE')
+    def hayFirmaReal = rutaKeystore != null && !rutaKeystore.isEmpty() && file(rutaKeystore).exists() &&
+                       System.getenv('KEYSTORE_PASSWORD') != null
+    signingConfigs {
+        release {
+            if (hayFirmaReal) {
+                storeFile file(rutaKeystore)
+                storePassword System.getenv('KEYSTORE_PASSWORD')
+                keyAlias System.getenv('KEY_ALIAS')
+                keyPassword System.getenv('KEY_PASSWORD') ?: System.getenv('KEYSTORE_PASSWORD')
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled true          // R8: ofusca y elimina código no usado (dificulta la ingeniería inversa)
             shrinkResources true         // elimina recursos no usados del APK
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.debug
+            // Firma real si está configurada; si no, la de depuración (para no romper el build).
+            signingConfig hayFirmaReal ? signingConfigs.release : signingConfigs.debug
         }
     }
     compileOptions {
