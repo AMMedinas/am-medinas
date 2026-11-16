@@ -236,10 +236,16 @@ let stream = null, facing = 'user';
 async function abrirCamara(deviceId) {
   if (stream) stream.getTracks().forEach((t) => t.stop());
   const v = deviceId ? { deviceId: { exact: deviceId } } : { facingMode: facing };
-  stream = await navigator.mediaDevices.getUserMedia({ video: Object.assign(v, { width: { ideal: 1920 }, height: { ideal: 1080 } }), audio: false });
+  stream = await navigator.mediaDevices.getUserMedia({ video: Object.assign(v, {
+    width: { ideal: 3840 }, height: { ideal: 2160 }, frameRate: { ideal: 30 },
+    advanced: [{ focusMode: 'continuous' }]
+  }), audio: false });
   cam.srcObject = stream;
   await cam.play().catch(() => {});
-  const s = stream.getVideoTracks()[0].getSettings();
+  const track = stream.getVideoTracks()[0];
+  try { await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }); } catch (e) {}
+  prepararFoto();
+  const s = track.getSettings();
   cam.classList.toggle('trasera', s.facingMode === 'environment');
   const devs = (await navigator.mediaDevices.enumerateDevices()).filter((d) => d.kind === 'videoinput');
   $('#sCam').innerHTML = devs.map((d, i) => `<option value="${d.deviceId}" ${d.deviceId === s.deviceId ? 'selected' : ''}>${d.label || 'Cámara ' + (i + 1)}</option>`).join('');
@@ -288,6 +294,54 @@ function analizar(cv) {
     } catch (e) {}
   }
   return r;
+}
+
+// ---------------- captura nítida (automática en cualquier teléfono)
+let imgCap = null, maxFoto = null;
+function prepararFoto() {                        // prepara foto real si el equipo la soporta
+  imgCap = null; maxFoto = null;
+  try {
+    const track = stream && stream.getVideoTracks()[0];
+    if (track && 'ImageCapture' in window) {
+      imgCap = new ImageCapture(track);
+      imgCap.getPhotoCapabilities().then((c) => {
+        maxFoto = { w: c.imageWidth && c.imageWidth.max, h: c.imageHeight && c.imageHeight.max };
+      }).catch(() => { maxFoto = null; });
+    }
+  } catch (e) { imgCap = null; }
+}
+function cuadroVideo() {                          // cuadro del video a su resolución nativa
+  const c = document.createElement('canvas');
+  c.width = cam.videoWidth; c.height = cam.videoHeight;
+  c.getContext('2d').drawImage(cam, 0, 0);
+  return c;
+}
+async function fotoReal() {                       // foto de obturador rápido (si se puede): mata el movido
+  if (!imgCap) return null;
+  try {
+    const ops = {};
+    if (maxFoto && maxFoto.w && maxFoto.h) { ops.imageWidth = maxFoto.w; ops.imageHeight = maxFoto.h; }
+    const blob = await imgCap.takePhoto(ops);
+    const bmp = await createImageBitmap(blob);
+    const arV = cam.videoWidth / cam.videoHeight, arF = bmp.width / bmp.height;
+    if (!isFinite(arF) || Math.abs(arF - arV) > 0.25) { if (bmp.close) bmp.close(); return null; } // orientación distinta: descartar
+    const c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height;
+    c.getContext('2d').drawImage(bmp, 0, 0); if (bmp.close) bmp.close();
+    return c;
+  } catch (e) { imgCap = null; return null; }     // si falla, se usa el video
+}
+async function capturarNitida(ms) {               // ráfaga corta y nos quedamos con el cuadro más nítido
+  const t0 = Date.now(), cand = [];
+  const real = await fotoReal();
+  if (real) cand.push(real);
+  const objetivo = real ? 2 : 6;
+  while (cand.length < objetivo && Date.now() - t0 < (ms || 1400)) {
+    const cv = cuadroVideo(); cand.push(cv);
+    if (nitidez(cv) > 0.6) break;                 // ya salió muy nítida
+    await sleep(70);
+  }
+  cand.sort((a, b) => nitidez(b) - nitidez(a));
+  return cand[0] || cuadroVideo();
 }
 
 // ---------------- composición de postales (marco, filtro, stickers, marca de agua)
@@ -392,7 +446,7 @@ function mosaico(cards) {
   cards.forEach((k, i) => g.drawImage(k, p + (i % 3) * (tw + p), p + Math.floor(i / 3) * (th + p), tw, th));
   return c;
 }
-const aBlob = (c, q = .92) => new Promise((r) => c.toBlob(r, 'image/jpeg', q));
+const aBlob = (c, q = .95) => new Promise((r) => c.toBlob(r, 'image/jpeg', q));
 
 // ---------------- grabación del video 360 (con marca de agua quemada)
 function tipoVideo() {
@@ -593,14 +647,15 @@ async function tomar() {
     for (let i = 0; i < 6; i++) {
       const t0 = Date.now();
       $('#msg').textContent = `Foto ${i + 1} de 6`;
-      let raw, intentos = 0;
-      while (true) {
-        raw = document.createElement('canvas'); raw.width = cam.videoWidth; raw.height = cam.videoHeight;
-        raw.getContext('2d').drawImage(cam, 0, 0);
-        flash();
-        const a = analizar(raw), motivo = a.blur < .3 ? 'una foto movida' : a.cerrados ? 'ojos cerrados' : '';
-        if (motivo && intentos < 2 && Date.now() - t0 < RAFAGA - 700) { intentos++; $('#note').textContent = `La IA detectó ${motivo}: repetimos la foto ${i + 1}`; await sleep(300); continue; }
-        break;
+      flash();
+      let raw = await capturarNitida(RAFAGA - 700);
+      let a = analizar(raw);
+      if ((a.blur < .3 || a.cerrados) && Date.now() - t0 < RAFAGA - 700) {   // salió mal: un intento más
+        $('#note').textContent = `La IA detectó ${a.blur < .3 ? 'una foto movida' : 'ojos cerrados'}: repetimos la foto ${i + 1}`;
+        await sleep(200);
+        const raw2 = await capturarNitida(RAFAGA - 1000);
+        if (nitidez(raw2) >= nitidez(raw)) raw = raw2;
+        a = analizar(raw);
       }
       $('#note').textContent = '';
       crudas.push(raw);
