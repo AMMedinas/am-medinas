@@ -11,19 +11,22 @@ android {
         versionName '1.5'
     }
 
-    // --- Firma real (opcional): se usa solo si existe el keystore y sus claves.
-    // Mientras no estén configuradas (secrets de GitHub), el build sigue usando
-    // la firma de depuración y NO se rompe.
+    // --- Firma real (opcional): se usa solo si existe el keystore y una contraseña.
+    // Acepta la contraseña desde KEYSTORE_PASSWORD o KEY_PASSWORD (la misma llave usa
+    // ambas), y el alias por defecto es 'cabina'. Si no hay contraseña, el build sigue
+    // con la firma de depuración y NO se rompe (ni con secrets vacíos).
     def rutaKeystore = System.getenv('KEYSTORE_FILE')
-    def hayFirmaReal = rutaKeystore != null && !rutaKeystore.isEmpty() && file(rutaKeystore).exists() &&
-                       System.getenv('KEYSTORE_PASSWORD') != null
+    def passStore = (System.getenv('KEYSTORE_PASSWORD') ?: System.getenv('KEY_PASSWORD') ?: '').trim()
+    def passKey   = (System.getenv('KEY_PASSWORD') ?: System.getenv('KEYSTORE_PASSWORD') ?: '').trim()
+    def aliasLlave = (System.getenv('KEY_ALIAS') ?: 'cabina').trim()
+    def hayFirmaReal = rutaKeystore != null && !rutaKeystore.isEmpty() && file(rutaKeystore).exists() && !passStore.isEmpty()
     signingConfigs {
         release {
             if (hayFirmaReal) {
                 storeFile file(rutaKeystore)
-                storePassword System.getenv('KEYSTORE_PASSWORD')
-                keyAlias System.getenv('KEY_ALIAS')
-                keyPassword System.getenv('KEY_PASSWORD') ?: System.getenv('KEYSTORE_PASSWORD')
+                storePassword passStore
+                keyAlias aliasLlave
+                keyPassword passKey
             }
         }
     }
