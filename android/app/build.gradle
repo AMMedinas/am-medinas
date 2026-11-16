@@ -18,7 +18,9 @@ android {
     def rutaKeystore = System.getenv('KEYSTORE_FILE')
     def passStore = (System.getenv('KEYSTORE_PASSWORD') ?: System.getenv('KEY_PASSWORD') ?: '').trim()
     def passKey   = (System.getenv('KEY_PASSWORD') ?: System.getenv('KEYSTORE_PASSWORD') ?: '').trim()
-    def aliasLlave = (System.getenv('KEY_ALIAS') ?: 'cabina').trim()
+    // El alias siempre es 'cabina' (con el que se generó la llave). Se ignora el
+    // secret KEY_ALIAS para evitar que un valor mal escrito rompa la firma.
+    def aliasLlave = 'cabina'
     def hayFirmaReal = rutaKeystore != null && !rutaKeystore.isEmpty() && file(rutaKeystore).exists() && !passStore.isEmpty()
     signingConfigs {
         release {
