@@ -21,31 +21,30 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - name: Preparar la llave de firma (si está configurada)
+      - name: Preparar la llave de firma
         env:
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEYSTORE_B64: ${{ secrets.KEYSTORE_B64 }}
         run: |
-          if [ -n "$KEYSTORE_B64" ]; then
-            echo "$KEYSTORE_B64" | base64 -d > "$GITHUB_WORKSPACE/android/app/firma.jks"
-            echo "KEYSTORE_FILE=$GITHUB_WORKSPACE/android/app/firma.jks" >> "$GITHUB_ENV"
-            echo "Firma real: lista."
-          else
-            echo "Sin secret KEYSTORE_B64: se usará la firma de depuración."
-          fi
-      - name: Diagnóstico de la firma (temporal)
-        env:
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: |
-          F="$GITHUB_WORKSPACE/android/app/firma.jks"
-          [ -f "$F" ] || { echo "no hay firma.jks"; exit 0; }
-          echo "SHA256 keystore decodificado: $(sha256sum "$F" | cut -d' ' -f1)"
-          echo "SHA256 esperado (bueno):      789f0eeebde3eb6ecedc7f51dcc767518e2df823b234c5cdc10638d15a5205ca"
-          echo "tamaño firma.jks: $(wc -c < "$F") bytes (esperado ~2632)"
-          echo "largo KEYSTORE_PASSWORD: ${#KEYSTORE_PASSWORD}  | largo KEY_PASSWORD: ${#KEY_PASSWORD}  (esperado 20)"
+          ENC="$GITHUB_WORKSPACE/android/app/firma.jks.enc"
+          OUT="$GITHUB_WORKSPACE/android/app/firma.jks"
           P="${KEYSTORE_PASSWORD:-$KEY_PASSWORD}"
-          echo "--- keytool -list con esa contraseña ---"
-          keytool -list -keystore "$F" -storepass "$P" 2>&1 | head -8 || true
+          if [ -f "$ENC" ] && [ -n "$P" ]; then
+            # Keystore cifrado en el repo: se descifra con la contraseña (secret).
+            if openssl enc -d -aes-256-cbc -pbkdf2 -in "$ENC" -out "$OUT" -pass pass:"$P" 2>/dev/null; then
+              echo "KEYSTORE_FILE=$OUT" >> "$GITHUB_ENV"
+              echo "Firma real: keystore descifrado ($(wc -c < "$OUT") bytes)."
+            else
+              echo "No se pudo descifrar el keystore (¿contraseña distinta?). Se usará la de depuración."
+            fi
+          elif [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$OUT"
+            echo "KEYSTORE_FILE=$OUT" >> "$GITHUB_ENV"
+            echo "Firma real: keystore desde KEYSTORE_B64."
+          else
+            echo "Sin keystore disponible: se usará la firma de depuración."
+          fi
       - name: Compilar la app
         id: build
         continue-on-error: true
