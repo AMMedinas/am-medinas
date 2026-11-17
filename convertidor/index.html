@@ -187,8 +187,9 @@ async function probe(path) {
   const fps = parseFloat((/([\d.]+) fps/.exec(vl) || [])[1] || (/([\d.]+) tbr/.exec(vl) || [])[1] || 30);
   const interlaced = /top first|bottom first|top coded first|bottom coded first|\btff\b|\bbff\b/i.test(vl);
   const res = (/ (\d{3,5})x(\d{3,5})/.exec(vl) || []);
-  const hasAudio = lines.some(l => /Stream #.*Audio:/.test(l));
-  return { dur, fps, interlaced, w: +res[1] || 0, h: +res[2] || 0, hasAudio };
+  const al = lines.find(l => /Stream #.*Audio:/.test(l)) || '';
+  const hasAudio = !!al, aac = /Audio: aac/.test(al);
+  return { dur, fps, interlaced, w: +res[1] || 0, h: +res[2] || 0, hasAudio, aac };
 }
 
 let MB = null;
@@ -330,29 +331,35 @@ async function convert(item) {
 
 // ===================== ACELERADOR GPU =====================
 // Decodifica con la GPU (WebCodecs), desentrelaza y escala a 4K con shaders WebGL y codifica H.264 por hardware.
-let gpuState = { ok: false, hw: false };
+let gpuState = { ok: false, hw: false, hwFmt: {} };
+async function encOK(cfg, hw) {
+  try { const r = await VideoEncoder.isConfigSupported({ ...cfg, hardwareAcceleration: hw ? 'prefer-hardware' : 'no-preference' }); return !!r.supported; } catch (e) { return false; }
+}
 async function gpuCheck() {
   try {
     if (!('VideoEncoder' in window) || !('VideoDecoder' in window)) return;
-    const base = { codec: 'avc1.640034', width: 3840, height: 2160, bitrate: 100e6, framerate: 60 };
-    const hw = await VideoEncoder.isConfigSupported({ ...base, hardwareAcceleration: 'prefer-hardware' });
-    const any = hw.supported ? hw : await VideoEncoder.isConfigSupported(base);
-    const dec = await VideoDecoder.isConfigSupported({ codec: 'avc1.640028' });
+    const CFG = {
+      hd: { codec: 'avc1.64002a', width: 1920, height: 1080, bitrate: 40e6, framerate: 60 },
+      '4k': { codec: 'avc1.640033', width: 3840, height: 2160, bitrate: 80e6, framerate: 30 },
+    };
     const gl = document.createElement('canvas').getContext('webgl2');
     let gpuName = '';
     try { const ext = gl && gl.getExtension('WEBGL_debug_renderer_info'); gpuName = ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : ''; } catch (e) { }
     const softGL = /swiftshader|llvmpipe|software|basic render/i.test(gpuName);
+    const hwFmt = {}, anyFmt = {};
+    for (const k in CFG) { hwFmt[k] = !softGL && await encOK(CFG[k], true); anyFmt[k] = hwFmt[k] || await encOK(CFG[k], false); }
     let hevc = false;
-    for (const c of ['hvc1.1.6.L153.B0', 'hev1.1.6.L153.B0']) {
-      try { const r = await VideoEncoder.isConfigSupported({ codec: c, width: 3840, height: 2160, bitrate: 80e6, framerate: 60, hardwareAcceleration: 'prefer-hardware' }); if (r.supported) { hevc = true; break; } } catch (e) { }
+    if (!softGL) for (const c of ['hvc1.1.6.L153.B0', 'hev1.1.6.L153.B0', 'hvc1.1.6.L150.B0']) {
+      if (await encOK({ codec: c, width: 3840, height: 2160, bitrate: 80e6, framerate: 60 }, true)) { hevc = true; break; }
     }
-    gpuState = { ok: !!(any.supported && dec.supported && gl), hw: !!hw.supported && !softGL, hevc: hevc && !softGL, name: gpuName };
-    log(`GPU: ${gpuName || 'desconocida'} · H.264 por hardware: ${hw.supported ? 'sí' : 'no'} · H.265 por hardware: ${hevc ? 'sí' : 'no'}`);
+    let dec = false; try { dec = !!(await VideoDecoder.isConfigSupported({ codec: 'avc1.640028' })).supported; } catch (e) { }
+    gpuState = { ok: !!(dec && gl && (anyFmt.hd || anyFmt['4k'])), anyFmt, hwFmt, hw: !!(hwFmt.hd || hwFmt['4k']), hevc, name: gpuName };
+    log(`GPU: ${gpuName || 'desconocida'} · H.264 HD por hardware: ${hwFmt.hd ? 'sí' : 'no'} · H.264 4K por hardware: ${hwFmt['4k'] ? 'sí' : 'no'} · H.265 4K: ${hevc ? 'sí' : 'no'}`);
   } catch (e) { log('gpuCheck: ' + e.message); }
   const info = $('#accInfo');
-  if (!gpuState.ok) { $('#acc').checked = false; $('#acc').disabled = true; info.textContent = 'no disponible en este navegador'; }
-  else if (gpuState.hw) { $('#acc').checked = true; info.textContent = gpuState.hevc ? 'tarjeta de video detectada · 4K en H.265 como tu DJI' : 'tarjeta de video detectada · mucho más rápido'; }
-  else { $('#acc').checked = false; info.textContent = 'sin tarjeta de video compatible · se usa el modo normal'; }
+  if (!gpuState.ok) { $('#acc').checked = false; $('#acc').disabled = true; info.textContent = 'no disponible en este navegador · usa Chrome o Edge actualizado'; }
+  else if (gpuState.hw) { $('#acc').checked = true; info.textContent = gpuState.hevc ? 'tarjeta de video activa · 4K en H.265 como tu DJI' : 'tarjeta de video activa · conversión rápida'; }
+  else { $('#acc').checked = true; info.textContent = 'códec nativo del navegador activo (sin aceleración de tarjeta detectada)'; }
 }
 
 const VS = `#version 300 es
@@ -506,7 +513,7 @@ function makeRenderer(W, H, sharp) {
   };
 }
 
-async function convertGPU(item) {
+async function convertGPU(item, opt = {}) {
   const F = FMT[fmt], f = item.f;
   MB = MB || await import('./lib/mediabunny.min.js');
   const mnt = '/in' + Date.now();
@@ -522,7 +529,7 @@ async function convertGPU(item) {
     if (p.hasAudio) {
       item.state = 'Audio'; render();
       onProg = t => { item.pct = Math.min(4, t / (p.dur || 1) * 4); paint(item); };
-      await ffmpeg.exec(['-i', src, '-vn', '-map', '0:a:0', '-c:a', 'aac', '-b:a', '320k', '-ar', '48000', '-ac', '2', '/a.m4a']);
+      await ffmpeg.exec(['-i', src, '-vn', '-map', '0:a:0', ...(p.aac ? ['-c:a', 'copy'] : ['-c:a', 'aac', '-b:a', '320k', '-ar', '48000', '-ac', '2']), '/a.m4a']);
       onProg = null;
     }
     const input = new MB.Input({ formats: MB.ALL_FORMATS, source: new MB.BlobSource(f) });
@@ -532,7 +539,8 @@ async function convertGPU(item) {
     const dur = (await input.computeDuration()) - t0in || p.dur;
     const sw = await vt.getSquarePixelWidth(), sh = await vt.getSquarePixelHeight();
     // 4K en H.265 (como el DJI) si la tarjeta lo permite; si no, H.264 4K limitado a 30 cps para que se reproduzca fluido en cualquier equipo
-    const hevc = fmt === '4k' && gpuState.hevc;
+    const hevc = fmt === '4k' && gpuState.hevc && opt.hevc !== false;
+    const useHW = opt.hw !== false && (hevc || gpuState.hwFmt[fmt]);
     const cap = fmt === '4k' && !hevc ? 31 : 61;
     let fieldOrder = p.interlaced ? (p.bff ? 2 : 1) : 0;
     const fpsIn = p.fps;
@@ -541,7 +549,7 @@ async function convertGPU(item) {
     if (outFps > cap) outFps = outFps / 2;
     const fx = (r => r.includes('/') ? r.split('/')[0] / r.split('/')[1] : +r)(rate(outFps));
     const codecName = hevc ? 'H.265' : 'H.264';
-    item.info = `${sw}×${sh} ${p.interlaced ? 'entrelazado' : 'progresivo'} ${fpsIn.toFixed(2)} fps · ${fmtT(dur)} → ${F.w}×${F.h} ${fx.toFixed(2)} fps ${codecName} · GPU`;
+    item.info = `${sw}×${sh} ${p.interlaced ? 'entrelazado' : 'progresivo'} ${fpsIn.toFixed(2)} fps · ${fmtT(dur)} → ${F.w}×${F.h} ${fx.toFixed(2)} fps ${codecName} · ${useHW ? 'tarjeta de video' : 'códec nativo'}`;
     render();
 
     const R = makeRenderer(F.w, F.h, fmt === '4k' ? 0.45 : 0.25);
@@ -555,7 +563,7 @@ async function convertGPU(item) {
     output = new MB.Output({ format: new MB.Mp4OutputFormat({ fastStart: false }), target: new MB.StreamTarget(writable, { chunked: true }) });
     const vsrc = new MB.CanvasSource(R.canvas, {
       codec: hevc ? 'hevc' : 'avc', bitrate: fmt === '4k' ? 80e6 : 40e6, keyFrameInterval: 1,
-      hardwareAcceleration: gpuState.hw ? 'prefer-hardware' : 'no-preference', latencyMode: 'quality',
+      hardwareAcceleration: useHW ? 'prefer-hardware' : 'no-preference', latencyMode: 'quality',
     });
     output.addVideoTrack(vsrc, { frameRate: fx });
     let asrc = null, ainput = null;
@@ -633,8 +641,15 @@ $('#go').onclick = async () => {
     try {
       item.pct = 0;
       if ($('#acc').checked && gpuState.ok) {
-        try { await convertGPU(item); }
-        catch (e) { log('GPU: ' + (e.stack || e)); item.info = ''; item.state = 'Modo compatible'; render(); await convert(item); }
+        const tries = [{}];
+        if (fmt === '4k' && gpuState.hevc) tries.push({ hevc: false });
+        if (gpuState.hwFmt[fmt] || gpuState.hevc) tries.push({ hw: false, hevc: false });
+        let done = false;
+        for (const t of tries) {
+          try { await convertGPU(item, t); done = true; break; }
+          catch (e) { log('GPU intento ' + JSON.stringify(t) + ': ' + (e.stack || e)); item.info = ''; item.pct = 0; item.state = 'Reintentando'; render(); }
+        }
+        if (!done) { item.state = 'Modo compatible (lento)'; render(); await convert(item); }
       } else await convert(item);
     }
     catch (e) { item.state = 'Error'; item.cls = 'err'; item.info = (item.info ? item.info + ' · ' : '') + e.message; log(String(e.stack || e)); }
