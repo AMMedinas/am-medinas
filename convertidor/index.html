@@ -96,7 +96,7 @@ pre{white-space:pre-wrap;font-size:11px;color:#7f8ba0;max-height:180px;overflow:
       <button class="btn sec" id="folder" hidden>Elegir carpeta de destino</button>
       <span class="dest" id="dest"></span>
     </div>
-    <div class="note" id="gpuWarn" hidden style="margin-top:10px;color:#ffb066"><b>Para máxima velocidad activa tu tarjeta de video en Chrome:</b> abre <b>chrome://settings/system</b>, enciende <b>“Usar aceleración de gráficos cuando esté disponible”</b> y reinicia Chrome. En laptop, en Windows ve a Configuración › Pantalla › Gráficos, elige Chrome y marca <b>Alto rendimiento</b>.</div>
+    <div class="note" id="gpuWarn" hidden style="margin-top:10px;color:#ffb066">Tu procesador está haciendo toda la conversión y funciona bien así. Para que además tu tarjeta de video ayude y vaya más rápido: en Chrome abre <b>chrome://settings/system</b>, enciende <b>“Usar aceleración de gráficos cuando esté disponible”</b> y reinicia Chrome (una sola vez).</div>
     <div class="status" id="status">Cargando motor de video…</div>
     <details><summary>Detalles técnicos</summary><pre id="log"></pre></details>
   </div>
@@ -288,7 +288,7 @@ async function convert(item) {
     if (p.hasAudio) {
       item.state = 'Audio'; render();
       onProg = t => { item.pct = Math.min(3, t / p.dur * 3); paint(item); };
-      await ffmpeg.exec(['-i', src, '-vn', '-map', '0:a:0', '-c:a', 'aac', '-b:a', '320k', '-ar', '48000', '-ac', '2', '/a.m4a']);
+      await ffmpeg.exec(['-i', src, '-vn', '-map', '0:a:0', '-c:a', 'aac', '-aac_coder', 'fast', '-b:a', '320k', '-ar', '48000', '-ac', '2', '/a.m4a']);
     }
     // 2) video por bloques para no agotar la memoria del navegador
     const chunk = +(new URLSearchParams(location.search).get('chunk')) || (fmt === '4k' ? 21 : 42);
@@ -360,7 +360,7 @@ async function gpuCheck() {
   const info = $('#accInfo');
   if (!gpuState.ok) { $('#acc').checked = false; $('#acc').disabled = true; info.textContent = 'no disponible en este navegador · usa Chrome o Edge actualizado'; }
   else if (gpuState.hw) { $('#acc').checked = true; info.textContent = gpuState.hevc ? 'tarjeta de video activa · 4K en H.265 como tu DJI' : 'tarjeta de video activa · conversión rápida'; }
-  else { $('#acc').checked = true; info.textContent = 'Chrome NO está usando tu tarjeta de video'; $('#gpuWarn').hidden = false; }
+  else { $('#acc').checked = true; info.textContent = 'procesador activo (todos los núcleos)'; $('#gpuWarn').hidden = false; }
 }
 
 const VS = `#version 300 es
@@ -514,26 +514,144 @@ function makeRenderer(W, H, sharp) {
   };
 }
 
+
+// ===================== AUDIO RÁPIDO =====================
+// Se toma sólo la pista de audio del archivo (lectura nativa, sin pasar el video por el motor wasm),
+// se decodifica el AC-3 de la videocámara y se codifica a AAC con el codificador nativo del navegador.
+let aacNative = null;
+async function hasNativeAAC() {
+  if (aacNative === null) { try { aacNative = !!(await AudioEncoder.isConfigSupported({ codec: 'mp4a.40.2', sampleRate: 48000, numberOfChannels: 2, bitrate: 320000 })).supported; } catch (e) { aacNative = false; } }
+  return aacNative;
+}
+async function audioFromM4A(bytes) {
+  const ain = new MB.Input({ formats: MB.ALL_FORMATS, source: new MB.BufferSource(bytes) });
+  const at = await ain.getPrimaryAudioTrack();
+  const meta = { decoderConfig: await at.getDecoderConfig() }, packets = [];
+  for await (const k of new MB.EncodedPacketSink(at).packets()) packets.push(k);
+  return { packets, meta };
+}
+async function getAudio(item, src, p, input, t0in) {
+  try {
+    const at = await input.getPrimaryAudioTrack();
+    if (!at) throw new Error('sin pista de audio');
+    const codec = at.codec;
+    const sink = new MB.EncodedPacketSink(at);
+    if (codec === 'aac') {
+      const meta = { decoderConfig: await at.getDecoderConfig() }, packets = [];
+      for await (const k of sink.packets()) packets.push(new MB.EncodedPacket(k.data, k.type, k.timestamp - t0in, k.duration));
+      return { packets, meta, how: 'copia AAC' };
+    }
+    const RAW = { ac3: 'ac3', eac3: 'eac3', mp3: 'mp3', mp2: 'mp3' }[codec];
+    if (!RAW) throw new Error('códec de audio ' + codec);
+    const parts = []; let size = 0, a0 = null;
+    for await (const k of sink.packets()) { if (a0 === null) a0 = k.timestamp - t0in; parts.push(k.data); size += k.data.length; }
+    const raw = new Uint8Array(size); let o = 0; for (const d of parts) { raw.set(d, o); o += d.length; }
+    await ffmpeg.writeFile('/a.raw', raw);
+    if (await hasNativeAAC()) {
+      onProg = null;
+      await ffmpeg.exec(['-f', RAW, '-i', '/a.raw', '-f', 'f32le', '-ac', '2', '-ar', '48000', '/a.pcm']);
+      await ffmpeg.deleteFile('/a.raw');
+      const pcm = await ffmpeg.readFile('/a.pcm'); await ffmpeg.deleteFile('/a.pcm');
+      const f32 = new Float32Array(pcm.buffer, pcm.byteOffset, pcm.byteLength >> 2);
+      const packets = []; let meta = null, aerr = null;
+      const ae = new AudioEncoder({
+        output: (c, m) => { if (!meta && m && m.decoderConfig) meta = { decoderConfig: m.decoderConfig }; packets.push(MB.EncodedPacket.fromEncodedChunk(c)); },
+        error: e => aerr = e,
+      });
+      ae.configure({ codec: 'mp4a.40.2', sampleRate: 48000, numberOfChannels: 2, bitrate: 320000, aac: { format: 'aac' } });
+      const frames = f32.length / 2, step = 48000;
+      for (let i = 0; i < frames; i += step) {
+        const n = Math.min(step, frames - i);
+        ae.encode(new AudioData({ format: 'f32', sampleRate: 48000, numberOfFrames: n, numberOfChannels: 2, timestamp: Math.round((a0 + i / 48000) * 1e6), data: f32.slice(i * 2, (i + n) * 2) }));
+        if (ae.encodeQueueSize > 20) await new Promise(r => ae.addEventListener('dequeue', r, { once: true }));
+        if (aerr) throw aerr;
+      }
+      await ae.flush(); ae.close();
+      if (aerr) throw aerr;
+      if (!meta || !packets.length) throw new Error('el codificador AAC no entregó datos');
+      return { packets, meta, how: 'AAC nativo' };
+    }
+    await ffmpeg.exec(['-f', RAW, '-i', '/a.raw', '-c:a', 'aac', '-aac_coder', 'fast', '-b:a', '320k', '-ar', '48000', '-ac', '2', '/a.m4a']);
+    await ffmpeg.deleteFile('/a.raw');
+    const bytes = await ffmpeg.readFile('/a.m4a'); await ffmpeg.deleteFile('/a.m4a');
+    const r = await audioFromM4A(bytes);
+    if (a0) r.packets = r.packets.map(k => new MB.EncodedPacket(k.data, k.type, k.timestamp + a0, k.duration));
+    return { ...r, how: 'AAC (pista de audio sola)' };
+  } catch (e) {
+    log('audio rápido no disponible: ' + e.message + ' · se usa el método completo');
+    for (const x of ['/a.raw', '/a.pcm']) { try { await ffmpeg.deleteFile(x); } catch (_) { } }
+    onProg = t => { item.pct = Math.min(4, t / (p.dur || 1) * 4); paint(item); status(`Extrayendo audio de ${item.f.name} · ${Math.min(100, Math.floor(t / (p.dur || 1) * 100))}%`); };
+    await ffmpeg.exec(['-i', src, '-vn', '-sn', '-dn', '-map', '0:a:0', ...(p.aac ? ['-c:a', 'copy'] : ['-c:a', 'aac', '-aac_coder', 'fast', '-b:a', '320k', '-ar', '48000', '-ac', '2']), '/a.m4a']);
+    onProg = null;
+    const bytes = await ffmpeg.readFile('/a.m4a'); await ffmpeg.deleteFile('/a.m4a');
+    return { ...(await audioFromM4A(bytes)), how: 'completo' };
+  }
+}
+
+
+// ===================== DESENTRELAZADO CON TODOS LOS NÚCLEOS DEL PROCESADOR =====================
+// Cada núcleo reconstruye campos completos (conserva la línea real donde no hay movimiento e interpola donde sí),
+// mientras la tarjeta de video codifica y escala a HD/4K.
+const DEINT_SRC = `
+onmessage = e => {
+  const { id, buf, planes, fields } = e.data;
+  const src = new Uint8Array(buf), outs = [];
+  for (const f of fields) {
+    const out = new Uint8Array(src.length);
+    for (const P of planes) {
+      const W = P.w, H = P.h, o = P.off, thr = P.thr;
+      for (let y = 0; y < H; y++) {
+        const row = o + y * W;
+        if ((y & 1) === f) { out.set(src.subarray(row, row + W), row); continue; }
+        const ra = o + (y > 0 ? y - 1 : y + 1) * W, rb = o + (y + 1 < H ? y + 1 : y - 1) * W;
+        for (let x = 0; x < W; x++) {
+          const a = src[ra + x], b = src[rb + x], t = src[row + x];
+          const lo = a < b ? a : b, hi = a < b ? b : a;
+          out[row + x] = (t >= lo - thr && t <= hi + thr) ? t : ((a + b + 1) >> 1);
+        }
+      }
+    }
+    outs.push(out.buffer);
+  }
+  postMessage({ id, buf, outs }, [buf, ...outs]);
+};`;
+function makeDeintPool() {
+  const n = Math.max(2, Math.min((navigator.hardwareConcurrency || 4) - 2, 12));
+  const url = URL.createObjectURL(new Blob([DEINT_SRC], { type: 'text/javascript' }));
+  const ws = [], idle = [], waiting = [], cb = new Map(); let seq = 0;
+  for (let i = 0; i < n; i++) {
+    const w = new Worker(url);
+    w.onmessage = e => { const r = cb.get(e.data.id); cb.delete(e.data.id); idle.push(w); next(); r.ok(e.data); };
+    w.onerror = e => { const r = [...cb.values()][0]; r && r.no(new Error('Núcleo: ' + (e.message || 'error'))); };
+    ws.push(w); idle.push(w);
+  }
+  function next() { while (idle.length && waiting.length) { const w = idle.pop(), j = waiting.shift(); w.postMessage(j.msg, [j.msg.buf]); } }
+  return {
+    size: n,
+    run(msg) { return new Promise((ok, no) => { msg.id = ++seq; cb.set(msg.id, { ok, no }); waiting.push({ msg }); next(); }); },
+    close() { ws.forEach(w => w.terminate()); URL.revokeObjectURL(url); },
+  };
+}
+
 async function convertGPU(item, opt = {}) {
   const F = FMT[fmt], f = item.f;
   MB = MB || await import('./lib/mediabunny.min.js');
   const mnt = '/in' + Date.now();
   await ffmpeg.createDir(mnt); await ffmpeg.mount('WORKERFS', { files: [f] }, mnt);
   const src = `${mnt}/${f.name}`;
-  let output = null, writable = null, dec = null, enc = null;
+  let output = null, writable = null, dec = null, enc = null, poolRef = null;
   const pend = [];
   try {
     item.state = 'Analizando'; item.cls = 'run'; render();
     const p = await probe(src);
     // UNA sola pasada de ffmpeg: análisis de entrelazado (primeros cuadros) + audio completo
-    item.state = p.hasAudio ? 'Analizando y extrayendo audio' : 'Analizando cuadros'; render();
+    item.state = 'Analizando cuadros'; render();
     {
       const lines = []; onLog = m => lines.push(m);
       onProg = t => { item.pct = Math.min(4, t / (p.dur || 1) * 4); paint(item); };
-      const args = ['-i', src];
-      if (p.hasAudio) args.push('-map', '0:a:0', ...(p.aac ? ['-c:a', 'copy'] : ['-c:a', 'aac', '-b:a', '320k', '-ar', '48000', '-ac', '2']), '/a.m4a');
-      args.push('-map', '0:v:0', '-an', '-frames:v', '300', '-vf', 'idet', '-f', 'null', '-');
-      await ffmpeg.exec(args); onLog = null; onProg = null;
+      // análisis: sólo 300 cuadros (segundos); el audio aparte SIN decodificar el video (antes esto tardaba minutos)
+      await ffmpeg.exec(['-i', src, '-map', '0:v:0', '-an', '-frames:v', '300', '-vf', 'idet', '-f', 'null', '-']); onLog = null;
+      onProg = null;
       const ml = lines.filter(l => /Multi frame detection/.test(l)).pop() || '';
       const g = k => +((new RegExp(k + ':\\s*(\\d+)').exec(ml) || [])[1] || 0);
       const tff = g('TFF'), bff = g('BFF'), prog = g('Progressive');
@@ -561,7 +679,7 @@ async function convertGPU(item, opt = {}) {
     item.info = `${sw}×${sh} ${p.interlaced ? 'entrelazado' : 'progresivo'} ${fpsIn.toFixed(2)} fps · ${fmtT(dur)} → ${F.w}×${F.h} ${fx.toFixed(2)} fps ${codecName} · ${useHW ? 'tarjeta de video' : 'códec nativo'}${direct ? ' · ruta directa' : ''}`;
     render();
 
-    const R = direct ? null : makeRenderer(F.w, F.h, fmt === '4k' ? 0.45 : 0.25);
+    let R = null, cpu = null, cpuInfo = null; const jobs = [], bufs = [];
     const name = outName(f); let finish;
     if (dirHandle) { const fh = await dirHandle.getFileHandle(name, { create: true }); writable = await fh.createWritable(); finish = async () => null; }
     else {
@@ -577,11 +695,11 @@ async function convertGPU(item, opt = {}) {
 
     let apk = [], ai = 0, aMeta = null;
     if (asrc) {
-      const abytes = await ffmpeg.readFile('/a.m4a'); await ffmpeg.deleteFile('/a.m4a');
-      const ainput = new MB.Input({ formats: MB.ALL_FORMATS, source: new MB.BufferSource(abytes) });
-      const at = await ainput.getPrimaryAudioTrack();
-      aMeta = { decoderConfig: await at.getDecoderConfig() };
-      for await (const k of new MB.EncodedPacketSink(at).packets()) apk.push(k);
+      item.state = 'Extrayendo audio'; render();
+      const ta = performance.now();
+      const A = await getAudio(item, src, p, input, t0in);
+      apk = A.packets; aMeta = A.meta;
+      log(`audio (${A.how}): ${((performance.now() - ta) / 1000).toFixed(1)} s, ${apk.length} paquetes`);
     }
     const pushAudioUntil = async t => { while (ai < apk.length && apk[ai].timestamp <= t) { await asrc.add(apk[ai], ai === 0 ? aMeta : undefined); ai++; } };
 
@@ -619,6 +737,17 @@ async function convertGPU(item, opt = {}) {
     const encode = (frame, tOut) => {
       enc.encode(frame, { keyFrame: nOut % gop === 0 }); frame.close(); nOut++;
     };
+    async function drainJob() {
+      const j = jobs.shift(); const r = await j.job; bufs.push(r.buf);
+      for (let k = 0; k < r.outs.length; k++) {
+        const tOut = Math.round((j.ts + k * half) * fx) / fx;
+        if (tOut <= lastT + 1e-6) continue;
+        lastT = tOut;
+        const I = cpuInfo;
+        encode(new VideoFrame(new Uint8Array(r.outs[k]), { format: I.format, codedWidth: I.w, codedHeight: I.h, displayWidth: I.dw, displayHeight: I.dh, colorSpace: I.cs, timestamp: Math.round(tOut * 1e6), duration: Math.round(1e6 / fx), transfer: [r.outs[k]] }), tOut);
+        while (!err && enc.encodeQueueSize > 10) await waitSig();
+      }
+    }
     const feed = (async () => {
       for await (const k of new MB.EncodedPacketSink(vt).packets()) {
         if (err) return;
@@ -643,16 +772,36 @@ async function convertGPU(item, opt = {}) {
           if (first) {
             first = false;
             if (fieldOrder && p.h && fr.displayHeight < p.h * 0.75) { fieldOrder = 0; log('GPU: el decodificador entrega campos sueltos'); }
-            R.setInterlaced(!!fieldOrder);
+            const aspectOK = Math.abs(sw / sh - F.w / F.h) < 0.02;
+            if (fieldOrder && aspectOK && (fr.format === 'I420' || fr.format === 'NV12') && !new URLSearchParams(location.search).has('gl')) {
+              cpu = poolRef = makeDeintPool();
+              const w = fr.visibleRect.width, h = fr.visibleRect.height, cw = (w + 1) >> 1, chh = (h + 1) >> 1;
+              const nv = fr.format === 'NV12';
+              cpuInfo = {
+                w, h, format: fr.format, dw: fr.displayWidth, dh: fr.displayHeight, cs: fr.colorSpace && fr.colorSpace.toJSON ? fr.colorSpace.toJSON() : undefined,
+                size: nv ? w * h + cw * 2 * chh : w * h + 2 * cw * chh,
+                layout: nv ? [{ offset: 0, stride: w }, { offset: w * h, stride: cw * 2 }] : [{ offset: 0, stride: w }, { offset: w * h, stride: cw }, { offset: w * h + cw * chh, stride: cw }],
+                planes: nv ? [{ off: 0, w, h, thr: 8 }, { off: w * h, w: cw * 2, h: chh, thr: 6 }] : [{ off: 0, w, h, thr: 8 }, { off: w * h, w: cw, h: chh, thr: 6 }, { off: w * h + cw * chh, w: cw, h: chh, thr: 6 }],
+              };
+              item.info += ` · desentrelazado en ${cpu.size} núcleos del procesador`; render();
+              log(`CPU: desentrelazado en ${cpu.size} núcleos · ${fr.format} ${w}×${h} · la tarjeta codifica y escala a ${F.w}×${F.h}`);
+            } else { R = makeRenderer(F.w, F.h, fmt === '4k' ? 0.45 : 0.25); R.setInterlaced(!!fieldOrder); }
           }
-          await R.upload(fr);
           const fields = fieldOrder ? (bothFields ? [fieldOrder, 3 - fieldOrder] : [fieldOrder]) : [0];
-          for (let k = 0; k < fields.length; k++) {
-            const tOut = Math.round((ts + k * half) * fx) / fx;
-            if (tOut <= lastT + 1e-6) continue;
-            lastT = tOut;
-            R.draw(fields[k]);
-            encode(new VideoFrame(R.canvas, { timestamp: Math.round(tOut * 1e6), duration: Math.round(1e6 / fx) }), tOut);
+          if (cpu) {
+            const buf = bufs.pop() || new ArrayBuffer(cpuInfo.size);
+            await fr.copyTo(buf, { layout: cpuInfo.layout });
+            jobs.push({ ts, fields, job: cpu.run({ buf, planes: cpuInfo.planes, fields: fields.map(x => x - 1) }) });
+            while (jobs.length >= cpu.size * 2) await drainJob();
+          } else {
+            await R.upload(fr);
+            for (let k = 0; k < fields.length; k++) {
+              const tOut = Math.round((ts + k * half) * fx) / fx;
+              if (tOut <= lastT + 1e-6) continue;
+              lastT = tOut;
+              R.draw(fields[k]);
+              encode(new VideoFrame(R.canvas, { timestamp: Math.round(tOut * 1e6), duration: Math.round(1e6 / fx) }), tOut);
+            }
           }
         }
       } finally { fr.close(); }
@@ -661,6 +810,7 @@ async function convertGPU(item, opt = {}) {
       if (now - lastPaint > 250) { lastPaint = now; const done = Math.min(1, ts / dur); item.pct = 4 + done * 96; eta(item, t0, done); paint(item); }
     }
     await feed; if (err) throw err;
+    while (jobs.length) await drainJob();
     await enc.flush(); await mux; if (err) throw err;
     if (asrc) await pushAudioUntil(Infinity);
     await output.finalize(); output = null;
@@ -671,6 +821,7 @@ async function convertGPU(item, opt = {}) {
     window.__lastSpeed = nOut / secs;
   } finally {
     onProg = null;
+    if (poolRef) poolRef.close();
     for (const x of [dec, enc]) { try { x && x.state !== 'closed' && x.close(); } catch (e) { } }
     if (output) { try { await output.cancel(); } catch (e) { } }
     try { await ffmpeg.unmount(mnt); await ffmpeg.deleteDir(mnt); } catch (e) { }
